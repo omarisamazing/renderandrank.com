@@ -1,0 +1,149 @@
+---
+/**
+ * Shared layout for the service detail pages. They differ only by data, so they
+ * share one template rather than three near-identical copies.
+ */
+import Section from './ui/Section.astro';
+import Eyebrow from './ui/Eyebrow.astro';
+import Button from './ui/Button.astro';
+import BookCallButton from './BookCallButton.astro';
+import type { Service } from '../data/services';
+import { Check } from '@lucide/astro';
+
+interface Props {
+  service: Service;
+  /** Which pastel ground the process block sits on. */
+  block?: 'lime' | 'lilac' | 'cream' | 'mint' | 'coral' | 'pink';
+  lede?: string;
+}
+
+const { service, block = 'cream', lede } = Astro.props;
+
+const blockClass = {
+  lime: 'color-block-lime',
+  lilac: 'color-block-lilac',
+  cream: 'color-block-cream',
+  mint: 'color-block-mint',
+  coral: 'color-block-coral',
+  pink: 'color-block-pink',
+}[block];
+---
+
+<!-- Header -->
+<div class="border-b border-hairline bg-canvas py-16 md:py-20">
+  <div class="container-page">
+    <div class="mx-auto max-w-3xl text-center" data-reveal-group>
+      <Eyebrow data-reveal>{service.badgeText}</Eyebrow>
+
+      <h1 class="display-lg mt-4 text-ink" data-reveal>{service.title}</h1>
+
+      <p class="subhead mt-5 text-ink" data-reveal>{service.shortDescription}</p>
+
+      <div
+        class="mt-9 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center"
+        data-reveal
+      >
+        <BookCallButton size="lg" label="Book a discovery call" />
+        <Button href="/calculator" variant="secondary" size="lg">
+          Estimate the upside
+        </Button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Outcomes -->
+<Section divider>
+  <dl class="mx-auto grid max-w-4xl gap-6 sm:grid-cols-3" data-reveal-group>
+    {
+      service.metrics.map((metric) => (
+        <div class="rounded-lg border border-hairline bg-canvas p-6 text-center" data-reveal>
+          <dt class="sr-only">{metric.label}</dt>
+          <dd>
+            <span class="stat numeric block text-ink">{metric.value}</span>
+            <span class="body-sm mt-2 block text-ink">{metric.label}</span>
+          </dd>
+        </div>
+      ))
+    }
+  </dl>
+</Section>
+
+<!-- The case, and what you get -->
+<Section divider>
+  <div class="grid gap-10 lg:grid-cols-12 lg:gap-14">
+    <div class="lg:col-span-5" data-reveal-group>
+      <Eyebrow data-reveal>Why it matters</Eyebrow>
+      <h2 class="display-md mt-4 text-ink" data-reveal>
+        {lede ?? 'What this work actually changes'}
+      </h2>
+      <p class="body mt-5 text-ink" data-reveal>{service.fullDescription}</p>
+    </div>
+
+    <div class="lg:col-span-7" data-reveal>
+      <Eyebrow class="block">What you get</Eyebrow>
+      <ul class="mt-5 grid gap-x-6 gap-y-3.5 sm:grid-cols-2">
+        {
+          service.deliverables.map((item) => (
+            <li class="flex gap-2.5">
+              <Check class="mt-0.5 size-4 shrink-0 text-success" aria-hidden="true" />
+              <span class="body-sm text-ink">{item}</span>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </div>
+</Section>
+
+<!-- Process, on a colour block -->
+<Section>
+  <div class:list={['color-block color-block--bleed', blockClass]}>
+    <div class="mx-auto max-w-2xl text-center" data-reveal-group>
+      <Eyebrow tone="on-block" data-reveal>The sequence</Eyebrow>
+      <h2 class="display-md mt-4 text-ink" data-reveal>How it runs, stage by stage</h2>
+    </div>
+
+    <ol class="mt-12 grid gap-5 md:mt-14 md:grid-cols-2" data-reveal-group>
+      {
+        service.process.map((step, i) => (
+          <li class="rounded-lg border border-black/8 bg-canvas p-6" data-reveal>
+            <span
+              class="numeric flex size-9 items-center justify-center rounded-full bg-surface-soft text-[0.9375rem] font-medium text-ink"
+              aria-hidden="true"
+            >
+              {i + 1}
+            </span>
+            <h3 class="card-title mt-4 text-ink">{step.title}</h3>
+            <p class="body-sm mt-2.5 text-ink">{step.desc}</p>
+          </li>
+        ))
+      }
+    </ol>
+  </div>
+</Section>
+
+<!-- Service-specific questions -->
+{
+  service.faqs.length > 0 && (
+    <Section divider>
+      <div class="mx-auto max-w-3xl">
+        <div data-reveal-group>
+          <Eyebrow data-reveal>Questions</Eyebrow>
+          <h2 class="display-md mt-4 text-ink" data-reveal>
+            About {service.title.toLowerCase()}
+          </h2>
+        </div>
+
+        <dl class="mt-10 flex flex-col divide-y divide-hairline border-y border-hairline">
+          {service.faqs.map((faq) => (
+            <div class="py-7">
+              <dt class="card-title text-ink">{faq.q}</dt>
+              <dd class="body mt-3 text-ink">{faq.a}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    </Section>
+  )
+}

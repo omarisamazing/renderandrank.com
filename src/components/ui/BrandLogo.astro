@@ -1,0 +1,70 @@
+---
+/**
+ * Wordmark lockup. No symbol mark — the type *is* the mark, set in Fuuld
+ * (public/fonts/fuuld.woff2).
+ *
+ * Fuuld's trial cut covers A–Z a–z 0–9 ! , - . ? only, so the ampersand is set
+ * in Inter at a lighter weight and optically reduced — a deliberate pairing,
+ * not a fallback. The `stacked` variant reproduces the supplied artwork
+ * lockup, which carries no ampersand at all.
+ */
+interface Props {
+  class?: string;
+  size?: 'sm' | 'md' | 'lg' | 'xl' | 'display';
+  variant?: 'inline' | 'stacked';
+  tone?: 'ink' | 'inverse';
+}
+
+const {
+  class: className = '',
+  size = 'md',
+  variant = 'inline',
+  tone = 'ink',
+} = Astro.props;
+
+const sizes = {
+  sm: 'text-[1.0625rem]',
+  md: 'text-[1.3125rem]',
+  lg: 'text-[1.625rem]',
+  xl: 'text-[2.25rem]',
+  display: 'text-[clamp(3.5rem,12vw,9rem)]',
+} as const;
+
+const toneClass = tone === 'inverse' ? 'text-inverse-ink' : 'text-ink';
+---
+
+{
+  variant === 'stacked' ? (
+    <span
+      class:list={[
+        'font-display block leading-[0.86] tracking-[-0.035em] lowercase',
+        sizes[size],
+        toneClass,
+        className,
+      ]}
+      aria-label="Render and Rank"
+      translate="no"
+    >
+      <span class="block" aria-hidden="true">Render</span>
+      <span class="block" aria-hidden="true">Rank</span>
+    </span>
+  ) : (
+    <span
+      class:list={[
+        'font-display inline-flex items-baseline whitespace-nowrap leading-none tracking-[-0.035em]',
+        sizes[size],
+        toneClass,
+        className,
+      ]}
+      aria-label="Render and Rank"
+      translate="no"
+    >
+      <span aria-hidden="true">Render</span>
+      <span
+        class="font-sans font-light px-[0.14em] text-[0.78em] translate-y-[-0.03em]"
+        aria-hidden="true">&amp;</span
+      >
+      <span aria-hidden="true">Rank</span>
+    </span>
+  )
+}

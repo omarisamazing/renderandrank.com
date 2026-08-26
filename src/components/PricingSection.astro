@@ -1,0 +1,50 @@
+---
+import Section from './ui/Section.astro';
+import Eyebrow from './ui/Eyebrow.astro';
+import { PricingTabs } from './pricing/PricingTabs';
+import { oneTimePricing, monthlyPricing } from '../data/pricing';
+import { siteConfig } from '../config/site';
+
+interface Props {
+  /** The pricing page has its own page header, so it suppresses this one. */
+  showHeader?: boolean;
+}
+
+const { showHeader = true } = Astro.props;
+const { calCom } = siteConfig;
+---
+
+<Section id="pricing" divider>
+  {
+    showHeader && (
+      <div class="mx-auto max-w-2xl text-center" data-reveal-group>
+        <Eyebrow data-reveal>Pricing</Eyebrow>
+        <h2 class="display-md mt-4 text-ink" data-reveal>
+          Published rates. No contracts.
+        </h2>
+        <p class="subhead mt-5 text-ink" data-reveal>
+          Start with a one-time cleanup to fix the foundation, or run a monthly
+          retainer to keep the rankings. Cancel a retainer whenever you like.
+        </p>
+      </div>
+    )
+  }
+
+  <div class:list={[showHeader && 'mt-12 md:mt-14']} data-reveal>
+    <PricingTabs
+      client:visible
+      oneTime={oneTimePricing}
+      monthly={monthlyPricing}
+      calNamespace={calCom.namespace}
+      calLink={calCom.eventLink}
+    />
+  </div>
+
+  <p class="body-sm mx-auto mt-12 max-w-xl text-center text-ink">
+    Multi-location or franchise coverage? <a
+      href="/contact"
+      class="font-medium underline decoration-hairline underline-offset-4 transition-colors hover:decoration-ink"
+      >Ask about custom scope</a
+    >.
+  </p>
+</Section>

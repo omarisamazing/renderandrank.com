@@ -1,0 +1,74 @@
+---
+import { navLinks, siteConfig } from '../config/site';
+import BrandLogo from './ui/BrandLogo.astro';
+import Button from './ui/Button.astro';
+import BookCallButton from './BookCallButton.astro';
+import { ServicesMenu } from './nav/ServicesMenu';
+import { MobileNav } from './nav/MobileNav';
+
+const currentPath = Astro.url.pathname;
+const { calCom } = siteConfig;
+
+const isActive = (href: string) =>
+  currentPath === href || (href !== '/' && currentPath.startsWith(href));
+---
+
+<header
+  class="sticky top-0 z-50 w-full border-b border-hairline bg-canvas/90 backdrop-blur-md"
+>
+  <div class="container-page flex h-16 items-center justify-between gap-6">
+    <a
+      href="/"
+      class="rounded-xs focus-visible:outline-2 focus-visible:outline-offset-4"
+    >
+      <BrandLogo size="md" />
+    </a>
+
+    <!-- Desktop links -->
+    <nav aria-label="Main" class="hidden items-center gap-0.5 lg:flex">
+      {
+        navLinks.map((link) =>
+          link.children ? (
+            <ServicesMenu
+              client:idle
+              label={link.name}
+              href={link.href}
+              items={link.children}
+            />
+          ) : (
+            <a
+              href={link.href}
+              aria-current={isActive(link.href) ? 'page' : undefined}
+              class:list={[
+                'label flex h-10 items-center rounded-pill px-3.5 transition-colors',
+                isActive(link.href)
+                  ? 'bg-surface-soft text-ink'
+                  : 'text-ink hover:bg-surface-soft',
+              ]}
+            >
+              {link.name}
+            </a>
+          )
+        )
+      }
+    </nav>
+
+    <!-- Actions -->
+    <div class="flex items-center gap-2.5">
+      <Button href="/contact" variant="secondary" size="sm" class="hidden sm:inline-flex">
+        Free audit
+      </Button>
+      <BookCallButton size="sm" withIcon={false} />
+
+      <div class="lg:hidden">
+        <MobileNav
+          client:load
+          links={navLinks}
+          currentPath={currentPath}
+          calNamespace={calCom.namespace}
+          calLink={calCom.eventLink}
+        />
+      </div>
+    </div>
+  </div>
+</header>

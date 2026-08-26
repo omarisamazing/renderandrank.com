@@ -1,0 +1,72 @@
+{
+  "version": 1,
+  "skills": {
+    "agent-browser": {
+      "source": "vercel-labs/agent-browser",
+      "sourceType": "github",
+      "skillPath": "skills/agent-browser/SKILL.md",
+      "computedHash": "a8853bcca9385c4998ee2bfbe4139b52b51596dc2f45414a9ee712e3c0827cfd"
+    },
+    "astro": {
+      "source": "astrolicious/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/astro/SKILL.md",
+      "computedHash": "3a70f9666e7b6a03efb939b7e62938f4d3a6a5d956b2cc3c10011fda6ba27e9b"
+    },
+    "backend-patterns": {
+      "source": "affaan-m/ecc",
+      "sourceType": "github",
+      "skillPath": "skills/backend-patterns/SKILL.md",
+      "computedHash": "45bf0c6abd0549b56142690f49437bc59c7b4f55b62dc7717ef295ec6ed6617f"
+    },
+    "copywriting": {
+      "source": "coreyhaines31/marketingskills",
+      "sourceType": "github",
+      "skillPath": "skills/copywriting/SKILL.md",
+      "computedHash": "81ce7ad67c2e99e96148f47c2816678bd1ebfc831cb455e836441f2c65ccf815"
+    },
+    "grill-me": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/productivity/grill-me/SKILL.md",
+      "computedHash": "5e0c683385eafd83f106ac6c9d67dfbbfe5aa4b3fe65aad114eb1055a99c818f"
+    },
+    "programmatic-seo": {
+      "source": "coreyhaines31/marketingskills",
+      "sourceType": "github",
+      "skillPath": "skills/programmatic-seo/SKILL.md",
+      "computedHash": "a53dc8741b0df338766ef8fc7d704bdfc75b8c8e7e1b1b2a5947d81d8c9508ff"
+    },
+    "shadcn": {
+      "source": "shadcn-ui/ui",
+      "sourceType": "github",
+      "skillPath": "skills/shadcn/SKILL.md",
+      "computedHash": "f99ef49d9909d380ca683ceb8dc8c25775c20ee38140112c394e037d8c11ee18"
+    },
+    "tailwind-4-docs": {
+      "source": "lombiq/tailwind-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/tailwind-4-docs/SKILL.md",
+      "computedHash": "4900f575f24641b1af459cda37cbb8438ecf3f8f1a63148384197cb730895093"
+    },
+    "unslop": {
+      "source": "cursor/plugins",
+      "ref": "main",
+      "sourceType": "github",
+      "skillPath": "pstack/skills/unslop/SKILL.md",
+      "computedHash": "d8593c3deff559acd5933ebb3023dab22c939b9adcac5deda75beeb0277342a0"
+    },
+    "ux-writing": {
+      "source": "content-designer/ux-writing-skill",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "fe3b9784bab415aa6a857609bab222348ed514537d3dfecbd7c007aeaf945125"
+    },
+    "web-design-guidelines": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/web-design-guidelines/SKILL.md",
+      "computedHash": "d8e7d3afe37dcc8a97b99ffb5afdb4d0919ae0092ea8b68f44eb201f035e33ac"
+    }
+  }
+}

@@ -1,0 +1,73 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Section from '../components/ui/Section.astro';
+import Eyebrow from '../components/ui/Eyebrow.astro';
+import FounderSection from '../components/FounderSection.astro';
+import TestimonialsSection from '../components/TestimonialsSection.astro';
+import CtaBanner from '../components/CtaBanner.astro';
+
+const principles = [
+  {
+    title: 'Code and data over adjectives',
+    body: 'Search engines parse schema, entity relationships, citation consistency and geo-signals. They do not read positioning statements. So we build the parseable part properly and skip the rest.',
+  },
+  {
+    title: 'The person you hire is the person who works',
+    body: 'No coordinators relaying messages, no discovery call with a closer followed by delivery from someone else. Omar takes the call and does the work.',
+  },
+  {
+    title: 'Calls are the only metric that pays a mortgage',
+    body: 'Impressions and traffic are diagnostics, not results. We report on calls, booked estimates and closed revenue, and judge the engagement on those.',
+  },
+];
+---
+
+<Layout
+  title="About | Render and Rank"
+  description="Render and Rank is Omar Ali — a search engineer who works directly with local business owners on Maps, answer engines and citation accuracy."
+>
+  <div class="border-b border-hairline bg-canvas py-16 md:py-20">
+    <div class="container-page">
+      <div class="mx-auto max-w-2xl text-center" data-reveal-group>
+        <Eyebrow data-reveal>About</Eyebrow>
+        <h1 class="display-lg mt-4 text-ink" data-reveal>
+          A search engineer, not an agency
+        </h1>
+        <p class="subhead mt-5 text-ink" data-reveal>
+          Local owners are competing against national brands with real budgets. The
+          way to win is technical precision, applied consistently, by someone who
+          answers the phone.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <FounderSection />
+
+  <Section divider>
+    <div class="mx-auto max-w-2xl text-center" data-reveal-group>
+      <Eyebrow data-reveal>How we work</Eyebrow>
+      <h2 class="display-md mt-4 text-ink" data-reveal>Three things we hold to</h2>
+    </div>
+
+    <div class="mx-auto mt-12 grid max-w-5xl gap-6 md:mt-16 md:grid-cols-3" data-reveal-group>
+      {
+        principles.map((item, i) => (
+          <div class="rounded-lg border border-hairline bg-canvas p-6 md:p-7" data-reveal>
+            <span
+              class="numeric flex size-10 items-center justify-center rounded-full bg-surface-soft text-[0.9375rem] font-medium text-ink"
+              aria-hidden="true"
+            >
+              {i + 1}
+            </span>
+            <h3 class="card-title mt-5 text-ink">{item.title}</h3>
+            <p class="body-sm mt-3 text-ink">{item.body}</p>
+          </div>
+        ))
+      }
+    </div>
+  </Section>
+
+  <TestimonialsSection />
+  <CtaBanner />
+</Layout>

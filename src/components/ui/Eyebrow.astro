@@ -1,0 +1,51 @@
+---
+/**
+ * Section marker. Sans, uppercase, tracked — the taxonomy label that sits above
+ * a headline. Replaces the mono eyebrow this site used to lean on.
+ */
+interface Props {
+  class?: string;
+  /** Renders as a bordered pill rather than bare text. */
+  pill?: boolean;
+  tone?: 'ink' | 'inverse' | 'on-block';
+  [key: string]: unknown;
+}
+
+const {
+  class: className = '',
+  pill = false,
+  tone = 'ink',
+  ...rest
+} = Astro.props;
+
+const tones = {
+  ink: 'text-ink',
+  inverse: 'text-inverse-ink',
+  'on-block': 'text-ink',
+} as const;
+
+const pillTones = {
+  ink: 'bg-canvas border-hairline text-ink',
+  inverse: 'bg-white/12 border-white/15 text-inverse-ink',
+  'on-block': 'bg-canvas border-black/8 text-ink',
+} as const;
+---
+
+{
+  pill ? (
+    <span
+      class:list={[
+        'eyebrow inline-flex items-center gap-2 rounded-pill border px-3 py-1.5',
+        pillTones[tone],
+        className,
+      ]}
+      {...rest}
+    >
+      <slot />
+    </span>
+  ) : (
+    <span class:list={['eyebrow inline-block', tones[tone], className]} {...rest}>
+      <slot />
+    </span>
+  )
+}

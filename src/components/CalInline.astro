@@ -1,0 +1,47 @@
+---
+/**
+ * Inline Cal.com scheduler. Reuses the namespace initialised by
+ * `CalScript.astro`, so the embed script is fetched once per page.
+ */
+import { siteConfig } from '../config/site';
+
+interface Props {
+  class?: string;
+  minHeight?: number;
+}
+
+const { class: className = '', minHeight = 660 } = Astro.props;
+const { calCom } = siteConfig;
+---
+
+<div
+  id="cal-inline"
+  class:list={['w-full', className]}
+  style={`min-height:${minHeight}px`}
+>
+  <noscript>
+    <p class="body-sm p-6">
+      The scheduler needs JavaScript. You can also book directly at
+      <a
+        class="font-medium underline underline-offset-4"
+        href={`https://cal.com/${calCom.eventLink}`}
+        >cal.com/{calCom.eventLink}</a
+      >, or email
+      <a
+        class="font-medium underline underline-offset-4"
+        href={`mailto:${siteConfig.contact.email}`}>{siteConfig.contact.email}</a
+      >.
+    </p>
+  </noscript>
+</div>
+
+<script
+  is:inline
+  define:vars={{ namespace: calCom.namespace, link: calCom.eventLink }}
+>
+  Cal.ns[namespace]('inline', {
+    elementOrSelector: '#cal-inline',
+    calLink: link,
+    config: { layout: 'month_view' },
+  });
+</script>

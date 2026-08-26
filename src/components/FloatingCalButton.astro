@@ -1,0 +1,79 @@
+---
+/**
+ * Persistent booking affordance. Stays out of the way until the visitor has
+ * scrolled past the hero, then slides in and opens the Cal.com modal in place.
+ * Dismissible, and it remembers the dismissal for the session.
+ */
+import { siteConfig } from '../config/site';
+import { Calendar, X } from '@lucide/astro';
+
+const { calCom } = siteConfig;
+---
+
+<div
+  id="floating-book"
+  class="pointer-events-none fixed inset-x-4 bottom-4 z-40 flex justify-center sm:inset-x-auto sm:right-6 sm:bottom-6 sm:justify-end"
+  data-state="hidden"
+>
+  <div
+    class="pointer-events-auto flex items-center gap-1 rounded-pill border border-white/12 bg-inverse-canvas p-1 opacity-0 shadow-[0_8px_28px_rgba(0,0,0,0.18)] transition-[opacity,transform] duration-300 ease-brand translate-y-3 data-[visible]:translate-y-0 data-[visible]:opacity-100"
+    id="floating-book-inner"
+  >
+    <a
+      href="/book-a-call"
+      class="flex items-center gap-2.5 rounded-pill px-4 py-2.5 text-inverse-ink transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-inverse-ink"
+      data-cal-namespace={calCom.namespace}
+      data-cal-link={calCom.eventLink}
+      data-cal-config={JSON.stringify({ layout: 'month_view' })}
+    >
+      <Calendar class="size-4 shrink-0" aria-hidden="true" />
+      <span class="label">Book a {calCom.duration} call</span>
+    </a>
+
+    <button
+      type="button"
+      id="floating-book-dismiss"
+      class="flex size-9 shrink-0 items-center justify-center rounded-full text-inverse-ink transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-inverse-ink"
+      aria-label="Dismiss booking prompt"
+    >
+      <X class="size-4" aria-hidden="true" />
+    </button>
+  </div>
+</div>
+
+<script>
+  const KEY = 'rr:booking-prompt-dismissed';
+  const wrapper = document.getElementById('floating-book');
+  const inner = document.getElementById('floating-book-inner');
+  const dismiss = document.getElementById('floating-book-dismiss');
+
+  if (wrapper && inner && dismiss) {
+    if (sessionStorage.getItem(KEY) === '1') {
+      wrapper.remove();
+    } else {
+      // A zero-height sentinel at one viewport down is cheaper than a scroll
+      // listener and keeps the work off the main thread.
+      const sentinel = document.createElement('div');
+      sentinel.setAttribute('aria-hidden', 'true');
+      sentinel.style.cssText = 'position:absolute;top:100vh;height:1px;width:1px;';
+      document.body.appendChild(sentinel);
+
+      const observer = new IntersectionObserver(
+        ([entry]) => {
+          const past = entry.boundingClientRect.top < 0;
+          if (past) inner.setAttribute('data-visible', '');
+          else inner.removeAttribute('data-visible');
+        },
+        { threshold: 0 }
+      );
+      observer.observe(sentinel);
+
+      dismiss.addEventListener('click', () => {
+        sessionStorage.setItem(KEY, '1');
+        observer.disconnect();
+        inner.removeAttribute('data-visible');
+        window.setTimeout(() => wrapper.remove(), 300);
+      });
+    }
+  }
+</script>

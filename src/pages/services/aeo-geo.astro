@@ -1,0 +1,17 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import ServiceDetail from '../../components/ServiceDetail.astro';
+import CtaBanner from '../../components/CtaBanner.astro';
+import { services } from '../../data/services';
+
+const service = services.find((s) => s.slug === 'aeo-geo')!;
+---
+
+<Layout title={`${service.title} | Render and Rank`} description={service.shortDescription}>
+  <ServiceDetail
+    service={service}
+    block="lilac"
+    lede="When the answer replaces the search results"
+  />
+  <CtaBanner />
+</Layout>

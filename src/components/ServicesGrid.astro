@@ -1,0 +1,122 @@
+---
+import Section from './ui/Section.astro';
+import Eyebrow from './ui/Eyebrow.astro';
+import Button from './ui/Button.astro';
+import { ArrowRight, Bot, Check, MapPin, Link2 } from '@lucide/astro';
+
+const pillars = [
+  {
+    icon: MapPin,
+    tag: 'Core',
+    title: 'Google Maps 3-pack',
+    description:
+      'The top three Maps results take the majority of high-intent calls and direction taps. This is the work that gets you there.',
+    outcome: '3.8× more inbound calls',
+    deliverables: [
+      'Category and proximity calibration',
+      'Competitor spam and fake listing reports',
+      'Geotagged posts and engagement cycles',
+      'Review generation workflow',
+    ],
+    slug: 'google-maps',
+  },
+  {
+    icon: Bot,
+    tag: 'AI search',
+    title: 'Answer and generative engines',
+    description:
+      'When someone asks ChatGPT or Gemini who to call, the answer comes from structured data. We make sure yours is there to read.',
+    outcome: 'Named in AI answers',
+    deliverables: [
+      'JSON-LD schema: LocalBusiness, FAQ, Geo',
+      'Wikidata and authority entity linkage',
+      'Prompt calibration and verification',
+      'AI Overviews answer structuring',
+    ],
+    slug: 'aeo-geo',
+  },
+  {
+    icon: Link2,
+    tag: 'Foundation',
+    title: 'Citations and NAP accuracy',
+    description:
+      'Consistent business data across every registry that matters. Unglamorous, manual, and the reason the other two hold.',
+    outcome: '100% NAP consistency',
+    deliverables: [
+      'Manual tier-1 and tier-2 submissions',
+      'Duplicate suppression and corrections',
+      'Apple Business Connect and Bing Places',
+      'A live spreadsheet with every login',
+    ],
+    slug: 'local-seo',
+  },
+];
+---
+
+<Section id="services" divider>
+  <div class="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+    <div class="max-w-2xl" data-reveal-group>
+      <Eyebrow data-reveal>What we do</Eyebrow>
+      <h2 class="display-md mt-4 text-ink" data-reveal>
+        Three levers, worked in order
+      </h2>
+      <p class="subhead mt-5 text-ink" data-reveal>
+        No sprawling service menu. These are the things that move local rankings,
+        and they compound in this sequence.
+      </p>
+    </div>
+
+    <Button href="/services" variant="secondary" size="sm" class="self-start md:shrink-0">
+      <span>All capabilities</span>
+      <ArrowRight class="size-4" aria-hidden="true" />
+    </Button>
+  </div>
+
+  <div class="mt-12 grid gap-6 md:mt-16 md:grid-cols-3" data-reveal-group>
+    {
+      pillars.map((pillar, i) => (
+        <article
+          class="flex flex-col rounded-lg border border-hairline bg-canvas p-6 transition-colors hover:border-ink/25 md:p-7"
+          data-reveal
+        >
+          <div class="flex items-start justify-between gap-4">
+            <span
+              class="flex size-11 items-center justify-center rounded-full bg-surface-soft text-ink"
+            >
+              <pillar.icon class="size-5" aria-hidden="true" />
+            </span>
+            <span class="caption numeric text-ink">0{i + 1}</span>
+          </div>
+
+          <Eyebrow class="mt-6">{pillar.tag}</Eyebrow>
+
+          <h3 class="card-title mt-2.5 text-ink">{pillar.title}</h3>
+          <p class="body-sm mt-3 text-ink">{pillar.description}</p>
+
+          <p class="label mt-6 rounded-md bg-block-lime px-3.5 py-2.5 text-ink">
+            {pillar.outcome}
+          </p>
+
+          <ul class="mt-6 flex flex-1 flex-col gap-2.5 border-t border-hairline pt-6">
+            {pillar.deliverables.map((item) => (
+              <li class="flex gap-2.5">
+                <Check class="mt-0.5 size-4 shrink-0 text-success" aria-hidden="true" />
+                <span class="body-sm text-ink">{item}</span>
+              </li>
+            ))}
+          </ul>
+
+          <div class="mt-7 border-t border-hairline pt-5">
+            <a
+              href={`/services/${pillar.slug}`}
+              class="label inline-flex items-center gap-1.5 text-ink underline decoration-hairline decoration-1 underline-offset-4 transition-colors hover:decoration-ink"
+            >
+              <span>How this works</span>
+              <ArrowRight class="size-4" aria-hidden="true" />
+            </a>
+          </div>
+        </article>
+      ))
+    }
+  </div>
+</Section>

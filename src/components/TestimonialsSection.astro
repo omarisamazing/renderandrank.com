@@ -1,0 +1,58 @@
+---
+import Section from './ui/Section.astro';
+import Eyebrow from './ui/Eyebrow.astro';
+import { testimonials } from '../data/testimonials';
+import { Quote, Star } from '@lucide/astro';
+---
+
+<Section surface="soft" divider>
+  <div class="mx-auto max-w-2xl text-center" data-reveal-group>
+    <Eyebrow data-reveal>Results</Eyebrow>
+    <h2 class="display-md mt-4 text-ink" data-reveal>
+      What changed for the businesses we work with
+    </h2>
+  </div>
+
+  <div class="mt-12 grid gap-6 md:mt-16 md:grid-cols-2" data-reveal-group>
+    {
+      testimonials.map((t) => (
+        <figure
+          class="flex flex-col rounded-lg border border-hairline bg-canvas p-6 md:p-8"
+          data-reveal
+        >
+          <div class="flex items-start justify-between gap-4">
+            <Quote class="size-5 text-ink" aria-hidden="true" />
+            <span class="label rounded-pill bg-block-lime px-3 py-1 text-ink">
+              {t.metric}
+            </span>
+          </div>
+
+          <blockquote class="body mt-6 flex-1 text-ink">
+            {t.quote}
+          </blockquote>
+
+          <figcaption
+            class="mt-7 flex flex-wrap items-center justify-between gap-4 border-t border-hairline pt-6"
+          >
+            <div>
+              <p class="label text-ink">{t.name}</p>
+              <p class="caption mt-0.5 text-ink">
+                {t.role}, {t.company} &middot; {t.location}
+              </p>
+            </div>
+
+            <div
+              class="flex items-center gap-0.5"
+              role="img"
+              aria-label={`Rated ${t.rating} out of 5`}
+            >
+              {Array.from({ length: t.rating }).map(() => (
+                <Star class="size-3.5 fill-ink text-ink" aria-hidden="true" />
+              ))}
+            </div>
+          </figcaption>
+        </figure>
+      ))
+    }
+  </div>
+</Section>

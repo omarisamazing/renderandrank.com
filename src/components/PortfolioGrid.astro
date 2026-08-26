@@ -1,0 +1,113 @@
+---
+import Section from './ui/Section.astro';
+import Eyebrow from './ui/Eyebrow.astro';
+import Button from './ui/Button.astro';
+import BookCallButton from './BookCallButton.astro';
+import { portfolioCaseStudies } from '../data/portfolio';
+import { ArrowRight, Check, MapPin } from '@lucide/astro';
+
+interface Props {
+  /** Show only the first N studies — the home page uses two. */
+  limit?: number;
+  showHeader?: boolean;
+}
+
+const { limit, showHeader = true } = Astro.props;
+const studies = limit ? portfolioCaseStudies.slice(0, limit) : portfolioCaseStudies;
+
+const rows = [
+  { key: 'rank', label: 'Maps rank' },
+  { key: 'calls', label: 'Inbound' },
+  { key: 'aiCitation', label: 'Cited by AI' },
+] as const;
+---
+
+<Section id="case-studies" divider>
+  {
+    showHeader && (
+      <div class="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+        <div class="max-w-2xl" data-reveal-group>
+          <Eyebrow data-reveal>Case studies</Eyebrow>
+          <h2 class="display-md mt-4 text-ink" data-reveal>
+            Before and after, with the numbers attached
+          </h2>
+          <p class="subhead mt-5 text-ink" data-reveal>
+            Rankings, call volume and AI citation rate — measured the same way at
+            the start and the end of each engagement.
+          </p>
+        </div>
+
+        <Button href="/portfolio" variant="secondary" size="sm" class="self-start md:shrink-0">
+          <span>All case studies</span>
+          <ArrowRight class="size-4" aria-hidden="true" />
+        </Button>
+      </div>
+    )
+  }
+
+  <div
+    class:list={['grid gap-6 md:grid-cols-2', showHeader && 'mt-12 md:mt-16']}
+    data-reveal-group
+  >
+    {
+      studies.map((study) => (
+        <article
+          class="flex flex-col rounded-lg border border-hairline bg-canvas p-6 md:p-8"
+          data-reveal
+        >
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <Eyebrow>{study.badge}</Eyebrow>
+            <span class="caption inline-flex items-center gap-1.5 text-ink">
+              <MapPin class="size-3.5 shrink-0" aria-hidden="true" />
+              {study.location} &middot; {study.timeline}
+            </span>
+          </div>
+
+          <h3 class="card-title mt-5 text-ink">{study.title}</h3>
+          <p class="body-sm mt-1.5 text-ink">{study.client}</p>
+          <p class="body-sm mt-4 text-ink">{study.summary}</p>
+
+          <!-- Before / after table: one grid, aligned rows, no duplicated boxes -->
+          <table class="mt-7 w-full border-collapse text-left">
+            <caption class="sr-only">
+              Measured change for {study.client}
+            </caption>
+            <thead>
+              <tr class="border-b border-hairline">
+                <th scope="col" class="caption pb-2.5 font-normal text-ink" />
+                <th scope="col" class="caption pb-2.5 font-normal text-ink">Before</th>
+                <th scope="col" class="eyebrow pb-2.5 text-ink">After</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr class="border-b border-hairline-soft last:border-b-0">
+                  <th scope="row" class="body-sm py-3 pr-3 font-normal text-ink">
+                    {row.label}
+                  </th>
+                  <td class="body-sm py-3 pr-3 text-ink">{study.beforeStats[row.key]}</td>
+                  <td class="body-sm py-3 font-medium text-ink">
+                    {study.afterStats[row.key]}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <ul class="mt-6 flex flex-1 flex-col gap-2.5">
+            {study.keyTakeaways.map((takeaway) => (
+              <li class="flex gap-2.5">
+                <Check class="mt-0.5 size-4 shrink-0 text-success" aria-hidden="true" />
+                <span class="body-sm text-ink">{takeaway}</span>
+              </li>
+            ))}
+          </ul>
+
+          <div class="mt-7 border-t border-hairline pt-6">
+            <BookCallButton size="sm" label="Ask about your category" />
+          </div>
+        </article>
+      ))
+    }
+  </div>
+</Section>

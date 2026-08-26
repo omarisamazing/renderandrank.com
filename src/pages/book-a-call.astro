@@ -1,0 +1,134 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Eyebrow from '../components/ui/Eyebrow.astro';
+import CalInline from '../components/CalInline.astro';
+import { siteConfig } from '../config/site';
+import { Check, Mail, Phone, Video } from '@lucide/astro';
+
+const { calCom, founder, contact } = siteConfig;
+
+const agenda = [
+  {
+    title: 'Live geo-grid audit',
+    body: 'We sample your rank across your service radius while you watch, and find where the calls stop.',
+  },
+  {
+    title: 'Answer-engine check',
+    body: 'We ask ChatGPT and Gemini your category questions in real time and see whether you come up.',
+  },
+  {
+    title: 'Competitor review',
+    body: 'Which competitors are breaking Google guidelines, and which positions are realistically winnable.',
+  },
+  {
+    title: 'A ninety-day plan',
+    body: 'Deliverables, sequence and what call volume to expect. Yours to keep either way.',
+  },
+];
+---
+
+<Layout
+  title="Book a discovery call | Render and Rank"
+  description={`Book a ${calCom.duration} technical search and AI visibility review with Omar Ali. We inspect your live geo-grid and map the route to the Maps 3-pack.`}
+  showBookingPrompt={false}
+>
+  <div class="section-y">
+    <div class="container-page">
+      <!-- Header -->
+      <div class="mx-auto max-w-2xl text-center" data-reveal-group>
+        <Eyebrow data-reveal>Book a call</Eyebrow>
+        <h1 class="display-lg mt-4 text-ink" data-reveal>
+          {calCom.duration} with the person doing the work
+        </h1>
+        <p class="subhead mt-5 text-ink" data-reveal>
+          Pick a time that suits you. We pull your live geo-grid on the call, test
+          your AI visibility, and you leave with the plan.
+        </p>
+      </div>
+
+      <div class="mt-14 grid gap-8 lg:grid-cols-12 lg:gap-10">
+        <!-- What to expect -->
+        <aside class="lg:col-span-5" data-reveal>
+          <div class="rounded-lg border border-hairline bg-canvas p-6 md:p-7">
+            <!-- Host -->
+            <div class="flex items-center gap-4 border-b border-hairline pb-5">
+              <img
+                src={founder.avatar}
+                alt=""
+                width="112"
+                height="112"
+                loading="lazy"
+                decoding="async"
+                class="size-14 shrink-0 rounded-full border border-hairline object-cover object-top"
+              />
+              <div>
+                <p class="card-title text-ink">{founder.name}</p>
+                <p class="body-sm mt-0.5 text-ink">{founder.role}</p>
+              </div>
+            </div>
+
+            <ul class="mt-5 flex flex-col gap-2.5">
+              <li class="caption inline-flex items-center gap-2.5 text-ink">
+                <Video class="size-4 shrink-0" aria-hidden="true" />
+                {calCom.duration} video call &middot; {calCom.platform}
+              </li>
+              <li class="caption inline-flex items-center gap-2.5 text-ink">
+                <Phone class="size-4 shrink-0" aria-hidden="true" />
+                {contact.phone}
+              </li>
+              <li class="caption inline-flex items-center gap-2.5 text-ink">
+                <Mail class="size-4 shrink-0" aria-hidden="true" />
+                {contact.email}
+              </li>
+            </ul>
+
+            <!-- Agenda -->
+            <div class="mt-7 border-t border-hairline pt-6">
+              <Eyebrow class="block">On the call</Eyebrow>
+
+              <ol class="mt-4 flex flex-col gap-5">
+                {
+                  agenda.map((item, i) => (
+                    <li class="flex gap-3.5">
+                      <span
+                        class="numeric flex size-7 shrink-0 items-center justify-center rounded-full bg-surface-soft text-[0.8125rem] font-medium text-ink"
+                        aria-hidden="true"
+                      >
+                        {i + 1}
+                      </span>
+                      <div>
+                        <p class="label text-ink">{item.title}</p>
+                        <p class="body-sm mt-1 text-ink">{item.body}</p>
+                      </div>
+                    </li>
+                  ))
+                }
+              </ol>
+            </div>
+
+            <!-- Promise -->
+            <div class="mt-7 rounded-md bg-block-lime p-4">
+              <p class="label inline-flex items-center gap-2 text-ink">
+                <Check class="size-4 shrink-0" aria-hidden="true" />
+                No pitch
+              </p>
+              <p class="body-sm mt-1.5 text-ink">
+                This is a diagnostic. If we are not the right fit, we will say so and
+                point you somewhere better.
+              </p>
+            </div>
+          </div>
+        </aside>
+
+        <!-- Scheduler -->
+        <div class="lg:col-span-7" data-reveal data-reveal-delay="0.1">
+          <div
+            class="overflow-hidden rounded-lg border border-hairline bg-canvas p-2 md:p-4"
+          >
+            <CalInline />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</Layout>

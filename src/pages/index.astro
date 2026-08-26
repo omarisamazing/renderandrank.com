@@ -1,11 +1,34 @@
 ---
-import Welcome from '../components/Welcome.astro';
 import Layout from '../layouts/Layout.astro';
-
-// Welcome to Astro! Wondering what to do next? Check out the Astro documentation at https://docs.astro.build
-// Don't want to use any of this? Delete everything in this file, the `assets`, `components`, and `layouts` directories, and start fresh.
+import HeroSection from '../components/HeroSection.astro';
+import LogoMarquee from '../components/LogoMarquee.astro';
+import WedgeComparison from '../components/WedgeComparison.astro';
+import ServicesGrid from '../components/ServicesGrid.astro';
+import PortfolioGrid from '../components/PortfolioGrid.astro';
+import PricingSection from '../components/PricingSection.astro';
+import FounderSection from '../components/FounderSection.astro';
+import RoiCalculator from '../components/RoiCalculator.astro';
+import AuditForm from '../components/AuditForm.astro';
+import FaqSection from '../components/FaqSection.astro';
+import CtaBanner from '../components/CtaBanner.astro';
 ---
 
 <Layout>
-	<Welcome />
+  <!--
+    Colour-block rhythm, per DESIGN.md: every pastel panel is separated from the
+    next by a white-canvas section, so no two blocks share a viewport.
+      hero (white) → marquee (black) → cream → white → white → lime → white
+      → mint → navy → lime → black
+  -->
+  <HeroSection />
+  <LogoMarquee />
+  <WedgeComparison />
+  <ServicesGrid />
+  <PortfolioGrid limit={2} />
+  <AuditForm />
+  <PricingSection />
+  <FounderSection />
+  <RoiCalculator />
+  <FaqSection />
+  <CtaBanner />
 </Layout>

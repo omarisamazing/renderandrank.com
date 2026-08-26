@@ -1,23 +1,122 @@
+---
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro';
+import Motion from '../components/Motion.astro';
+import CalScript from '../components/CalScript.astro';
+import FloatingCalButton from '../components/FloatingCalButton.astro';
+import { siteConfig } from '../config/site';
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+  canonical?: string;
+  image?: string;
+  /** The booking page hides the floating prompt — the calendar is already there. */
+  showBookingPrompt?: boolean;
+}
+
+const {
+  title = `${siteConfig.name} | Local SEO, AEO & Generative Search Engineering`,
+  description = siteConfig.description,
+  canonical = Astro.url.href,
+  image = "/Omar Ali's Facebook Profile cropped.png",
+  showBookingPrompt = true,
+} = Astro.props;
+
+const organizationSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'LocalBusiness',
+  name: siteConfig.name,
+  url: siteConfig.url,
+  logo: `${siteConfig.url}/Wordmark black.svg`,
+  image: new URL(image, siteConfig.url).href,
+  description: siteConfig.description,
+  telephone: siteConfig.contact.phone,
+  email: siteConfig.contact.email,
+  address: {
+    '@type': 'PostalAddress',
+    streetAddress: siteConfig.contact.address,
+    addressCountry: 'US',
+  },
+  openingHours: 'Mo-Fr 09:00-18:00',
+  priceRange: '$$',
+  founder: {
+    '@type': 'Person',
+    name: siteConfig.founder.name,
+    jobTitle: siteConfig.founder.role,
+  },
+};
+
+const socialImage = new URL(image, siteConfig.url).href;
+---
+
 <!doctype html>
 <html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro Basics</title>
-	</head>
-	<body>
-		<slot />
-	</body>
-</html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#ffffff" />
 
-<style>
-	html,
-	body {
-		margin: 0;
-		width: 100%;
-		height: 100%;
-	}
-</style>
+    <!-- The scheduler embed and its iframe both come from app.cal.com -->
+    <link rel="preconnect" href="https://app.cal.com" />
+
+    <!-- Favicons & manifest -->
+    <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="Render&Rank" />
+    <link rel="manifest" href="/site.webmanifest" />
+
+    <!-- The wordmark face renders above the fold in the nav, so preload it -->
+    <link
+      rel="preload"
+      href="/fonts/fuuld.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <meta name="generator" content={Astro.generator} />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={socialImage} />
+    <meta property="og:site_name" content={siteConfig.name} />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={socialImage} />
+
+    <script type="application/ld+json" set:html={JSON.stringify(organizationSchema)} />
+
+    <Motion />
+    <CalScript />
+  </head>
+
+  <body class="bg-canvas text-ink antialiased">
+    <a
+      href="#main-content"
+      class="sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:top-4 focus-visible:left-4 focus-visible:z-100 focus-visible:rounded-pill focus-visible:bg-ink focus-visible:px-5 focus-visible:py-3 focus-visible:text-canvas focus-visible:label"
+    >
+      Skip to content
+    </a>
+
+    <Navbar />
+
+    <main id="main-content" class="flex-1">
+      <slot />
+    </main>
+
+    <Footer />
+    {showBookingPrompt && <FloatingCalButton />}
+  </body>
+</html>

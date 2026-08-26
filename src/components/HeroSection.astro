@@ -1,0 +1,56 @@
+---
+import Button from './ui/Button.astro';
+import BookCallButton from './BookCallButton.astro';
+import GeoGridPanel from './GeoGridPanel.astro';
+
+const proof = [
+  { figure: '3.8×', label: 'More inbound calls' },
+  { figure: '70%', label: 'Of local clicks go top-3' },
+  { figure: '24h', label: 'Audit turnaround' },
+];
+---
+
+<section class="border-b border-hairline bg-canvas pt-16 pb-16 md:pt-24 md:pb-24">
+  <div class="container-page">
+    <div class="mx-auto max-w-4xl text-center" data-reveal-group>
+      <h1 class="display-xl text-ink" data-reveal>
+        Get found first in Maps and in AI answers.
+      </h1>
+
+      <p class="body-lg mx-auto mt-7 max-w-2xl text-ink" data-reveal>
+        We engineer the Google Business Profile, citation and schema work that puts
+        local businesses in the Maps 3-pack — and gets them named by ChatGPT,
+        Gemini and AI Overviews. You work with the person doing the work.
+      </p>
+
+      <div
+        class="mt-9 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center"
+        data-reveal
+      >
+        <BookCallButton size="lg" label="Book a discovery call" />
+        <Button href="#free-audit" variant="secondary" size="lg">
+          Get a free 24h audit
+        </Button>
+      </div>
+    </div>
+
+    <div class="mt-16 md:mt-20" data-reveal data-reveal-delay="0.1">
+      <GeoGridPanel />
+    </div>
+
+    <!-- Proof strip -->
+    <dl
+      class="mx-auto mt-16 grid max-w-3xl grid-cols-1 gap-8 border-t border-hairline pt-10 sm:grid-cols-3 sm:gap-6"
+      data-reveal-group
+    >
+      {
+        proof.map((item) => (
+          <div data-reveal>
+            <dt class="stat text-ink">{item.figure}</dt>
+            <dd class="body-sm mt-2 text-ink">{item.label}</dd>
+          </div>
+        ))
+      }
+    </dl>
+  </div>
+</section>

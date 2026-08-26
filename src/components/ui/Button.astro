@@ -1,0 +1,36 @@
+---
+import { cn } from '@/lib/utils';
+import { buttonVariants, type ButtonVariants } from '@/lib/button-variants';
+import type { HTMLAttributes } from 'astro/types';
+
+type Props = ButtonVariants & {
+  href?: string;
+  type?: 'button' | 'submit' | 'reset';
+  class?: string;
+} & HTMLAttributes<'a'> &
+  HTMLAttributes<'button'>;
+
+const {
+  href,
+  type = 'button',
+  variant = 'primary',
+  size = 'md',
+  block,
+  class: className,
+  ...rest
+} = Astro.props;
+
+const classes = cn(buttonVariants({ variant, size, block, className }));
+---
+
+{
+  href ? (
+    <a href={href} class={classes} {...rest}>
+      <slot />
+    </a>
+  ) : (
+    <button type={type} class={classes} {...rest}>
+      <slot />
+    </button>
+  )
+}

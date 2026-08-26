@@ -1,0 +1,17 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import ServiceDetail from '../../components/ServiceDetail.astro';
+import CtaBanner from '../../components/CtaBanner.astro';
+import { services } from '../../data/services';
+
+const service = services.find((s) => s.slug === 'google-maps')!;
+---
+
+<Layout title={`${service.title} | Render and Rank`} description={service.shortDescription}>
+  <ServiceDetail
+    service={service}
+    block="mint"
+    lede="Three slots decide the whole market"
+  />
+  <CtaBanner />
+</Layout>

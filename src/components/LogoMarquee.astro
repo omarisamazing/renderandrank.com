@@ -1,0 +1,37 @@
+---
+const platforms = [
+  'Google Maps 3-Pack',
+  'ChatGPT Search',
+  'Google AI Overviews',
+  'Gemini',
+  'Perplexity',
+  'Apple Business Connect',
+  'Bing Places',
+  'Schema.org entity graph',
+];
+
+// Two copies: the CSS animation translates by -50%, so the second set slides in
+// exactly where the first left off.
+const track = [...platforms, ...platforms];
+---
+
+<section
+  class="marquee overflow-hidden border-y border-inverse-canvas bg-inverse-canvas py-3 select-none"
+  aria-label="Surfaces we optimise for"
+>
+  <div class="marquee-mask">
+    <ul class="marquee-track items-center gap-10">
+      {
+        track.map((platform, i) => (
+          <li
+            class="flex shrink-0 items-center gap-3 whitespace-nowrap"
+            aria-hidden={i >= platforms.length ? 'true' : undefined}
+          >
+            <span class="size-1.5 rounded-full bg-block-lime" aria-hidden="true" />
+            <span class="eyebrow text-inverse-ink">{platform}</span>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>

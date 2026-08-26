@@ -1,0 +1,92 @@
+---
+import Section from './ui/Section.astro';
+import Eyebrow from './ui/Eyebrow.astro';
+import Button from './ui/Button.astro';
+import BookCallButton from './BookCallButton.astro';
+import { siteConfig } from '../config/site';
+import { Check } from '@lucide/astro';
+
+const commitments = [
+  {
+    title: 'Technical execution, not slide decks',
+    body: 'Schema you can view-source, entity records you can audit, and a spreadsheet you keep.',
+  },
+  {
+    title: 'Month to month',
+    body: 'No twelve-month lock-in. The work has to justify itself every thirty days.',
+  },
+];
+---
+
+<Section>
+  <div class="color-block color-block-mint color-block--bleed">
+    <div class="grid items-center gap-10 lg:grid-cols-12 lg:gap-14">
+      <!-- Portrait -->
+      <div class="lg:col-span-5" data-reveal>
+        <div
+          class="mx-auto w-full max-w-xs overflow-hidden rounded-lg border border-black/10 bg-canvas lg:mx-0"
+        >
+          <img
+            src={siteConfig.founder.avatar}
+            alt={`${siteConfig.founder.name}, founder of ${siteConfig.name}`}
+            width="480"
+            height="560"
+            loading="lazy"
+            decoding="async"
+            class="aspect-[6/7] w-full object-cover object-top"
+          />
+        </div>
+
+        <div class="mx-auto mt-6 max-w-xs text-center lg:mx-0 lg:text-left">
+          <p class="card-title text-ink">{siteConfig.founder.name}</p>
+          <p class="body-sm mt-1 text-ink">{siteConfig.founder.role}</p>
+          <p class="caption mt-2 text-ink">
+            Austin, TX &middot; working with US and international businesses
+          </p>
+        </div>
+      </div>
+
+      <!-- Story -->
+      <div class="lg:col-span-7" data-reveal-group data-reveal-delay="0.1">
+        <Eyebrow tone="on-block" data-reveal>Who you work with</Eyebrow>
+
+        <h2 class="display-md mt-4 text-ink" data-reveal>
+          One person does the work. That person is on your calls.
+        </h2>
+
+        <div class="mt-6 flex flex-col gap-4" data-reveal>
+          <p class="body text-ink">
+            I'm Omar Ali. I started Render &amp; Rank after watching owners pay
+            agency retainers and get handed to a junior coordinator who had never
+            touched a Business Profile.
+          </p>
+          <p class="body text-ink">
+            I treat local search as an engineering problem: calibrate the entity
+            graph, build citations by hand, suppress the duplicates, structure the
+            schema. Then verify it in the geo-grid and in the answer engines
+            themselves.
+          </p>
+        </div>
+
+        <div class="mt-8 grid gap-4 sm:grid-cols-2" data-reveal>
+          {
+            commitments.map((item) => (
+              <div class="rounded-md border border-black/8 bg-canvas p-4">
+                <p class="label inline-flex items-center gap-2 text-ink">
+                  <Check class="size-4 shrink-0 text-success" aria-hidden="true" />
+                  {item.title}
+                </p>
+                <p class="caption mt-1.5 text-ink">{item.body}</p>
+              </div>
+            ))
+          }
+        </div>
+
+        <div class="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center" data-reveal>
+          <BookCallButton label="Book a call with Omar" />
+          <Button href="/about" variant="secondary">Read the full story</Button>
+        </div>
+      </div>
+    </div>
+  </div>
+</Section>

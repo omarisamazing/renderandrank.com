@@ -1,0 +1,125 @@
+---
+import Section from './ui/Section.astro';
+import Eyebrow from './ui/Eyebrow.astro';
+import Button from './ui/Button.astro';
+import BookCallButton from './BookCallButton.astro';
+import { Bot, Check, Link2, MapPin, Star } from '@lucide/astro';
+
+const layers = [
+  {
+    icon: MapPin,
+    category: 'Maps',
+    title: 'Business Profile and proximity',
+    description:
+      'Multi-point grid audits, category calibration, and the post and photo cadence that holds a 3-pack position.',
+    items: [
+      'Category precision testing',
+      'Geotagged visual assets',
+      'Keyword-stuffing reports',
+      'Direction-request velocity',
+    ],
+  },
+  {
+    icon: Bot,
+    category: 'AI search',
+    title: 'Entity graph for answer engines',
+    description:
+      'Structured so ChatGPT, Gemini, Perplexity and AI Overviews can name you for conversational queries.',
+    items: [
+      'Prompt calibration and testing',
+      'Wikidata and entity nodes',
+      'Semantic FAQ structuring',
+      'AI Overviews answer feeds',
+    ],
+  },
+  {
+    icon: Link2,
+    category: 'Authority',
+    title: 'Directory and NAP network',
+    description:
+      'One canonical record across aggregators, Apple Business Connect, Bing, Yelp and category registries.',
+    items: [
+      'Aggregator feed sync',
+      'Apple Business Connect',
+      'Duplicate suppression',
+      'Local authority links',
+    ],
+  },
+  {
+    icon: Star,
+    category: 'Reputation',
+    title: 'Review velocity',
+    description:
+      'Low-friction review capture that builds genuine five-star proof at a steady, non-suspicious rate.',
+    items: [
+      'SMS and email triggers',
+      'Response templates',
+      'Sentiment monitoring',
+      'Cross-platform syncing',
+    ],
+  },
+];
+---
+
+<Section divider>
+  <div class="mx-auto max-w-2xl text-center" data-reveal-group>
+    <Eyebrow data-reveal>The full picture</Eyebrow>
+    <h2 class="display-md mt-4 text-ink" data-reveal>
+      Four layers, worked together
+    </h2>
+    <p class="subhead mt-5 text-ink" data-reveal>
+      Ranking is not one lever. These four reinforce each other, which is why we
+      run them as one system rather than four line items.
+    </p>
+  </div>
+
+  <div class="mt-12 grid gap-6 md:mt-16 md:grid-cols-2 lg:grid-cols-4" data-reveal-group>
+    {
+      layers.map((layer, i) => (
+        <article
+          class="flex flex-col rounded-lg border border-hairline bg-canvas p-6"
+          data-reveal
+        >
+          <div class="flex items-start justify-between gap-3">
+            <span
+              class="flex size-10 items-center justify-center rounded-full bg-surface-soft text-ink"
+            >
+              <layer.icon class="size-4.5" aria-hidden="true" />
+            </span>
+            <span class="caption numeric text-ink">0{i + 1}</span>
+          </div>
+
+          <Eyebrow class="mt-5">{layer.category}</Eyebrow>
+          <h3 class="card-title mt-2 text-ink">{layer.title}</h3>
+          <p class="body-sm mt-3 text-ink">{layer.description}</p>
+
+          <ul class="mt-6 flex flex-1 flex-col gap-2 border-t border-hairline pt-5">
+            {layer.items.map((item) => (
+              <li class="flex gap-2.5">
+                <Check class="mt-0.5 size-4 shrink-0 text-success" aria-hidden="true" />
+                <span class="body-sm text-ink">{item}</span>
+              </li>
+            ))}
+          </ul>
+        </article>
+      ))
+    }
+  </div>
+
+  <div
+    class="mt-12 flex flex-col items-center justify-between gap-6 rounded-lg border border-hairline bg-surface-soft p-6 md:flex-row md:p-8"
+    data-reveal
+  >
+    <div class="text-center md:text-left">
+      <p class="card-title text-ink">Every engagement starts with a baseline audit</p>
+      <p class="body-sm mt-1.5 text-ink">
+        Nothing gets touched until we know where you stand.
+      </p>
+    </div>
+
+    <div class="flex shrink-0 flex-wrap items-center justify-center gap-3">
+      <Button href="/calculator" variant="secondary" size="sm">Run the numbers</Button>
+      <BookCallButton size="sm" withIcon={false} />
+    </div>
+  </div>
+</Section>

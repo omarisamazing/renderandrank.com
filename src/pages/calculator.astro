@@ -1,0 +1,70 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Section from '../components/ui/Section.astro';
+import Eyebrow from '../components/ui/Eyebrow.astro';
+import RoiCalculator from '../components/RoiCalculator.astro';
+import CtaBanner from '../components/CtaBanner.astro';
+
+const method = [
+  {
+    title: 'The top three take most of the clicks',
+    body: 'Roughly three quarters of commercial local searches end in a call or a visit to one of the first three Maps results. At position eight you are competing for what is left.',
+  },
+  {
+    title: 'AI recommendations arrive pre-sold',
+    body: 'Someone who asks an assistant for a recommendation and gets your name has already been vetted for them. There is no comparison-shopping step left.',
+  },
+  {
+    title: 'Where the estimate is conservative',
+    body: 'We assume a 35% click-to-call rate and a 40% close rate. If your close rate is higher — most trades are — the real gap is larger than the figure shown.',
+  },
+  {
+    title: 'What it cannot know',
+    body: 'Search volume, seasonality and your own capacity. Treat the number as a starting point for a conversation, not a forecast.',
+  },
+];
+---
+
+<Layout
+  title="ROI calculator | Render and Rank"
+  description="Estimate the monthly revenue going to competitors who hold the Google Maps 3-pack and get named by AI answer engines."
+>
+  <div class="border-b border-hairline bg-canvas py-16 md:py-20">
+    <div class="container-page">
+      <div class="mx-auto max-w-2xl text-center" data-reveal-group>
+        <Eyebrow data-reveal>Calculator</Eyebrow>
+        <h1 class="display-lg mt-4 text-ink" data-reveal>
+          What position four costs, in dollars
+        </h1>
+        <p class="subhead mt-5 text-ink" data-reveal>
+          Set your job value, search volume and current position. We will show the
+          calls and jobs going elsewhere.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <RoiCalculator />
+
+  <Section divider>
+    <div class="mx-auto max-w-2xl text-center" data-reveal-group>
+      <Eyebrow data-reveal>Method</Eyebrow>
+      <h2 class="display-md mt-4 text-ink" data-reveal>
+        How the number is built, and where it stops
+      </h2>
+    </div>
+
+    <div class="mx-auto mt-12 grid max-w-4xl gap-6 md:grid-cols-2" data-reveal-group>
+      {
+        method.map((item) => (
+          <div class="rounded-lg border border-hairline bg-surface-soft p-6" data-reveal>
+            <h3 class="card-title text-ink">{item.title}</h3>
+            <p class="body-sm mt-3 text-ink">{item.body}</p>
+          </div>
+        ))
+      }
+    </div>
+  </Section>
+
+  <CtaBanner />
+</Layout>

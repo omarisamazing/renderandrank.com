@@ -1,0 +1,24 @@
+---
+import Section from './ui/Section.astro';
+import Eyebrow from './ui/Eyebrow.astro';
+import { RoiCalculator } from './roi/RoiCalculator';
+---
+
+<Section id="roi-calculator">
+  <div class="color-block color-block-navy color-block--bleed">
+    <div class="mx-auto max-w-2xl text-center" data-reveal-group>
+      <Eyebrow tone="inverse" data-reveal>Opportunity estimate</Eyebrow>
+      <h2 class="display-md mt-4 text-inverse-ink" data-reveal>
+        What is position four costing you?
+      </h2>
+      <p class="subhead mt-5 text-inverse-ink" data-reveal>
+        Most local clicks and nearly every AI recommendation go to the top three.
+        Set your numbers and see the gap.
+      </p>
+    </div>
+
+    <div class="mt-12 md:mt-14" data-reveal>
+      <RoiCalculator client:visible />
+    </div>
+  </div>
+</Section>

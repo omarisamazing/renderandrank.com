@@ -1,0 +1,117 @@
+---
+import Section from './ui/Section.astro';
+import Eyebrow from './ui/Eyebrow.astro';
+import Button from './ui/Button.astro';
+import { Check, X } from '@lucide/astro';
+
+const cheap = [
+  {
+    title: 'Junk link farms',
+    body: 'Submissions to low-tier, abandoned directories that Google ignores — or discounts entirely.',
+  },
+  {
+    title: 'Inconsistent NAP data',
+    body: 'Mismatched addresses and phone numbers across profiles, which erodes local trust signals.',
+  },
+  {
+    title: 'Guarantees nobody can keep',
+    body: '"100% #1 rankings" promises aimed at buyers who have no way to verify them.',
+  },
+  {
+    title: 'No AI readiness',
+    body: 'No schema, no entity linkage, nothing that makes an answer engine willing to cite you.',
+  },
+];
+
+const ours = [
+  {
+    title: 'Verified tier-1 and tier-2 directories',
+    body: 'Apple Business Connect, Bing Places, Yelp, BBB and the registries that actually matter in your category.',
+  },
+  {
+    title: 'NAP consistency and duplicate suppression',
+    body: 'One canonical entity record, reconciled everywhere it appears.',
+  },
+  {
+    title: 'A live spreadsheet you own',
+    body: 'Every profile URL, every login, every indexing status. Open it any time.',
+  },
+  {
+    title: 'Structured for generative engines',
+    body: 'JSON-LD schema and entity linkage so ChatGPT and AI Overviews can cite you with confidence.',
+  },
+];
+---
+
+<Section>
+  <div class="color-block color-block-cream color-block--bleed">
+    <div class="max-w-3xl" data-reveal-group>
+      <Eyebrow tone="on-block" data-reveal>The difference</Eyebrow>
+      <h2 class="display-md mt-4 text-ink" data-reveal>
+        Why $5 citation blasts fail, and what replaces them
+      </h2>
+      <p class="subhead mt-5 text-ink" data-reveal>
+        The market is full of sellers promising 95,000 citations and guaranteed
+        rankings. Google discounts automated junk. The alternative is slower,
+        manual and verifiable.
+      </p>
+    </div>
+
+    <div class="mt-12 grid gap-5 md:mt-14 md:grid-cols-2 md:gap-6" data-reveal-group>
+      <!-- What the market sells -->
+      <div class="rounded-lg border border-black/8 bg-canvas p-6 md:p-8" data-reveal>
+        <div class="flex items-baseline justify-between gap-4 border-b border-hairline pb-4">
+          <Eyebrow>Automated gigs</Eyebrow>
+          <span class="caption numeric text-ink">$5–$25</span>
+        </div>
+
+        <ul class="mt-6 flex flex-col gap-5">
+          {
+            cheap.map((item) => (
+              <li class="flex gap-3">
+                <X class="mt-0.5 size-4 shrink-0 text-ink" aria-hidden="true" />
+                <div>
+                  <p class="body-sm font-medium text-ink">{item.title}</p>
+                  <p class="body-sm mt-1 text-ink">{item.body}</p>
+                </div>
+              </li>
+            ))
+          }
+        </ul>
+
+        <p class="caption mt-6 border-t border-hairline pt-4 text-ink italic">
+          Typical outcome: a short vanity spike, then filter suppression.
+        </p>
+      </div>
+
+      <!-- What we do -->
+      <div
+        class="rounded-lg bg-inverse-canvas p-6 text-inverse-ink on-inverse md:p-8"
+        data-reveal
+      >
+        <div class="flex items-baseline justify-between gap-4 border-b border-white/15 pb-4">
+          <Eyebrow tone="inverse">Render &amp; Rank</Eyebrow>
+          <span class="caption text-inverse-ink">Manual, audited</span>
+        </div>
+
+        <ul class="mt-6 flex flex-col gap-5">
+          {
+            ours.map((item) => (
+              <li class="flex gap-3">
+                <Check class="mt-0.5 size-4 shrink-0 text-block-lime" aria-hidden="true" />
+                <div>
+                  <p class="body-sm font-medium text-inverse-ink">{item.title}</p>
+                  <p class="body-sm mt-1 text-inverse-ink">{item.body}</p>
+                </div>
+              </li>
+            ))
+          }
+        </ul>
+
+        <div class="mt-6 border-t border-white/15 pt-5">
+          <Button href="/pricing" variant="inverse" size="sm">See what it costs</Button>
+        </div>
+      </div>
+    </div>
+  </div>
+</Section>

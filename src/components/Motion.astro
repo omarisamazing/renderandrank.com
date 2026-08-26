@@ -1,0 +1,143 @@
+---
+/**
+ * Scroll-reveal runtime, built on Motion's `inView` (Intersection Observer, so
+ * the intersection maths stays off the main thread).
+ *
+ * Markup contract:
+ *   data-reveal              → fades and rises once, when it enters view
+ *   data-reveal-group        → reveals its `data-reveal` descendants in sequence
+ *   data-reveal-delay="0.2"  → extra delay, in seconds
+ *
+ * Two guarantees, because a reveal that fails is content nobody can read:
+ *   1. Elements are only hidden when this script is present (`js-motion`), so a
+ *      bundling failure degrades to plain visible content.
+ *   2. A sweep on scroll-end catches anything IntersectionObserver skipped —
+ *      it coalesces callbacks during fast scrolls, which otherwise leaves
+ *      whole sections invisible. Those get shown instantly rather than animated,
+ *      since the reader has already arrived.
+ */
+---
+
+<script is:inline>
+  document.documentElement.classList.add('js-motion');
+</script>
+
+<script>
+  import { animate, inView, stagger } from 'motion';
+
+  const DISTANCE = 14;
+  const EASE = [0.22, 1, 0.36, 1] as const;
+
+  type Revealable = HTMLElement & { _revealed?: boolean };
+
+  const pending = new Set<Revealable>(
+    Array.from(document.querySelectorAll<Revealable>('[data-reveal]'))
+  );
+
+  function settle(element: Revealable) {
+    element.style.willChange = 'auto';
+    element.style.opacity = '';
+    element.style.transform = '';
+    element.removeAttribute('data-reveal');
+    pending.delete(element);
+  }
+
+  /** Show without animating — for content the reader has already scrolled to. */
+  function show(element: Revealable) {
+    if (element._revealed) return;
+    element._revealed = true;
+    settle(element);
+  }
+
+  function play(
+    targets: Revealable[],
+    delay: number | ReturnType<typeof stagger>
+  ) {
+    const fresh = targets.filter((el) => !el._revealed);
+    if (!fresh.length) return;
+
+    for (const el of fresh) {
+      el._revealed = true;
+      // Promote only for the duration of the animation, not for the whole page.
+      el.style.willChange = 'opacity, transform';
+    }
+
+    // Animating `transform` wholesale (rather than independent `y`) keeps this
+    // on WAAPI and off the main thread.
+    animate(
+      fresh,
+      {
+        opacity: [0, 1],
+        transform: [`translateY(${DISTANCE}px)`, 'translateY(0px)'],
+      },
+      { duration: 0.55, delay, ease: EASE }
+    ).then(() => fresh.forEach(settle));
+  }
+
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    pending.forEach(show);
+  } else {
+    // Groups first, so their children are claimed before the standalone pass.
+    inView(
+      '[data-reveal-group]',
+      (container) => {
+        const children = Array.from(
+          container.querySelectorAll<Revealable>('[data-reveal]')
+        );
+        const offset = Number(container.getAttribute('data-reveal-delay') ?? 0);
+        play(children, stagger(0.07, { startDelay: offset }));
+      },
+      { amount: 0.15, margin: '0px 0px -8% 0px' }
+    );
+
+    inView(
+      '[data-reveal]:not([data-reveal-group] [data-reveal])',
+      (element) => {
+        const delay = Number(element.getAttribute('data-reveal-delay') ?? 0);
+        play([element as Revealable], delay);
+      },
+      { amount: 0.2, margin: '0px 0px -8% 0px' }
+    );
+
+    // Safety sweep: anything already within or above the viewport that the
+    // observer never reported gets shown outright.
+    const sweep = () => {
+      if (!pending.size) return;
+      const limit = window.innerHeight;
+      for (const element of Array.from(pending)) {
+        if (element.getBoundingClientRect().top < limit) show(element);
+      }
+    };
+
+    let idle: number | undefined;
+    const scheduleSweep = () => {
+      window.clearTimeout(idle);
+      idle = window.setTimeout(sweep, 140);
+    };
+
+    if ('onscrollend' in window) {
+      window.addEventListener('scrollend', sweep, { passive: true });
+    }
+    window.addEventListener('scroll', scheduleSweep, { passive: true });
+    window.addEventListener('resize', scheduleSweep, { passive: true });
+
+    // Islands hydrating below the fold change the document height without any
+    // scroll event, which can leave an element the observer already skipped
+    // stuck at zero opacity. Watching the document height covers that.
+    if ('ResizeObserver' in window) {
+      new ResizeObserver(scheduleSweep).observe(document.documentElement);
+    }
+
+    // Belt and braces: once the page has fully settled, nothing that is on
+    // screen should still be waiting on an observer callback.
+    window.addEventListener('load', () => window.setTimeout(sweep, 400));
+
+    // Printing and in-page search both need the whole document visible.
+    window.addEventListener('beforeprint', () => pending.forEach(show));
+    document.addEventListener('keydown', (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === 'f') {
+        pending.forEach(show);
+      }
+    });
+  }
+</script>

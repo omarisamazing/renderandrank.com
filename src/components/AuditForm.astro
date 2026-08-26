@@ -1,0 +1,240 @@
+---
+/**
+ * Free-audit intake. Lives on the lime colour block, which DESIGN.md assigns to
+ * contact forms. Moved out of the hero so the hero can stay a headline, a
+ * paragraph and two pills.
+ *
+ * Posts to Formspree-style endpoints via `siteConfig.forms.auditEndpoint`; when
+ * that is unset it degrades to a mailto link so the form is never a dead end.
+ */
+import Section from './ui/Section.astro';
+import Eyebrow from './ui/Eyebrow.astro';
+import Button from './ui/Button.astro';
+import { siteConfig } from '../config/site';
+import { Check, Clock, Lock } from '@lucide/astro';
+
+const fields = [
+  { id: 'name', label: 'Your name', type: 'text', placeholder: 'Sarah Jenkins', span: 2 },
+  { id: 'email', label: 'Email', type: 'email', placeholder: 'sarah@business.com', span: 1 },
+  { id: 'phone', label: 'Phone', type: 'tel', placeholder: '(512) 555-0199', span: 1 },
+  { id: 'website', label: 'Website', type: 'text', placeholder: 'company.com', span: 1 },
+  { id: 'city', label: 'City and state', type: 'text', placeholder: 'Austin, TX', span: 1 },
+] as const;
+
+const included = [
+  'Live geo-grid rank across your service radius',
+  'Which answer engines currently name you',
+  'The three fixes with the largest effect',
+];
+
+const endpoint = siteConfig.forms.auditEndpoint;
+---
+
+<Section id="free-audit">
+  <div class="color-block color-block-lime color-block--bleed">
+    <div class="grid gap-10 lg:grid-cols-12 lg:gap-14">
+      <!-- Pitch -->
+      <div class="lg:col-span-5" data-reveal-group>
+        <Eyebrow tone="on-block" data-reveal>Free audit</Eyebrow>
+
+        <h2 class="display-md mt-4 text-ink" data-reveal>
+          See where you actually rank, in 24 hours
+        </h2>
+
+        <p class="body mt-5 text-ink" data-reveal>
+          Send five details. Omar pulls your live geo-grid, queries the answer
+          engines for your category, and emails the report back. No call required,
+          no pitch attached.
+        </p>
+
+        <ul class="mt-8 flex flex-col gap-3" data-reveal>
+          {
+            included.map((item) => (
+              <li class="flex gap-2.5">
+                <Check class="mt-0.5 size-4 shrink-0 text-success" aria-hidden="true" />
+                <span class="body-sm text-ink">{item}</span>
+              </li>
+            ))
+          }
+        </ul>
+
+        <p class="caption mt-8 inline-flex items-center gap-2 text-ink" data-reveal>
+          <Clock class="size-4 shrink-0" aria-hidden="true" />
+          Turnaround is one business day.
+        </p>
+      </div>
+
+      <!-- Form -->
+      <div class="lg:col-span-7" data-reveal data-reveal-delay="0.1">
+        <div class="rounded-lg border border-black/8 bg-canvas p-6 md:p-8">
+          <form
+            id="audit-form"
+            class="grid gap-5 sm:grid-cols-2"
+            method="post"
+            action={endpoint ?? undefined}
+            novalidate
+          >
+            {
+              fields.map((field) => (
+                <div class:list={[field.span === 2 && 'sm:col-span-2']}>
+                  <label for={`audit-${field.id}`} class="label block text-ink">
+                    {field.label}
+                    <span class="text-destructive" aria-hidden="true"> *</span>
+                  </label>
+                  <input
+                    id={`audit-${field.id}`}
+                    name={field.id}
+                    type={field.type}
+                    required
+                    autocomplete={
+                      field.id === 'name'
+                        ? 'name'
+                        : field.id === 'email'
+                          ? 'email'
+                          : field.id === 'phone'
+                            ? 'tel'
+                            : field.id === 'website'
+                              ? 'url'
+                              : 'address-level2'
+                    }
+                    inputmode={
+                      field.id === 'email' ? 'email' : field.id === 'phone' ? 'tel' : undefined
+                    }
+                    spellcheck={field.id === 'email' || field.id === 'website' ? 'false' : undefined}
+                    autocapitalize={
+                      field.id === 'email' || field.id === 'website' ? 'none' : undefined
+                    }
+                    placeholder={field.placeholder}
+                    class="mt-2 h-12 w-full rounded-md border border-hairline bg-canvas px-3.5 text-[1.0625rem] text-ink placeholder:text-muted-foreground focus-visible:border-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ink"
+                  />
+                  <p
+                    class="caption mt-1.5 hidden text-destructive"
+                    data-error-for={`audit-${field.id}`}
+                    role="alert"
+                  >
+                  </p>
+                </div>
+              ))
+            }
+
+            <div class="sm:col-span-2">
+              <Button type="submit" size="lg" block>Send me the audit</Button>
+            </div>
+
+            <p class="caption sm:col-span-2 inline-flex items-center justify-center gap-2 text-ink">
+              <Lock class="size-3.5 shrink-0" aria-hidden="true" />
+              Your details go to Omar directly. No list, no sequence.
+            </p>
+          </form>
+
+          <div
+            id="audit-success"
+            class="hidden rounded-md border border-black/8 bg-block-mint p-5"
+            role="status"
+            tabindex="-1"
+          >
+            <p class="label text-ink">Your email draft is open.</p>
+            <p class="body-sm mt-1.5 text-ink">
+              Send it and Omar will pull your geo-grid — the report lands within one
+              business day. If nothing opened, email
+              <a
+                href={`mailto:${siteConfig.contact.email}`}
+                class="font-medium underline underline-offset-4">{siteConfig.contact.email}</a
+              > directly.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</Section>
+
+<script is:inline define:vars={{ inbox: siteConfig.contact.email }}>
+  const form = document.querySelector('#audit-form');
+  const success = document.querySelector('#audit-success');
+
+  function slotFor(input) {
+    return document.querySelector(`[data-error-for="${input.id}"]`);
+  }
+
+  function showError(input, message) {
+    const slot = slotFor(input);
+    input.setAttribute('aria-invalid', 'true');
+    if (slot) {
+      slot.textContent = message;
+      slot.classList.remove('hidden');
+    }
+  }
+
+  function clearError(input) {
+    const slot = slotFor(input);
+    input.removeAttribute('aria-invalid');
+    if (slot) {
+      slot.textContent = '';
+      slot.classList.add('hidden');
+    }
+  }
+
+  if (form && success) {
+    const inputs = Array.from(form.querySelectorAll('input'));
+
+    for (const input of inputs) {
+      input.addEventListener('input', () => {
+        if (input.validity.valid) clearError(input);
+      });
+    }
+
+    form.addEventListener('submit', (event) => {
+      let firstInvalid = null;
+
+      for (const input of inputs) {
+        if (!input.value.trim()) {
+          showError(input, 'This one is required.');
+          firstInvalid = firstInvalid || input;
+        } else if (!input.validity.valid) {
+          showError(
+            input,
+            input.type === 'email'
+              ? 'Check the email address.'
+              : 'Check this value.'
+          );
+          firstInvalid = firstInvalid || input;
+        } else {
+          clearError(input);
+        }
+      }
+
+      if (firstInvalid) {
+        event.preventDefault();
+        firstInvalid.focus();
+        return;
+      }
+
+      // No endpoint configured: compose the email rather than swallow the
+      // submission behind a success message that isn't true.
+      if (!form.getAttribute('action')) {
+        event.preventDefault();
+
+        const data = new FormData(form);
+        const body = [
+          `Name: ${data.get('name')}`,
+          `Email: ${data.get('email')}`,
+          `Phone: ${data.get('phone')}`,
+          `Website: ${data.get('website')}`,
+          `City: ${data.get('city')}`,
+          '',
+          'Please send my free geo-grid and AI visibility audit.',
+        ].join('\n');
+
+        window.location.href =
+          `mailto:${inbox}` +
+          `?subject=${encodeURIComponent('Free audit request — ' + data.get('website'))}` +
+          `&body=${encodeURIComponent(body)}`;
+
+        form.classList.add('hidden');
+        success.classList.remove('hidden');
+        success.focus();
+      }
+    });
+  }
+</script>

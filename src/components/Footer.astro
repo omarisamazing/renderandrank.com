@@ -1,0 +1,116 @@
+---
+import BrandLogo from './ui/BrandLogo.astro';
+import Eyebrow from './ui/Eyebrow.astro';
+import { siteConfig } from '../config/site';
+import { Mail, Phone } from '@lucide/astro';
+
+const year = new Date().getFullYear();
+
+const columns = [
+  {
+    heading: 'Capabilities',
+    links: [
+      { name: 'Google Maps 3-pack', href: '/services/google-maps' },
+      { name: 'AEO and GEO', href: '/services/aeo-geo' },
+      { name: 'Citations and NAP', href: '/services/local-seo' },
+      { name: 'All services', href: '/services' },
+    ],
+  },
+  {
+    heading: 'Company',
+    links: [
+      { name: 'Case studies', href: '/portfolio' },
+      { name: 'Pricing', href: '/pricing' },
+      { name: 'ROI calculator', href: '/calculator' },
+      { name: 'About Omar', href: '/about' },
+    ],
+  },
+  {
+    heading: 'Get started',
+    links: [
+      { name: 'Book a call', href: '/book-a-call' },
+      { name: 'Free 24h audit', href: '/contact' },
+      { name: 'Contact', href: '/contact' },
+    ],
+  },
+];
+---
+
+<footer class="mt-auto border-t border-hairline bg-canvas">
+  <div class="container-page py-16 md:py-20">
+    <div class="grid gap-12 md:grid-cols-5 md:gap-10">
+      <!-- Brand -->
+      <div class="md:col-span-2">
+        <a href="/" class="inline-block rounded-xs">
+          <BrandLogo size="lg" />
+        </a>
+
+        <p class="body-sm mt-5 max-w-sm text-ink">
+          Local search, answer-engine and generative-engine optimisation. We build
+          the authority that puts local businesses in the Maps pack and into AI
+          answers.
+        </p>
+
+        <ul class="mt-6 flex flex-col gap-2.5">
+          <li>
+            <a
+              href={`tel:${siteConfig.contact.phone.replace(/[^\d+]/g, '')}`}
+              class="body-sm inline-flex items-center gap-2.5 text-ink transition-colors hover:underline hover:underline-offset-4"
+            >
+              <Phone class="size-4 shrink-0" aria-hidden="true" />
+              {siteConfig.contact.phone}
+            </a>
+          </li>
+          <li>
+            <a
+              href={`mailto:${siteConfig.contact.email}`}
+              class="body-sm inline-flex items-center gap-2.5 text-ink transition-colors hover:underline hover:underline-offset-4"
+            >
+              <Mail class="size-4 shrink-0" aria-hidden="true" />
+              {siteConfig.contact.email}
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Link columns -->
+      {
+        columns.map((column) => (
+          <nav aria-labelledby={`footer-${column.heading}`}>
+            <Eyebrow class="block" id={`footer-${column.heading}`}>
+              {column.heading}
+            </Eyebrow>
+            <ul class="mt-4 flex flex-col gap-2.5">
+              {column.links.map((link) => (
+                <li>
+                  <a
+                    href={link.href}
+                    class="body-sm text-ink transition-colors hover:underline hover:underline-offset-4"
+                  >
+                    {link.name}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        ))
+      }
+    </div>
+  </div>
+
+  <!-- Oversized wordmark, per the supplied artwork lockup -->
+  <div class="container-page overflow-hidden border-t border-hairline-soft pt-10 pb-6">
+    <BrandLogo variant="stacked" size="display" class="text-ink/8 select-none" />
+  </div>
+
+  <div class="border-t border-hairline-soft">
+    <div
+      class="container-page flex flex-col items-center justify-between gap-3 py-6 sm:flex-row"
+    >
+      <p class="caption text-ink">
+        &copy; {year} {siteConfig.name} &middot; {siteConfig.domain}
+      </p>
+      <p class="caption text-ink">Austin, TX &middot; working worldwide</p>
+    </div>
+  </div>
+</footer>

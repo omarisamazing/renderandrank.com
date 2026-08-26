@@ -1,0 +1,45 @@
+---
+/**
+ * Standard section wrapper: the 96px vertical rhythm plus the 1280px container.
+ * Keeps every section on the same grid instead of each one inventing its own
+ * padding, which is how the spacing drifted before.
+ */
+interface Props {
+  id?: string;
+  class?: string;
+  /** Ink-on-white is the default; `soft` is the off-white tile ground. */
+  surface?: 'canvas' | 'soft' | 'inverse';
+  /** Hairline rule along the bottom edge. */
+  divider?: boolean;
+  /** Tightens the vertical rhythm for short sections. */
+  compact?: boolean;
+}
+
+const {
+  id,
+  class: className = '',
+  surface = 'canvas',
+  divider = false,
+  compact = false,
+} = Astro.props;
+
+const surfaces = {
+  canvas: 'bg-canvas text-ink',
+  soft: 'bg-surface-soft text-ink',
+  inverse: 'bg-inverse-canvas text-inverse-ink on-inverse',
+} as const;
+---
+
+<section
+  id={id}
+  class:list={[
+    surfaces[surface],
+    compact ? 'py-12 md:py-16' : 'section-y',
+    divider && 'border-b border-hairline',
+    className,
+  ]}
+>
+  <div class="container-page">
+    <slot />
+  </div>
+</section>

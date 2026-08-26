@@ -1,0 +1,57 @@
+---
+import Section from './ui/Section.astro';
+import Eyebrow from './ui/Eyebrow.astro';
+import Button from './ui/Button.astro';
+import BookCallButton from './BookCallButton.astro';
+import { Check } from '@lucide/astro';
+
+const guarantees = [
+  'No junior account managers',
+  'Month-to-month retainers',
+  'Every citation verified by hand',
+];
+---
+
+<Section>
+  <div
+    class="color-block color-block--bleed bg-inverse-canvas text-center text-inverse-ink on-inverse md:px-12 md:py-20"
+    data-reveal-group
+  >
+    <div class="mx-auto max-w-2xl">
+      <Eyebrow tone="inverse" data-reveal>Next step</Eyebrow>
+
+      <h2 class="display-lg mt-5 text-inverse-ink" data-reveal>
+        Let's look at your grid together.
+      </h2>
+
+      <p class="body-lg mt-6 text-inverse-ink" data-reveal>
+        Thirty minutes with Omar. We pull your live geo-grid, query the answer
+        engines for your category, and you leave with the list either way.
+      </p>
+
+      <div
+        class="mt-9 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center"
+        data-reveal
+      >
+        <BookCallButton variant="inverse" size="lg" label="Book a discovery call" />
+        <Button href="/contact" variant="inverseGhost" size="lg">
+          Get a free 24h audit
+        </Button>
+      </div>
+
+      <ul
+        class="mt-10 flex flex-wrap items-center justify-center gap-x-7 gap-y-3 border-t border-white/15 pt-8"
+        data-reveal
+      >
+        {
+          guarantees.map((item) => (
+            <li class="flex items-center gap-2">
+              <Check class="size-4 shrink-0 text-block-lime" aria-hidden="true" />
+              <span class="caption text-inverse-ink">{item}</span>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </div>
+</Section>
