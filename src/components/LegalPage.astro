@@ -1,0 +1,90 @@
+---
+/**
+ * Page shell shared by /terms and /privacy. The two documents are identical in
+ * structure, so the chrome lives here and each page is a single prop.
+ *
+ * While any `TODO_LEGAL` marker survives in the copy the document counts as a
+ * draft: it carries a visible notice and is served `noindex`. Placeholder terms
+ * getting indexed is worse than having no terms page at all. Both behaviours
+ * lift on their own once the markers are gone — there is no flag to remember.
+ */
+import Layout from '../layouts/Layout.astro';
+import Eyebrow from './ui/Eyebrow.astro';
+import { TODO_LEGAL, type LegalDocument } from '../data/legal';
+import { siteConfig } from '../config/site';
+
+interface Props {
+  doc: LegalDocument;
+}
+
+const { doc } = Astro.props;
+
+/** Clause anchors, so a section can be cited: /terms#limitation-of-liability */
+const slug = (heading: string) =>
+  heading
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+
+const isDraft = doc.sections.some((section) =>
+  section.body.some((paragraph) => paragraph.includes(TODO_LEGAL))
+);
+---
+
+<Layout
+  title={`${doc.title} | ${siteConfig.name}`}
+  description={doc.summary}
+  noindex={isDraft}
+>
+  <div class="border-b border-hairline bg-canvas py-16 md:py-20">
+    <div class="container-page">
+      <div class="mx-auto max-w-2xl text-center" data-reveal-group>
+        <Eyebrow data-reveal>{doc.eyebrow}</Eyebrow>
+        <h1 class="display-lg mt-4 text-ink" data-reveal>{doc.title}</h1>
+        <p class="subhead mt-5 text-ink" data-reveal>{doc.summary}</p>
+        <p class="caption mt-6 text-ink" data-reveal>
+          Last updated: {doc.updated}
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-y">
+    <div class="container-page">
+      <div class="mx-auto max-w-3xl">
+        {
+          isDraft && (
+            <div class="rounded-md bg-block-cream p-5 md:p-6" data-reveal>
+              <p class="label text-ink">Draft — not yet reviewed</p>
+              <p class="body-sm mt-2 text-ink">
+                The headings below are the intended structure of this document.
+                The wording under each one is scaffolding, not legal advice, and
+                has not been reviewed. Replace it in src/data/legal.ts before
+                launch. This page is excluded from search engines until then.
+              </p>
+            </div>
+          )
+        }
+
+        <div class="mt-10 flex flex-col gap-10 md:mt-12 md:gap-12">
+          {
+            doc.sections.map((section, i) => (
+              <section id={slug(section.heading)} data-reveal>
+                <h2 class="card-title text-ink">
+                  <span class="numeric text-ink/40" aria-hidden="true">
+                    {i + 1}.
+                  </span>{' '}
+                  {section.heading}
+                </h2>
+
+                {section.body.map((paragraph) => (
+                  <p class="body mt-3 text-ink">{paragraph}</p>
+                ))}
+              </section>
+            ))
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+</Layout>

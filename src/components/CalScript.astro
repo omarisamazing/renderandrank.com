@@ -2,21 +2,14 @@
 /**
  * Cal.com embed bootstrap. Mounted once per page from the layout.
  *
- * Any element carrying the booking attributes opens the scheduler as a modal:
+ * Booking CTAs across the site are plain links to /book-a-call, where the
+ * scheduler is inlined and preloaded via `CalInline.astro` (which reuses the
+ * namespace initialised here). There is no click-to-open modal: routing to the
+ * dedicated page avoids the click-time embed fetch that made the popup feel
+ * slow, while the calendar is already warm when the visitor arrives.
  *
- *   <a href="/book-a-call"
- *      data-cal-namespace="discovery"
- *      data-cal-link="renderandrank/discovery">Book a call</a>
- *
- * `BookCallButton.astro` wraps that contract, and the inline calendar on
- * /book-a-call reuses this namespace via `CalInline.astro`.
- *
- * We bind the click ourselves rather than relying on the embed's own DOM scan:
- * this script runs in `<head>`, so that scan can complete before the body has
- * parsed and find nothing to attach to. Binding through a delegated listener
- * also means the `href` stays a real link — modifier-clicks and middle-clicks
- * still open /book-a-call in a new tab, and with JS off it is the only
- * behaviour.
+ * A completed booking re-dispatches as an `rr:booking-confirmed` DOM event on
+ * `document`, carrying Cal's payload in `detail`.
  */
 import { siteConfig } from '../config/site';
 
@@ -75,37 +68,26 @@ const { calCom } = siteConfig;
       },
     },
     hideEventTypeDetails: false,
-    layout: 'month_view',
+    layout: 'column_view',
   });
 
-  document.addEventListener('click', function (event) {
-    // Leave modified and non-primary clicks to the browser so the link keeps
-    // working the way a link should.
-    if (event.defaultPrevented) return;
-    if (event.button !== 0) return;
-    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-
-    const trigger = event.target.closest('[data-cal-link]');
-    if (!trigger) return;
-
-    const ns = trigger.getAttribute('data-cal-namespace') || namespace;
-    const api = window.Cal && window.Cal.ns && window.Cal.ns[ns];
-    if (!api) return; // embed unavailable — fall through to the href
-
-    let config = { layout: 'month_view' };
-    const raw = trigger.getAttribute('data-cal-config');
-    if (raw) {
-      try {
-        config = JSON.parse(raw);
-      } catch {
-        /* keep the default layout */
-      }
-    }
-
-    event.preventDefault();
-    api('modal', {
-      calLink: trigger.getAttribute('data-cal-link'),
-      config: config,
-    });
+  // Cal fires this from inside the iframe once the booking actually exists.
+  // Re-dispatching it as a DOM event keeps the embed API in this one file:
+  // `CalInline.astro` swaps in its confirmation off `rr:booking-confirmed`
+  // without importing anything, and further listeners (analytics, a pixel) can
+  // hook the same event later.
+  Cal.ns[namespace]('on', {
+    action: 'bookingSuccessful',
+    callback: function (event) {
+      document.dispatchEvent(
+        new CustomEvent('rr:booking-confirmed', {
+          detail: (event && event.detail) || null,
+        })
+      );
+    },
   });
+
+  // Every booking CTA on the site is now a plain link to /book-a-call, where
+  // the scheduler is inlined and preloaded (see CalInline.astro). We no longer
+  // open a modal on click, so there is no popup trigger to bind here.
 </script>

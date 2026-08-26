@@ -110,9 +110,6 @@ export function MobileNav({
             variant="primary"
             size="md"
             block
-            data-cal-namespace={calNamespace}
-            data-cal-link={calLink}
-            data-cal-config='{"layout":"month_view"}'
           >
             Book a call
           </Button>

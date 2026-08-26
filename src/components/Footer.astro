@@ -105,12 +105,28 @@ const columns = [
 
   <div class="border-t border-hairline-soft">
     <div
-      class="container-page flex flex-col items-center justify-between gap-3 py-6 sm:flex-row"
+      class="container-page flex flex-col items-center justify-between gap-4 py-6 sm:flex-row"
     >
-      <p class="caption text-ink">
-        &copy; {year} {siteConfig.name} &middot; {siteConfig.domain}
-      </p>
-      <p class="caption text-ink">Austin, TX &middot; working worldwide</p>
+      <div class="flex flex-col items-center gap-1.5 sm:items-start">
+        <p class="caption text-ink">
+          &copy; {year} {siteConfig.name} &middot; {siteConfig.domain}
+        </p>
+        <p class="caption text-ink">Austin, TX &middot; working worldwide</p>
+      </div>
+      <nav aria-label="Legal" class="flex items-center gap-5">
+        <a
+          href="/terms"
+          class="caption text-ink transition-colors hover:underline hover:underline-offset-4"
+        >
+          Terms &amp; Conditions
+        </a>
+        <a
+          href="/privacy"
+          class="caption text-ink transition-colors hover:underline hover:underline-offset-4"
+        >
+          Privacy Policy
+        </a>
+      </nav>
     </div>
   </div>
 </footer>

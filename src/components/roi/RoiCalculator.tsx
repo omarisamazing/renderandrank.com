@@ -2,7 +2,6 @@ import * as React from "react"
 
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
-
 const RANK_OPTIONS = [
   {
     value: "invisible",
@@ -190,7 +189,12 @@ export function RoiCalculator() {
 
           <div className="mt-7">
             <Button
-              render={<a href="/book-a-call" />}
+              render={
+                /* Navigates to the dedicated /book-a-call page, where the
+                   scheduler is already inlined and preloaded — no click-time
+                   popup, so nothing to wait on. */
+                <a href="/book-a-call" />
+              }
               variant="inverse"
               size="lg"
               block

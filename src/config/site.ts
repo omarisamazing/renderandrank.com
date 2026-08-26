@@ -55,14 +55,15 @@ export const siteConfig: SiteConfig = {
     avatar: "/Omar Ali's Facebook Profile cropped.png",
   },
   calCom: {
-    // ⚠️ Placeholder — https://cal.com/renderandrank/discovery returns 404 today.
-    // Create the event type on cal.com, then set `eventLink` to the exact
-    // `<user-or-team>/<event-type>` slug from its URL. Everything else (the
-    // popup on every CTA, the inline calendar on /book-a-call) reads from here.
+    // Live event type on the Render and Rank Cal.com account (username
+    // "renderandrank.com", event type id 6834737). `eventLink` is the exact
+    // `<user-or-team>/<event-type>` slug from the cal.com URL:
+    // https://cal.com/renderandrank.com/discovery. Everything else (the popup
+    // on every CTA, the inline calendar on /book-a-call) reads from here.
     namespace: "discovery",
-    eventLink: "renderandrank/discovery",
+    eventLink: "renderandrank.com/discovery",
     duration: "30 min",
-    platform: "Google Meet",
+    platform: "Cal Video",
     brandColor: "#000000",
   },
   contact: {

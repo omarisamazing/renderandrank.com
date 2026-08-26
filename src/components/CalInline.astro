@@ -2,37 +2,65 @@
 /**
  * Inline Cal.com scheduler. Reuses the namespace initialised by
  * `CalScript.astro`, so the embed script is fetched once per page.
+ *
+ * Once a booking lands, the calendar is swapped for the confirmation below on
+ * the `rr:booking-confirmed` event that `CalScript.astro` dispatches. The
+ * iframe is only hidden, not removed, so Cal keeps its own state.
  */
 import { siteConfig } from '../config/site';
+import { Check } from '@lucide/astro';
 
 interface Props {
   class?: string;
   minHeight?: number;
 }
 
-const { class: className = '', minHeight = 660 } = Astro.props;
+const { class: className = '', minHeight = 560 } = Astro.props;
 const { calCom } = siteConfig;
 ---
 
-<div
-  id="cal-inline"
-  class:list={['w-full', className]}
-  style={`min-height:${minHeight}px`}
->
-  <noscript>
-    <p class="body-sm p-6">
-      The scheduler needs JavaScript. You can also book directly at
-      <a
-        class="font-medium underline underline-offset-4"
-        href={`https://cal.com/${calCom.eventLink}`}
-        >cal.com/{calCom.eventLink}</a
-      >, or email
-      <a
-        class="font-medium underline underline-offset-4"
-        href={`mailto:${siteConfig.contact.email}`}>{siteConfig.contact.email}</a
-      >.
-    </p>
-  </noscript>
+<div class:list={['w-full', className]}>
+  <div id="cal-inline" style={`min-height:${minHeight}px`}>
+    <noscript>
+      <p class="body-sm p-6">
+        The scheduler needs JavaScript. You can also book directly at
+        <a
+          class="font-medium underline underline-offset-4"
+          href={`https://cal.com/${calCom.eventLink}`}
+          >cal.com/{calCom.eventLink}</a
+        >, or email
+        <a
+          class="font-medium underline underline-offset-4"
+          href={`mailto:${siteConfig.contact.email}`}
+          >{siteConfig.contact.email}</a
+        >.
+      </p>
+    </noscript>
+  </div>
+
+  <!-- No display utility on this element: `[hidden]` and a `display` utility
+       carry the same specificity, and the utility would win. -->
+  <div id="cal-confirmed" role="status" aria-live="polite" tabindex="-1" hidden>
+    <div class="p-6 text-center md:p-10">
+      <span
+        class="mx-auto flex size-12 items-center justify-center rounded-full bg-block-lime"
+        aria-hidden="true"
+      >
+        <Check class="size-5 text-ink" />
+      </span>
+
+      <p class="headline mt-6 text-ink">You are booked</p>
+
+      <p class="body mt-3 text-ink">
+        The invite and your {calCom.platform} link are on their way to your email.
+        Reschedule or cancel from that email if anything changes.
+      </p>
+
+      <p class="body-sm mt-5 text-ink">
+        Nothing to prepare. We pull your grid live on the call.
+      </p>
+    </div>
+  </div>
 </div>
 
 <script
@@ -42,6 +70,22 @@ const { calCom } = siteConfig;
   Cal.ns[namespace]('inline', {
     elementOrSelector: '#cal-inline',
     calLink: link,
-    config: { layout: 'month_view' },
+    config: { layout: 'column_view' },
   });
+
+  document.addEventListener(
+    'rr:booking-confirmed',
+    function () {
+      const calendar = document.getElementById('cal-inline');
+      const confirmed = document.getElementById('cal-confirmed');
+      if (!calendar || !confirmed) return;
+
+      calendar.hidden = true;
+      confirmed.hidden = false;
+      // The calendar the visitor was just using is gone, so move the caret with
+      // it rather than leaving focus on a detached subtree.
+      confirmed.focus();
+    },
+    { once: true }
+  );
 </script>

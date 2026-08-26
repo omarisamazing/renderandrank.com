@@ -1,8 +1,9 @@
 ---
 /**
  * Persistent booking affordance. Stays out of the way until the visitor has
- * scrolled past the hero, then slides in and opens the Cal.com modal in place.
- * Dismissible, and it remembers the dismissal for the session.
+ * scrolled past the hero, then slides in and links to /book-a-call, where the
+ * scheduler is inlined and preloaded. Dismissible, and it remembers the
+ * dismissal for the session.
  */
 import { siteConfig } from '../config/site';
 import { Calendar, X } from '@lucide/astro';
@@ -22,9 +23,6 @@ const { calCom } = siteConfig;
     <a
       href="/book-a-call"
       class="flex items-center gap-2.5 rounded-pill px-4 py-2.5 text-inverse-ink transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-inverse-ink"
-      data-cal-namespace={calCom.namespace}
-      data-cal-link={calCom.eventLink}
-      data-cal-config={JSON.stringify({ layout: 'month_view' })}
     >
       <Calendar class="size-4 shrink-0" aria-hidden="true" />
       <span class="label">Book a {calCom.duration} call</span>

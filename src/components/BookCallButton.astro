@@ -1,10 +1,7 @@
 ---
 /**
- * The one CTA used for booking across the site. Opens the Cal.com scheduler as a
- * modal in place, so a visitor never loses the page they were reading.
- *
- * Falls back to /book-a-call when JavaScript or the embed is unavailable —
- * `href` stays on the element and Cal.com's script calls preventDefault itself.
+ * The one CTA used for booking across the site. Links to /book-a-call, where the
+ * Cal.com scheduler is inlined and preloaded — no click-time popup to wait on.
  */
 import { siteConfig } from '../config/site';
 import Button from './ui/Button.astro';
@@ -35,9 +32,6 @@ const { calCom } = siteConfig;
   size={size}
   block={block}
   class={className}
-  data-cal-namespace={calCom.namespace}
-  data-cal-link={calCom.eventLink}
-  data-cal-config={JSON.stringify({ layout: 'month_view' })}
 >
   <span>{label}</span>
   {withIcon && <ArrowRight class="size-4" aria-hidden="true" />}

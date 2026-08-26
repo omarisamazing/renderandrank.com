@@ -124,9 +124,6 @@ function TierGrid({
               variant={tier.isPopular ? "primary" : "secondary"}
               size="md"
               block
-              data-cal-namespace={calNamespace}
-              data-cal-link={calLink}
-              data-cal-config='{"layout":"month_view"}'
             >
               {tier.ctaText}
             </Button>
