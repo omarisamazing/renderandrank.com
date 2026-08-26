@@ -44,8 +44,8 @@ export function RoiCalculator() {
   return (
     <div className="grid items-start gap-10 lg:grid-cols-12 lg:gap-12">
       {/* Inputs */}
-      <div className="flex flex-col gap-4 lg:col-span-6">
-        <fieldset className="rounded-md border border-white/15 bg-white/5 p-5">
+      <div className="flex min-w-0 flex-col gap-4 lg:col-span-6">
+        <fieldset className="rounded-md border border-white/16 bg-white/8 p-5">
           <div className="flex items-baseline justify-between gap-4">
             <Label htmlFor="deal-value" className="label text-inverse-ink">
               Average job value
@@ -65,7 +65,7 @@ export function RoiCalculator() {
             step={100}
             value={dealValue}
             onChange={(e) => setDealValue(Number(e.target.value))}
-            className="mt-4 w-full accent-[#dceeb1]"
+            className="mt-4 w-full accent-block-lime"
           />
           <div className="mt-2 flex justify-between">
             <span className="caption text-inverse-ink">$200</span>
@@ -73,7 +73,7 @@ export function RoiCalculator() {
           </div>
         </fieldset>
 
-        <fieldset className="rounded-md border border-white/15 bg-white/5 p-5">
+        <fieldset className="rounded-md border border-white/16 bg-white/8 p-5">
           <div className="flex items-baseline justify-between gap-4">
             <Label htmlFor="search-volume" className="label text-inverse-ink">
               Monthly local searches
@@ -93,7 +93,7 @@ export function RoiCalculator() {
             step={100}
             value={searchVolume}
             onChange={(e) => setSearchVolume(Number(e.target.value))}
-            className="mt-4 w-full accent-[#dceeb1]"
+            className="mt-4 w-full accent-block-lime"
           />
           <div className="mt-2 flex justify-between">
             <span className="caption text-inverse-ink">300</span>
@@ -101,7 +101,7 @@ export function RoiCalculator() {
           </div>
         </fieldset>
 
-        <fieldset className="rounded-md border border-white/15 bg-white/5 p-5">
+        <fieldset className="rounded-md border border-white/16 bg-white/8 p-5">
           <legend className="label text-inverse-ink">
             Where you rank in Maps today
           </legend>
@@ -109,7 +109,7 @@ export function RoiCalculator() {
             {RANK_OPTIONS.map((opt) => (
               <label
                 key={opt.value}
-                className="flex cursor-pointer items-center gap-3 rounded-md px-3 py-2.5 transition-colors has-checked:bg-white/10"
+                className="flex cursor-pointer items-center gap-3 rounded-md px-3 py-2.5 transition-colors has-checked:bg-white/16"
               >
                 <input
                   type="radio"
@@ -117,7 +117,7 @@ export function RoiCalculator() {
                   value={opt.value}
                   checked={rank === opt.value}
                   onChange={() => setRank(opt.value)}
-                  className="size-4 accent-[#dceeb1]"
+                  className="size-4 accent-block-lime"
                 />
                 <span className="body-sm text-inverse-ink">{opt.label}</span>
               </label>
@@ -127,14 +127,16 @@ export function RoiCalculator() {
       </div>
 
       {/* Result */}
-      <div className="lg:col-span-6">
-        <div className="rounded-lg border border-white/15 bg-inverse-canvas p-6 md:p-8">
+      <div className="min-w-0 lg:col-span-6">
+        <div className="@container rounded-lg border border-white/16 bg-inverse-canvas p-6 md:p-8">
           <p className="caption text-inverse-ink">
             Estimated revenue going to competitors
           </p>
 
+          {/* Sized in cqw, not vw: at seven figures the number is wider than
+              the card's own column, which vw can't see. */}
           <p
-            className="numeric mt-3 text-[clamp(2.5rem,7vw,4rem)] leading-none font-medium text-block-lime"
+            className="numeric mt-3 text-[clamp(2rem,13cqw,4rem)] leading-none font-medium text-block-lime"
             aria-live="polite"
           >
             {currency.format(monthly)}
@@ -149,7 +151,7 @@ export function RoiCalculator() {
             you never saw.
           </p>
 
-          <dl className="mt-7 grid grid-cols-2 gap-4 border-t border-white/15 pt-6">
+          <dl className="mt-7 grid grid-cols-2 gap-4 border-t border-white/16 pt-6">
             <div>
               <dt className="caption text-inverse-ink">Missed calls / mo</dt>
               <dd className="numeric mt-1 text-[1.5rem] font-medium text-inverse-ink">
@@ -170,6 +172,9 @@ export function RoiCalculator() {
               variant="inverse"
               size="lg"
               block
+              /* The label is longer than a phone-width card, so let it wrap
+                 instead of setting the card's min-content width. */
+              className="h-auto min-h-13 py-2.5 text-center whitespace-normal"
             >
               Check this against your real grid
             </Button>

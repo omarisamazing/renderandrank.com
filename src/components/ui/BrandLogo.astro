@@ -1,12 +1,11 @@
 ---
 /**
  * Wordmark lockup. No symbol mark — the type *is* the mark, set in Fuuld
- * (public/fonts/fuuld.woff2).
+ * (public/fonts/fuuld.woff2, with the supplied .otf as a secondary source).
  *
- * Fuuld's trial cut covers A–Z a–z 0–9 ! , - . ? only, so the ampersand is set
- * in Inter at a lighter weight and optically reduced — a deliberate pairing,
- * not a fallback. The `stacked` variant reproduces the supplied artwork
- * lockup, which carries no ampersand at all.
+ * Reads "Render Rank" — no ampersand, which also keeps the whole lockup inside
+ * Fuuld's trial cut (A–Z a–z 0–9 ! , - . ? only), so nothing falls back to
+ * Inter mid-word. The word gap is set in em so it tracks every size step.
  */
 interface Props {
   class?: string;
@@ -51,19 +50,15 @@ const toneClass = tone === 'inverse' ? 'text-inverse-ink' : 'text-ink';
   ) : (
     <span
       class:list={[
-        'font-display inline-flex items-baseline whitespace-nowrap leading-none tracking-[-0.035em]',
+        'font-display inline-flex items-baseline gap-[0.22em] whitespace-nowrap leading-none tracking-[-0.02em]',
         sizes[size],
         toneClass,
         className,
       ]}
-      aria-label="Render and Rank"
+      aria-label="Render Rank"
       translate="no"
     >
       <span aria-hidden="true">Render</span>
-      <span
-        class="font-sans font-light px-[0.14em] text-[0.78em] translate-y-[-0.03em]"
-        aria-hidden="true">&amp;</span
-      >
       <span aria-hidden="true">Rank</span>
     </span>
   )
