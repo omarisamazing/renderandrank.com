@@ -17,12 +17,27 @@ const RANK_OPTIONS = [
 const CALL_RATE = 0.35 // clicks that become a phone call
 const CLOSE_RATE = 0.4 // calls that become a job
 
+/** Slider bounds live next to the fill helper so the two can't drift apart. */
+const DEAL_MIN = 200
+const DEAL_MAX = 15000
+const VOLUME_MIN = 300
+const VOLUME_MAX = 10000
+
 const currency = new Intl.NumberFormat("en-US", {
   style: "currency",
   currency: "USD",
   maximumFractionDigits: 0,
 })
 const number = new Intl.NumberFormat("en-US")
+
+/**
+ * Track-fill position as a 0–1 number, read by `.range-brand` to paint the
+ * filled portion of the track. No engine exposes that through `accent-color`,
+ * so the value has to reach CSS as a custom property.
+ */
+function trackFill(value: number, min: number, max: number) {
+  return { "--range-fill-n": (value - min) / (max - min) } as React.CSSProperties
+}
 
 /**
  * Estimator for the revenue sitting with competitors. Deliberately conservative,
@@ -45,14 +60,14 @@ export function RoiCalculator() {
     <div className="grid items-start gap-10 lg:grid-cols-12 lg:gap-12">
       {/* Inputs */}
       <div className="flex min-w-0 flex-col gap-4 lg:col-span-6">
-        <fieldset className="rounded-md border border-white/16 bg-white/8 p-5">
+        <fieldset className="rounded-md border border-black/8 bg-canvas p-5">
           <div className="flex items-baseline justify-between gap-4">
-            <Label htmlFor="deal-value" className="label text-inverse-ink">
+            <Label htmlFor="deal-value" className="label text-ink">
               Average job value
             </Label>
             <output
               htmlFor="deal-value"
-              className="numeric text-[1.25rem] font-medium text-block-lime"
+              className="numeric text-[1.25rem] font-medium text-ink"
             >
               {currency.format(dealValue)}
             </output>
@@ -60,27 +75,28 @@ export function RoiCalculator() {
           <input
             id="deal-value"
             type="range"
-            min={200}
-            max={15000}
+            min={DEAL_MIN}
+            max={DEAL_MAX}
             step={100}
             value={dealValue}
             onChange={(e) => setDealValue(Number(e.target.value))}
-            className="mt-4 w-full accent-block-lime"
+            style={trackFill(dealValue, DEAL_MIN, DEAL_MAX)}
+            className="range-brand mt-4 w-full accent-ink"
           />
           <div className="mt-2 flex justify-between">
-            <span className="caption text-inverse-ink">$200</span>
-            <span className="caption text-inverse-ink">$15,000</span>
+            <span className="caption text-ink">$200</span>
+            <span className="caption text-ink">$15,000</span>
           </div>
         </fieldset>
 
-        <fieldset className="rounded-md border border-white/16 bg-white/8 p-5">
+        <fieldset className="rounded-md border border-black/8 bg-canvas p-5">
           <div className="flex items-baseline justify-between gap-4">
-            <Label htmlFor="search-volume" className="label text-inverse-ink">
+            <Label htmlFor="search-volume" className="label text-ink">
               Monthly local searches
             </Label>
             <output
               htmlFor="search-volume"
-              className="numeric text-[1.25rem] font-medium text-block-lime"
+              className="numeric text-[1.25rem] font-medium text-ink"
             >
               {number.format(searchVolume)}
             </output>
@@ -88,28 +104,34 @@ export function RoiCalculator() {
           <input
             id="search-volume"
             type="range"
-            min={300}
-            max={10000}
+            min={VOLUME_MIN}
+            max={VOLUME_MAX}
             step={100}
             value={searchVolume}
             onChange={(e) => setSearchVolume(Number(e.target.value))}
-            className="mt-4 w-full accent-block-lime"
+            style={trackFill(searchVolume, VOLUME_MIN, VOLUME_MAX)}
+            className="range-brand mt-4 w-full accent-ink"
           />
           <div className="mt-2 flex justify-between">
-            <span className="caption text-inverse-ink">300</span>
-            <span className="caption text-inverse-ink">10,000+</span>
+            <span className="caption text-ink">300</span>
+            <span className="caption text-ink">10,000+</span>
           </div>
         </fieldset>
 
-        <fieldset className="rounded-md border border-white/16 bg-white/8 p-5">
-          <legend className="label text-inverse-ink">
+        <fieldset className="min-w-0 rounded-md border border-black/8 bg-canvas p-5">
+          {/* Floated so the legend opts out of being laid into the fieldset's
+              block-start border, where a string this long straddles the edge and
+              gets clipped. As a full-width float inside the padding box it wraps
+              freely and lines up with the labels on the cards above; the sibling
+              flex container establishes a BFC, so it clears the float on its own. */}
+          <legend className="label float-left w-full text-ink break-words">
             Where you rank in Maps today
           </legend>
-          <div className="mt-4 flex flex-col gap-2">
+          <div className="mt-4 flex clear-both flex-col gap-2">
             {RANK_OPTIONS.map((opt) => (
               <label
                 key={opt.value}
-                className="flex cursor-pointer items-center gap-3 rounded-md px-3 py-2.5 transition-colors has-checked:bg-white/16"
+                className="flex cursor-pointer items-center gap-3 rounded-md px-3 py-2.5 transition-colors has-checked:bg-block-lilac"
               >
                 <input
                   type="radio"
@@ -117,9 +139,9 @@ export function RoiCalculator() {
                   value={opt.value}
                   checked={rank === opt.value}
                   onChange={() => setRank(opt.value)}
-                  className="size-4 accent-block-lime"
+                  className="size-4 accent-ink"
                 />
-                <span className="body-sm text-inverse-ink">{opt.label}</span>
+                <span className="body-sm text-ink">{opt.label}</span>
               </label>
             ))}
           </div>
@@ -136,7 +158,7 @@ export function RoiCalculator() {
           {/* Sized in cqw, not vw: at seven figures the number is wider than
               the card's own column, which vw can't see. */}
           <p
-            className="numeric mt-3 text-[clamp(2rem,13cqw,4rem)] leading-none font-medium text-block-lime"
+            className="numeric mt-3 text-[clamp(2rem,13cqw,4rem)] leading-none font-medium text-block-lilac"
             aria-live="polite"
           >
             {currency.format(monthly)}

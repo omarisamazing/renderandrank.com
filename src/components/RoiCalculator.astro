@@ -5,13 +5,13 @@ import { RoiCalculator } from './roi/RoiCalculator';
 ---
 
 <Section id="roi-calculator">
-  <div class="color-block color-block-navy color-block--bleed">
+  <div class="color-block color-block-lilac color-block--bleed">
     <div class="mx-auto max-w-2xl text-center" data-reveal-group>
-      <Eyebrow tone="inverse" data-reveal>Opportunity estimate</Eyebrow>
-      <h2 class="display-md mt-4 text-inverse-ink" data-reveal>
+      <Eyebrow tone="on-block" data-reveal>Opportunity estimate</Eyebrow>
+      <h2 class="display-md mt-4 text-ink" data-reveal>
         What is position four costing you?
       </h2>
-      <p class="subhead mt-5 text-inverse-ink" data-reveal>
+      <p class="subhead mt-5 text-ink" data-reveal>
         Most local clicks and nearly every AI recommendation go to the top three.
         Set your numbers and see the gap.
       </p>
@@ -22,3 +22,134 @@ import { RoiCalculator } from './roi/RoiCalculator';
     </div>
   </div>
 </Section>
+
+<style is:global>
+  /* ==========================================================================
+     Range sliders inside the ROI calculator.
+
+     Global rather than scoped: the track and thumb are UA pseudo-elements, so
+     Astro's scoping attribute never lands on them, and the input itself belongs
+     to a React island. `--range-fill-n` (0–1) is set inline from component
+     state — the filled part of the track is the one thing `accent-color` will
+     not give us.
+     ========================================================================== */
+  .range-brand {
+    --range-fill-n: 0;
+    /* Track 6px, thumb 20px — the thumb travels inside the track's own width,
+       so the fill stop is inset by half a thumb at each end to stay under it. */
+    --range-track-h: 0.375rem;
+    --range-thumb-d: 1.25rem;
+    --range-fill-stop: calc(
+      var(--range-thumb-d) / 2 + (100% - var(--range-thumb-d)) * var(--range-fill-n)
+    );
+
+    -webkit-appearance: none;
+    appearance: none;
+    height: var(--range-thumb-d);
+    background: transparent;
+    cursor: pointer;
+  }
+
+  /* --- Track -------------------------------------------------------------- */
+  .range-brand::-webkit-slider-runnable-track {
+    height: var(--range-track-h);
+    border-radius: var(--radius-pill);
+    background-color: var(--color-hairline);
+    background-image: linear-gradient(
+      to right,
+      var(--color-ink) var(--range-fill-stop),
+      transparent var(--range-fill-stop)
+    );
+  }
+
+  .range-brand::-moz-range-track {
+    height: var(--range-track-h);
+    border-radius: var(--radius-pill);
+    background-color: var(--color-hairline);
+  }
+
+  /* Firefox paints the fill itself, so it needs no stop calculation. */
+  .range-brand::-moz-range-progress {
+    height: var(--range-track-h);
+    border-radius: var(--radius-pill);
+    background-color: var(--color-ink);
+  }
+
+  /* --- Thumb -------------------------------------------------------------- */
+  .range-brand::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    height: var(--range-thumb-d);
+    width: var(--range-thumb-d);
+    /* Centres the thumb on the thinner track. */
+    margin-top: calc((var(--range-track-h) - var(--range-thumb-d)) / 2);
+    box-sizing: border-box;
+    border: 2px solid var(--color-ink);
+    border-radius: 9999px;
+    background-color: var(--color-canvas);
+    transition:
+      background-color 150ms var(--ease-brand),
+      box-shadow 150ms var(--ease-brand),
+      transform 150ms var(--ease-brand);
+  }
+
+  .range-brand::-moz-range-thumb {
+    height: var(--range-thumb-d);
+    width: var(--range-thumb-d);
+    box-sizing: border-box;
+    border: 2px solid var(--color-ink);
+    border-radius: 9999px;
+    background-color: var(--color-canvas);
+    transition:
+      background-color 150ms var(--ease-brand),
+      box-shadow 150ms var(--ease-brand),
+      transform 150ms var(--ease-brand);
+  }
+
+  /* --- Hover / active ----------------------------------------------------- */
+  .range-brand:hover::-webkit-slider-thumb {
+    background-color: var(--color-block-lilac);
+    box-shadow: 0 0 0 0.375rem
+      color-mix(in srgb, var(--color-block-lilac) 45%, transparent);
+  }
+
+  .range-brand:hover::-moz-range-thumb {
+    background-color: var(--color-block-lilac);
+    box-shadow: 0 0 0 0.375rem
+      color-mix(in srgb, var(--color-block-lilac) 45%, transparent);
+  }
+
+  .range-brand:active::-webkit-slider-thumb {
+    transform: scale(1.08);
+    background-color: var(--color-block-lilac);
+    box-shadow: 0 0 0 0.5rem
+      color-mix(in srgb, var(--color-block-lilac) 60%, transparent);
+  }
+
+  .range-brand:active::-moz-range-thumb {
+    transform: scale(1.08);
+    background-color: var(--color-block-lilac);
+    box-shadow: 0 0 0 0.5rem
+      color-mix(in srgb, var(--color-block-lilac) 60%, transparent);
+  }
+
+  /* Vendor pseudo-elements are never grouped in one selector list: an engine
+     that does not know the other prefix drops the whole rule. */
+  @media (prefers-reduced-motion: reduce) {
+    .range-brand::-webkit-slider-thumb {
+      transition: none;
+    }
+
+    .range-brand::-moz-range-thumb {
+      transition: none;
+    }
+
+    .range-brand:active::-webkit-slider-thumb {
+      transform: none;
+    }
+
+    .range-brand:active::-moz-range-thumb {
+      transform: none;
+    }
+  }
+</style>
