@@ -7,6 +7,12 @@
       "skillPath": "skills/agent-browser/SKILL.md",
       "computedHash": "a8853bcca9385c4998ee2bfbe4139b52b51596dc2f45414a9ee712e3c0827cfd"
     },
+    "ai-seo": {
+      "source": "coreyhaines31/marketingskills",
+      "sourceType": "github",
+      "skillPath": "skills/ai-seo/SKILL.md",
+      "computedHash": "30307bebed9bd2ad24bc497526491ab00db5d61746498c39bf79d6b1e376d100"
+    },
     "astro": {
       "source": "astrolicious/agent-skills",
       "sourceType": "github",

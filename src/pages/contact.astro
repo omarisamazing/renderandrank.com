@@ -116,9 +116,15 @@ const inputClass =
               id="contact-form"
               class="mt-8 grid gap-5 sm:grid-cols-2"
               method="post"
-              action={forms.auditEndpoint ?? undefined}
+              action={forms.contactEndpoint ?? '/api/contact'}
               novalidate
             >
+              <!-- Honeypot: hidden from humans, catches bots. -->
+              <div class="hidden" aria-hidden="true">
+                <label>Company
+                  <input type="text" name="company" tabindex="-1" autocomplete="off" />
+                </label>
+              </div>
               <div>
                 <label for="c-name" class="label block text-ink">
                   Your name<span class="text-destructive" aria-hidden="true"> *</span>
@@ -188,13 +194,9 @@ const inputClass =
               role="status"
               tabindex="-1"
             >
-              <p class="label text-ink">Your email draft is open.</p>
-              <p class="body-sm mt-1.5 text-ink">
-                Send it and Omar will reply within four business hours. If nothing
-                opened, write to
-                <a href={`mailto:${contact.email}`} class="font-medium underline underline-offset-4"
-                  >{contact.email}</a
-                >.
+              <p class="label text-ink" data-success-title>Message sent — thank you.</p>
+              <p class="body-sm mt-1.5 text-ink" data-success-body>
+                It reached Omar directly. Expect a reply within four business hours.
               </p>
             </div>
           </div>
@@ -265,10 +267,15 @@ const inputClass =
         return;
       }
 
-      if (!form.getAttribute('action')) {
-        event.preventDefault();
+      // Always handle the submit with fetch so we can show inline feedback and
+      // fall back to a mailto draft if the endpoint is missing or errors.
+      event.preventDefault();
 
-        const data = new FormData(form);
+      const data = new FormData(form);
+      const action = form.getAttribute('action');
+      const submitBtn = form.querySelector('button[type="submit"], [type="submit"]');
+
+      const openMailFallback = () => {
         const body = [
           `Name: ${data.get('name')}`,
           `Email: ${data.get('email')}`,
@@ -285,10 +292,61 @@ const inputClass =
           `?subject=${encodeURIComponent('Enquiry from ' + data.get('website'))}` +
           `&body=${encodeURIComponent(body)}`;
 
+        const heading = success.querySelector('[data-success-title]');
+        const detail = success.querySelector('[data-success-body]');
+        if (heading) heading.textContent = 'Your email draft is open.';
+        if (detail)
+          detail.innerHTML =
+            'Send it and Omar will reply within four business hours. If nothing ' +
+            `opened, write to <a href="mailto:${inbox}" class="font-medium underline underline-offset-4">${inbox}</a>.`;
+
         form.classList.add('hidden');
         success.classList.remove('hidden');
         success.focus();
+      };
+
+      const showSent = () => {
+        const heading = success.querySelector('[data-success-title]');
+        const detail = success.querySelector('[data-success-body]');
+        if (heading) heading.textContent = 'Message sent — thank you.';
+        if (detail)
+          detail.textContent =
+            'It reached Omar directly. Expect a reply within four business hours.';
+        form.classList.add('hidden');
+        success.classList.remove('hidden');
+        success.focus();
+      };
+
+      if (!action) {
+        openMailFallback();
+        return;
       }
+
+      if (submitBtn) {
+        submitBtn.setAttribute('disabled', 'true');
+        submitBtn.setAttribute('aria-busy', 'true');
+      }
+
+      fetch(action, {
+        method: 'POST',
+        headers: { Accept: 'application/json' },
+        body: data,
+      })
+        .then((res) => {
+          if (res.ok) {
+            showSent();
+          } else {
+            // Endpoint not configured or delivery failed — never drop the lead.
+            openMailFallback();
+          }
+        })
+        .catch(() => openMailFallback())
+        .finally(() => {
+          if (submitBtn) {
+            submitBtn.removeAttribute('disabled');
+            submitBtn.removeAttribute('aria-busy');
+          }
+        });
     });
   }
 </script>

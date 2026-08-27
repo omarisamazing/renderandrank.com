@@ -1,0 +1,12 @@
+# Copy this file to `.dev.vars` for local testing with `wrangler pages dev`.
+# `.dev.vars` is git-ignored. In production these live in the Cloudflare
+# Pages project settings (RESEND_API_KEY as an encrypted Secret).
+
+# Resend API key (https://resend.com/api-keys). Required to deliver leads.
+RESEND_API_KEY=re_your_key_here
+
+# Inbox that receives contact-form submissions.
+CONTACT_TO=hello@renderandrank.com
+
+# Verified Resend sender. Use an address on a domain you verified in Resend.
+CONTACT_FROM=Render and Rank <onboarding@resend.dev>

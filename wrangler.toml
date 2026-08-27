@@ -1,0 +1,15 @@
+# Cloudflare Pages configuration for renderandrank.com
+# Docs: https://developers.cloudflare.com/pages/functions/wrangler-configuration/
+name = "renderandrank"
+compatibility_date = "2024-11-01"
+
+# Astro builds the static site to ./dist; Pages Functions live in ./functions
+# and are deployed automatically alongside it.
+pages_build_output_dir = "dist"
+
+# Non-secret defaults. The contact form uses these when delivering leads.
+# RESEND_API_KEY must be added as an ENCRYPTED secret in the Pages dashboard
+# (or via `wrangler pages secret put RESEND_API_KEY`) — never commit it here.
+[vars]
+CONTACT_TO = "hello@renderandrank.com"
+CONTACT_FROM = "Render and Rank <onboarding@resend.dev>"

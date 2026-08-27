@@ -32,6 +32,13 @@ export interface SiteConfig {
      * silently dropping the submission.
      */
     auditEndpoint: string | null;
+    /**
+     * POST target for the contact "Send a message" form. Defaults to the
+     * built-in Cloudflare Pages Function at `/api/contact`. If that endpoint
+     * is unreachable or unconfigured, the form gracefully falls back to a
+     * mailto draft so a submission is never lost.
+     */
+    contactEndpoint: string | null;
   };
   socials: {
     twitter?: string;
@@ -74,6 +81,7 @@ export const siteConfig: SiteConfig = {
   },
   forms: {
     auditEndpoint: null,
+    contactEndpoint: "/api/contact",
   },
   socials: {
     twitter: "https://x.com/renderandrank",
