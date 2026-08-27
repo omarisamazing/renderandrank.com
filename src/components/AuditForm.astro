@@ -11,14 +11,14 @@ import Section from './ui/Section.astro';
 import Eyebrow from './ui/Eyebrow.astro';
 import Button from './ui/Button.astro';
 import { siteConfig } from '../config/site';
-import { Check, Clock, Lock } from '@lucide/astro';
+import { Check, CircleCheck, Clock, Lock } from '@lucide/astro';
 
 const fields = [
   { id: 'name', label: 'Your name', type: 'text', placeholder: 'Sarah Jenkins', span: 2 },
   { id: 'email', label: 'Email', type: 'email', placeholder: 'sarah@business.com', span: 1 },
   { id: 'phone', label: 'Phone', type: 'tel', placeholder: '(512) 555-0199', span: 1 },
   { id: 'website', label: 'Website', type: 'text', placeholder: 'company.com', span: 1 },
-  { id: 'city', label: 'City and state', type: 'text', placeholder: 'Austin, TX', span: 1 },
+  { id: 'location', label: 'City and state', type: 'text', placeholder: 'Austin, TX', span: 1 },
 ] as const;
 
 const included = [
@@ -27,7 +27,9 @@ const included = [
   'The three fixes with the largest effect',
 ];
 
-const endpoint = siteConfig.forms.auditEndpoint;
+// Reuses the same Cloudflare Pages Function as the contact form. Falls back to
+// a mailto draft if the endpoint is unreachable so the form is never a dead end.
+const endpoint = siteConfig.forms.contactEndpoint ?? '/api/contact';
 ---
 
 <Section id="free-audit">
@@ -74,6 +76,19 @@ const endpoint = siteConfig.forms.auditEndpoint;
             action={endpoint ?? undefined}
             novalidate
           >
+            <!-- The endpoint expects a message; the audit request carries a fixed one. -->
+            <input
+              type="hidden"
+              name="message"
+              value="Free geo-grid and AI visibility audit request."
+            />
+            <input type="hidden" name="service" value="audit" />
+            <!-- Honeypot: hidden from humans, catches bots. -->
+            <div class="hidden" aria-hidden="true">
+              <label>Company
+                <input type="text" name="company" tabindex="-1" autocomplete="off" />
+              </label>
+            </div>
             {
               fields.map((field) => (
                 <div class:list={[field.span === 2 && 'sm:col-span-2']}>
@@ -129,19 +144,19 @@ const endpoint = siteConfig.forms.auditEndpoint;
 
           <div
             id="audit-success"
-            class="hidden rounded-md border border-black/8 bg-block-mint p-5"
+            class="hidden rounded-lg border border-black/8 bg-block-mint p-6"
             role="status"
             tabindex="-1"
           >
-            <p class="label text-ink">Your email draft is open.</p>
-            <p class="body-sm mt-1.5 text-ink">
-              Send it and Omar will pull your geo-grid — the report lands within one
-              business day. If nothing opened, email
-              <a
-                href={`mailto:${siteConfig.contact.email}`}
-                class="font-medium underline underline-offset-4">{siteConfig.contact.email}</a
-              > directly.
-            </p>
+            <div class="flex gap-3.5">
+              <CircleCheck class="mt-0.5 size-5 shrink-0 text-success" aria-hidden="true" />
+              <div>
+                <p class="card-title text-ink" data-success-title>Audit request received.</p>
+                <p class="body-sm mt-1.5 text-ink" data-success-body>
+                  Omar pulls your geo-grid and emails the report within one business day.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -176,11 +191,45 @@ const endpoint = siteConfig.forms.auditEndpoint;
   }
 
   if (form && success) {
-    const inputs = Array.from(form.querySelectorAll('input'));
+    // Validation rules — mirrored on the server in functions/api/contact.ts.
+    const RULES = {
+      name: {
+        test: (v) => /^\p{L}[\p{L}.'-]*(?:\s+\p{L}[\p{L}.'-]*)+$/u.test(v),
+        msg: 'Enter your first and last name.',
+      },
+      email: {
+        test: (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v),
+        msg: 'Enter a valid email, like name@company.com.',
+      },
+      phone: {
+        test: (v) => {
+          const d = v.replace(/\D/g, '');
+          return d.length >= 7 && d.length <= 15;
+        },
+        msg: 'Enter a valid phone number with area code.',
+      },
+      website: {
+        test: (v) => /^(https?:\/\/)?([\w-]+\.)+[a-z]{2,}(\/\S*)?$/i.test(v),
+        msg: 'Enter a valid website, like company.com.',
+      },
+      location: { test: (v) => v.length >= 2, msg: 'Enter your city and state.' },
+    };
+
+    const inputs = Array.from(form.querySelectorAll('input')).filter(
+      (f) => f.name && RULES[f.name]
+    );
+
+    function ruleMessage(input) {
+      const rule = RULES[input.name];
+      if (!rule) return null;
+      const value = input.value.trim();
+      if (!value) return rule.optional ? null : 'This one is required.';
+      return rule.test(value) ? null : rule.msg;
+    }
 
     for (const input of inputs) {
       input.addEventListener('input', () => {
-        if (input.validity.valid) clearError(input);
+        if (!ruleMessage(input)) clearError(input);
       });
     }
 
@@ -188,16 +237,9 @@ const endpoint = siteConfig.forms.auditEndpoint;
       let firstInvalid = null;
 
       for (const input of inputs) {
-        if (!input.value.trim()) {
-          showError(input, 'This one is required.');
-          firstInvalid = firstInvalid || input;
-        } else if (!input.validity.valid) {
-          showError(
-            input,
-            input.type === 'email'
-              ? 'Check the email address.'
-              : 'Check this value.'
-          );
+        const message = ruleMessage(input);
+        if (message) {
+          showError(input, message);
           firstInvalid = firstInvalid || input;
         } else {
           clearError(input);
@@ -210,18 +252,21 @@ const endpoint = siteConfig.forms.auditEndpoint;
         return;
       }
 
-      // No endpoint configured: compose the email rather than swallow the
-      // submission behind a success message that isn't true.
-      if (!form.getAttribute('action')) {
-        event.preventDefault();
+      // Handle with fetch so we can show inline feedback and fall back to a
+      // mailto draft if the endpoint is missing or errors.
+      event.preventDefault();
 
-        const data = new FormData(form);
+      const data = new FormData(form);
+      const action = form.getAttribute('action');
+      const submitBtn = form.querySelector('button[type="submit"], [type="submit"]');
+
+      const openMailFallback = () => {
         const body = [
           `Name: ${data.get('name')}`,
           `Email: ${data.get('email')}`,
           `Phone: ${data.get('phone')}`,
           `Website: ${data.get('website')}`,
-          `City: ${data.get('city')}`,
+          `City: ${data.get('location')}`,
           '',
           'Please send my free geo-grid and AI visibility audit.',
         ].join('\n');
@@ -231,10 +276,51 @@ const endpoint = siteConfig.forms.auditEndpoint;
           `?subject=${encodeURIComponent('Free audit request — ' + data.get('website'))}` +
           `&body=${encodeURIComponent(body)}`;
 
+        const heading = success.querySelector('[data-success-title]');
+        const detail = success.querySelector('[data-success-body]');
+        if (heading) heading.textContent = 'Your email draft is open.';
+        if (detail)
+          detail.innerHTML =
+            'Send it and Omar pulls your geo-grid — the report lands within one ' +
+            `business day. If nothing opened, email <a href="mailto:${inbox}" class="font-medium underline underline-offset-4">${inbox}</a>.`;
+
         form.classList.add('hidden');
         success.classList.remove('hidden');
         success.focus();
+      };
+
+      const showSent = () => {
+        form.classList.add('hidden');
+        success.classList.remove('hidden');
+        success.focus();
+      };
+
+      if (!action) {
+        openMailFallback();
+        return;
       }
+
+      if (submitBtn) {
+        submitBtn.setAttribute('disabled', 'true');
+        submitBtn.setAttribute('aria-busy', 'true');
+      }
+
+      fetch(action, {
+        method: 'POST',
+        headers: { Accept: 'application/json' },
+        body: data,
+      })
+        .then((res) => {
+          if (res.ok) showSent();
+          else openMailFallback();
+        })
+        .catch(() => openMailFallback())
+        .finally(() => {
+          if (submitBtn) {
+            submitBtn.removeAttribute('disabled');
+            submitBtn.removeAttribute('aria-busy');
+          }
+        });
     });
   }
 </script>

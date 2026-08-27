@@ -1,0 +1,58 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Eyebrow from '../components/ui/Eyebrow.astro';
+import Button from '../components/ui/Button.astro';
+import BookCallButton from '../components/BookCallButton.astro';
+
+// A handful of the pages people actually look for when they land here.
+const routes = [
+  { href: '/services', label: 'Services' },
+  { href: '/pricing', label: 'Pricing' },
+  { href: '/portfolio', label: 'Portfolio' },
+  { href: '/calculator', label: 'ROI calculator' },
+  { href: '/contact', label: 'Contact' },
+];
+---
+
+<Layout
+  title="Page not found (404) | Render and Rank"
+  description="That page moved or never existed. Head back home, explore our services, or book a call."
+>
+  <section class="section-y">
+    <div class="container-page">
+      <div class="mx-auto max-w-2xl text-center" data-reveal-group>
+        <Eyebrow data-reveal>Error 404</Eyebrow>
+        <h1 class="display-lg mt-4 text-ink" data-reveal>
+          That page isn’t here
+        </h1>
+        <p class="subhead mt-5 text-ink" data-reveal>
+          The link is broken or the page moved. Nothing lost — here’s the way
+          back to what you were probably after.
+        </p>
+
+        <div class="mt-8 flex flex-wrap items-center justify-center gap-3" data-reveal>
+          <Button href="/" size="lg">Back to home</Button>
+          <BookCallButton size="lg" label="Book a call" withIcon={false} />
+        </div>
+
+        <nav class="mt-10 border-t border-hairline pt-8" data-reveal aria-label="Popular pages">
+          <p class="caption text-ink">Or jump straight to</p>
+          <ul class="mt-4 flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
+            {
+              routes.map((route) => (
+                <li>
+                  <a
+                    href={route.href}
+                    class="body-sm underline decoration-hairline underline-offset-4 transition-colors hover:decoration-ink"
+                  >
+                    {route.label}
+                  </a>
+                </li>
+              ))
+            }
+          </ul>
+        </nav>
+      </div>
+    </div>
+  </section>
+</Layout>
