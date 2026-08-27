@@ -12,6 +12,7 @@ interface Props {
   description?: string;
   canonical?: string;
   image?: string;
+  keywords?: string;
   /** The booking page hides the floating prompt — the calendar is already there. */
   showBookingPrompt?: boolean;
 }
@@ -21,31 +22,61 @@ const {
   description = siteConfig.description,
   canonical = Astro.url.href,
   image = "/Omar Ali's Facebook Profile cropped.png",
+  keywords = 'local SEO, Google Maps 3-pack, AEO, generative engine optimization, GEO, AI search visibility, ChatGPT SEO, Google Business Profile, citation building, local search engineering',
   showBookingPrompt = true,
 } = Astro.props;
 
-const organizationSchema = {
+const sameAs = Object.values(siteConfig.socials).filter(Boolean);
+
+// LocalBusiness + WebSite in one @graph — the primary entity for both Google
+// rich results and AI answer-engine citation.
+const structuredData = {
   '@context': 'https://schema.org',
-  '@type': 'LocalBusiness',
-  name: siteConfig.name,
-  url: siteConfig.url,
-  logo: `${siteConfig.url}/Wordmark black.svg`,
-  image: new URL(image, siteConfig.url).href,
-  description: siteConfig.description,
-  telephone: siteConfig.contact.phone,
-  email: siteConfig.contact.email,
-  address: {
-    '@type': 'PostalAddress',
-    streetAddress: siteConfig.contact.address,
-    addressCountry: 'US',
-  },
-  openingHours: 'Mo-Fr 09:00-18:00',
-  priceRange: '$$',
-  founder: {
-    '@type': 'Person',
-    name: siteConfig.founder.name,
-    jobTitle: siteConfig.founder.role,
-  },
+  '@graph': [
+    {
+      '@type': 'ProfessionalService',
+      '@id': `${siteConfig.url}/#business`,
+      name: siteConfig.name,
+      url: siteConfig.url,
+      logo: `${siteConfig.url}/Wordmark black.svg`,
+      image: new URL(image, siteConfig.url).href,
+      description: siteConfig.description,
+      slogan: siteConfig.tagline,
+      telephone: siteConfig.contact.phone,
+      email: siteConfig.contact.email,
+      priceRange: '$$',
+      address: {
+        '@type': 'PostalAddress',
+        addressLocality: 'Austin',
+        addressRegion: 'TX',
+        addressCountry: 'US',
+      },
+      areaServed: { '@type': 'Country', name: 'Worldwide' },
+      openingHoursSpecification: [
+        {
+          '@type': 'OpeningHoursSpecification',
+          dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+          opens: '09:00',
+          closes: '18:00',
+        },
+      ],
+      founder: {
+        '@type': 'Person',
+        name: siteConfig.founder.name,
+        jobTitle: siteConfig.founder.role,
+      },
+      sameAs,
+    },
+    {
+      '@type': 'WebSite',
+      '@id': `${siteConfig.url}/#website`,
+      url: siteConfig.url,
+      name: siteConfig.name,
+      description: siteConfig.description,
+      inLanguage: 'en-US',
+      publisher: { '@id': `${siteConfig.url}/#business` },
+    },
+  ],
 };
 
 const socialImage = new URL(image, siteConfig.url).href;
@@ -81,6 +112,7 @@ const socialImage = new URL(image, siteConfig.url).href;
 
     <title>{title}</title>
     <meta name="description" content={description} />
+    <meta name="keywords" content={keywords} />
     <link rel="canonical" href={canonical} />
     <meta name="generator" content={Astro.generator} />
 
@@ -96,7 +128,7 @@ const socialImage = new URL(image, siteConfig.url).href;
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={socialImage} />
 
-    <script type="application/ld+json" set:html={JSON.stringify(organizationSchema)} />
+    <script type="application/ld+json" set:html={JSON.stringify(structuredData)} />
 
     <Motion />
     <CalScript />

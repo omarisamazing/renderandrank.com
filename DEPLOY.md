@@ -49,6 +49,40 @@ for production deliverability.
 > If `RESEND_API_KEY` is not set, the endpoint returns `503` and the form
 > gracefully falls back to opening a pre-filled email draft, so no lead is lost.
 
+## 3b. Set up the database (Cloudflare D1)
+
+Every submission is also stored in **Cloudflare D1** (serverless SQLite) so a lead
+is never lost even if email delivery fails. One-time setup:
+
+```sh
+# 1. Create the database
+npx wrangler d1 create renderandrank_leads
+#    -> copy the returned database_id into wrangler.toml (d1_databases block)
+
+# 2. Apply the schema (migrations/0001_create_submissions.sql)
+npx wrangler d1 migrations apply renderandrank_leads --remote
+```
+
+Then in the Pages project, add a **D1 database binding** named `DB` pointing to
+`renderandrank_leads` (Settings → Functions → D1 database bindings). The Function
+reads it as `env.DB`; if the binding is absent it simply skips storage.
+
+Query recent leads any time:
+
+```sh
+npx wrangler d1 execute renderandrank_leads --remote \
+  --command "SELECT created_at, name, email, website FROM submissions ORDER BY id DESC LIMIT 20"
+```
+
+## 3c. SEO / discovery
+
+- `public/robots.txt` allows all crawlers plus AI engines (GPTBot, PerplexityBot,
+  ClaudeBot, Google-Extended, Bingbot) and points to the sitemap.
+- `@astrojs/sitemap` generates `/sitemap-index.xml` on every build. After the
+  first deploy, submit it in Google Search Console and Bing Webmaster Tools.
+- Structured data (JSON-LD): `ProfessionalService` + `WebSite` sitewide, and
+  `FAQPage` on the FAQ section — good for rich results and AI citations.
+
 ## 4. Custom domain
 
 Add `renderandrank.com` under **Custom domains** in the Pages project and follow

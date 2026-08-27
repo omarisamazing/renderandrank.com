@@ -4,7 +4,7 @@ import Eyebrow from '../components/ui/Eyebrow.astro';
 import Button from '../components/ui/Button.astro';
 import BookCallButton from '../components/BookCallButton.astro';
 import { siteConfig } from '../config/site';
-import { Clock, Mail, MapPin, Phone } from '@lucide/astro';
+import { CircleCheck, Clock, Mail, MapPin, Phone } from '@lucide/astro';
 
 const { contact, founder, forms } = siteConfig;
 
@@ -190,14 +190,19 @@ const inputClass =
 
             <div
               id="contact-success"
-              class="hidden rounded-md border border-hairline bg-block-mint p-5"
+              class="mt-8 hidden rounded-lg border border-hairline bg-block-mint p-6"
               role="status"
               tabindex="-1"
             >
-              <p class="label text-ink" data-success-title>Message sent — thank you.</p>
-              <p class="body-sm mt-1.5 text-ink" data-success-body>
-                It reached Omar directly. Expect a reply within four business hours.
-              </p>
+              <div class="flex gap-3.5">
+                <CircleCheck class="mt-0.5 size-5 shrink-0 text-success" aria-hidden="true" />
+                <div>
+                  <p class="card-title text-ink" data-success-title>Message sent — thank you.</p>
+                  <p class="body-sm mt-1.5 text-ink" data-success-body>
+                    It reached Omar directly. Expect a reply within four business hours.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -233,13 +238,51 @@ const inputClass =
   }
 
   if (form && success) {
+    // Validation rules — mirrored on the server in functions/api/contact.ts.
+    const RULES = {
+      name: {
+        test: (v) => /^\p{L}[\p{L}.'-]*(?:\s+\p{L}[\p{L}.'-]*)+$/u.test(v),
+        msg: 'Enter your first and last name.',
+      },
+      email: {
+        test: (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v),
+        msg: 'Enter a valid email, like name@company.com.',
+      },
+      website: {
+        test: (v) => /^(https?:\/\/)?([\w-]+\.)+[a-z]{2,}(\/\S*)?$/i.test(v),
+        msg: 'Enter a valid website, like company.com.',
+      },
+      location: { test: (v) => v.length >= 2, msg: 'Enter your target city.' },
+      message: {
+        test: (v) => v.length >= 10,
+        msg: 'Add a little more detail (at least 10 characters).',
+      },
+      phone: {
+        optional: true,
+        test: (v) => {
+          const d = v.replace(/\D/g, '');
+          return d.length >= 7 && d.length <= 15;
+        },
+        msg: 'Enter a valid phone number with area code.',
+      },
+    };
+
+    // Field elements that carry a rule (includes the optional phone field).
     const fields = Array.from(form.querySelectorAll('input, textarea')).filter(
-      (f) => f.required
+      (f) => f.name && RULES[f.name]
     );
+
+    function ruleMessage(field) {
+      const rule = RULES[field.name];
+      if (!rule) return null;
+      const value = field.value.trim();
+      if (!value) return rule.optional ? null : 'This one is required.';
+      return rule.test(value) ? null : rule.msg;
+    }
 
     for (const field of fields) {
       field.addEventListener('input', () => {
-        if (field.validity.valid) clearError(field);
+        if (!ruleMessage(field)) clearError(field);
       });
     }
 
@@ -247,14 +290,9 @@ const inputClass =
       let firstInvalid = null;
 
       for (const field of fields) {
-        if (!field.value.trim()) {
-          showError(field, 'This one is required.');
-          firstInvalid = firstInvalid || field;
-        } else if (!field.validity.valid) {
-          showError(
-            field,
-            field.type === 'email' ? 'Check the email address.' : 'Check this value.'
-          );
+        const message = ruleMessage(field);
+        if (message) {
+          showError(field, message);
           firstInvalid = firstInvalid || field;
         } else {
           clearError(field);

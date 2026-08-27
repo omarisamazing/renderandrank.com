@@ -16,4 +16,18 @@ declare global {
   type PagesFunction<Env = unknown, P extends string = string, Data = unknown> = (
     context: EventContext<Env, P, Data>
   ) => Response | Promise<Response>;
+
+  // Minimal Cloudflare D1 surface used by this project.
+  interface D1PreparedStatement {
+    bind(...values: unknown[]): D1PreparedStatement;
+    run<T = unknown>(): Promise<{ success: boolean; results?: T[] }>;
+    all<T = unknown>(): Promise<{ success: boolean; results: T[] }>;
+    first<T = unknown>(colName?: string): Promise<T | null>;
+  }
+
+  interface D1Database {
+    prepare(query: string): D1PreparedStatement;
+    exec(query: string): Promise<unknown>;
+    batch<T = unknown>(statements: D1PreparedStatement[]): Promise<T[]>;
+  }
 }

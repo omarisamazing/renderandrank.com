@@ -19,6 +19,8 @@ interface Env {
   RESEND_API_KEY?: string;
   CONTACT_TO?: string;
   CONTACT_FROM?: string;
+  // Cloudflare D1 binding (configured in wrangler.toml as `DB`).
+  DB?: D1Database;
 }
 
 interface Submission {
@@ -35,6 +37,66 @@ interface Submission {
 
 const REQUIRED: (keyof Submission)[] = ['name', 'email', 'website', 'location', 'message'];
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Real first + last name (unicode letters, allows . ' -), at least two parts.
+const NAME_RE = /^\p{L}[\p{L}.'-]*(?:\s+\p{L}[\p{L}.'-]*)+$/u;
+// A domain like company.com, optionally with scheme/path.
+const WEBSITE_RE = /^(https?:\/\/)?([\w-]+\.)+[a-z]{2,}(\/\S*)?$/i;
+
+/** Validate the human fields. Returns a map of field -> guidance message. */
+function validateFields(data: Submission): Record<string, string> {
+  const errors: Record<string, string> = {};
+
+  if (!NAME_RE.test(data.name)) {
+    errors.name = 'Enter your first and last name.';
+  }
+  if (!EMAIL_RE.test(data.email)) {
+    errors.email = 'Enter a valid email, like name@company.com.';
+  }
+  // Phone is optional; validate only when provided.
+  if (data.phone) {
+    const digits = data.phone.replace(/[^\d]/g, '');
+    if (digits.length < 7 || digits.length > 15) {
+      errors.phone = 'Enter a valid phone number with area code.';
+    }
+  }
+  if (!WEBSITE_RE.test(data.website)) {
+    errors.website = 'Enter a valid website, like company.com.';
+  }
+  if (data.message.length < 10) {
+    errors.message = 'Add a little more detail (at least 10 characters).';
+  }
+
+  return errors;
+}
+
+/**
+ * Persist a submission to D1. Best-effort: a storage failure must never lose
+ * the lead, so we swallow errors here (the email path still runs).
+ */
+async function storeSubmission(env: Env, data: Submission, request: Request): Promise<void> {
+  if (!env.DB) return;
+  try {
+    await env.DB.prepare(
+      `INSERT INTO submissions
+        (name, email, phone, website, service, location, message, ip, user_agent)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+      .bind(
+        data.name,
+        data.email,
+        data.phone || null,
+        data.website,
+        data.service || null,
+        data.location,
+        data.message,
+        request.headers.get('cf-connecting-ip'),
+        request.headers.get('user-agent')
+      )
+      .run();
+  } catch (err) {
+    console.error('D1 insert failed', String(err));
+  }
+}
 
 function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
@@ -90,9 +152,13 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   if (missing.length) {
     return json({ ok: false, error: `Missing required field(s): ${missing.join(', ')}` }, 422);
   }
-  if (!EMAIL_RE.test(data.email)) {
-    return json({ ok: false, error: 'Please provide a valid email address.' }, 422);
+  const fieldErrors = validateFields(data);
+  if (Object.keys(fieldErrors).length) {
+    return json({ ok: false, error: 'Please check the highlighted fields.', fieldErrors }, 422);
   }
+
+  // Persist to D1 first so the lead is durable even if email delivery fails.
+  await storeSubmission(env, data, request);
 
   const apiKey = env.RESEND_API_KEY;
   if (!apiKey) {

@@ -13,3 +13,12 @@ pages_build_output_dir = "dist"
 [vars]
 CONTACT_TO = "hello@renderandrank.com"
 CONTACT_FROM = "Render and Rank <onboarding@resend.dev>"
+
+# Cloudflare D1 (serverless SQLite) — stores every contact submission.
+# Create it once with:  npx wrangler d1 create renderandrank_leads
+# then paste the returned database_id below (and in the Pages dashboard binding).
+[[d1_databases]]
+binding = "DB"
+database_name = "renderandrank_leads"
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+migrations_dir = "migrations"

@@ -31,6 +31,12 @@
       "skillPath": "skills/copywriting/SKILL.md",
       "computedHash": "81ce7ad67c2e99e96148f47c2816678bd1ebfc831cb455e836441f2c65ccf815"
     },
+    "firecrawl-seo-audit": {
+      "source": "firecrawl/firecrawl-workflows",
+      "sourceType": "github",
+      "skillPath": "skills/firecrawl-seo-audit/SKILL.md",
+      "computedHash": "efec8bf676c19e0b230fe3ac152651f22ba84dccc0d545f638252c26ee97c273"
+    },
     "grill-me": {
       "source": "mattpocock/skills",
       "sourceType": "github",
@@ -42,6 +48,18 @@
       "sourceType": "github",
       "skillPath": "skills/programmatic-seo/SKILL.md",
       "computedHash": "a53dc8741b0df338766ef8fc7d704bdfc75b8c8e7e1b1b2a5947d81d8c9508ff"
+    },
+    "seo-audit": {
+      "source": "coreyhaines31/marketingskills",
+      "sourceType": "github",
+      "skillPath": "skills/seo-audit/SKILL.md",
+      "computedHash": "71435fbaf3622f1a6b16e20fda15f19aa8e285c9914fdeb92ac0a7612d6317bb"
+    },
+    "seo-geo": {
+      "source": "resciencelab/opc-skills",
+      "sourceType": "github",
+      "skillPath": "skills/seo-geo/SKILL.md",
+      "computedHash": "1d38520f453282af8712874c360e3e34a379827f737fb536bd45055e2d60d964"
     },
     "shadcn": {
       "source": "shadcn-ui/ui",
