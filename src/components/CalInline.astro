@@ -3,12 +3,11 @@
  * Inline Cal.com scheduler. Reuses the namespace initialised by
  * `CalScript.astro`, so the embed script is fetched once per page.
  *
- * Once a booking lands, the calendar is swapped for the confirmation below on
- * the `rr:booking-confirmed` event that `CalScript.astro` dispatches. The
- * iframe is only hidden, not removed, so Cal keeps its own state.
+ * Once a booking lands, the calendar stays in place and a global toast
+ * confirms the booking on the `rr:booking-confirmed` event that
+ * `CalScript.astro` dispatches.
  */
 import { siteConfig } from '../config/site';
-import { Check } from '@lucide/astro';
 
 interface Props {
   class?: string;
@@ -37,30 +36,6 @@ const { calCom } = siteConfig;
       </p>
     </noscript>
   </div>
-
-  <!-- No display utility on this element: `[hidden]` and a `display` utility
-       carry the same specificity, and the utility would win. -->
-  <div id="cal-confirmed" role="status" aria-live="polite" tabindex="-1" hidden>
-    <div class="p-6 text-center md:p-10">
-      <span
-        class="mx-auto flex size-12 items-center justify-center rounded-full bg-block-lime"
-        aria-hidden="true"
-      >
-        <Check class="size-5 text-ink" />
-      </span>
-
-      <p class="headline mt-6 text-ink">You are booked</p>
-
-      <p class="body mt-3 text-ink">
-        The invite and your {calCom.platform} link are on their way to your email.
-        Reschedule or cancel from that email if anything changes.
-      </p>
-
-      <p class="body-sm mt-5 text-ink">
-        Nothing to prepare. We pull your grid live on the call.
-      </p>
-    </div>
-  </div>
 </div>
 
 <script
@@ -76,15 +51,8 @@ const { calCom } = siteConfig;
   document.addEventListener(
     'rr:booking-confirmed',
     function () {
-      const calendar = document.getElementById('cal-inline');
-      const confirmed = document.getElementById('cal-confirmed');
-      if (!calendar || !confirmed) return;
-
-      calendar.hidden = true;
-      confirmed.hidden = false;
-      // The calendar the visitor was just using is gone, so move the caret with
-      // it rather than leaving focus on a detached subtree.
-      confirmed.focus();
+      // Keep the Cal.com calendar in place; the global toast confirms the booking.
+      window.dispatchEvent(new CustomEvent('show-toast', { detail: { message: "You're booked! A calendar invite and your Cal Video link are on their way to your email.", type: 'success' } }));
     },
     { once: true }
   );

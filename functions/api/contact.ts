@@ -148,8 +148,8 @@ async function isRateLimited(
  * Persist a submission to D1. Best-effort: a storage failure must never lose
  * the lead, so we swallow errors here (the email path still runs).
  */
-async function storeSubmission(env: Env, data: Submission, request: Request): Promise<void> {
-  if (!env.DB) return;
+async function storeSubmission(env: Env, data: Submission, request: Request): Promise<boolean> {
+  if (!env.DB) return false;
   try {
     await env.DB.prepare(
       `INSERT INTO submissions
@@ -168,8 +168,10 @@ async function storeSubmission(env: Env, data: Submission, request: Request): Pr
         request.headers.get('user-agent')
       )
       .run();
+    return true;
   } catch (err) {
     console.error('D1 insert failed', String(err));
+    return false;
   }
 }
 
@@ -252,7 +254,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   }
 
   // Persist to D1 first so the lead is durable even if email delivery fails.
-  await storeSubmission(env, data, request);
+  const stored = await storeSubmission(env, data, request);
 
   const apiKey = env.RESEND_API_KEY;
   if (!apiKey) {
@@ -306,9 +308,14 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
     if (!res.ok) {
       const detail = await res.text();
+      console.error('Resend delivery failed', detail);
+      // Lead is already stored in D1, so don't fail the request for the visitor.
+      if (stored) return json({ ok: true, emailed: false });
       return json({ ok: false, error: 'Delivery failed.', detail }, 502);
     }
   } catch (err) {
+    console.error('Resend delivery threw', String(err));
+    if (stored) return json({ ok: true, emailed: false });
     return json({ ok: false, error: 'Delivery failed.', detail: String(err) }, 502);
   }
 

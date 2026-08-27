@@ -1,0 +1,96 @@
+---
+// Global toast notification.
+// Trigger from anywhere with:
+//   window.dispatchEvent(new CustomEvent('show-toast', { detail: { message: '...', type: 'success' | 'error' } }))
+// type defaults to 'success'. Auto-dismisses after 6s; also closeable via the button or Escape.
+---
+
+<div
+  id="toast"
+  role="status"
+  aria-live="polite"
+  class="fixed inset-x-4 bottom-4 z-[9999] flex items-center gap-3 overflow-hidden rounded-2xl px-5 py-4 shadow-2xl shadow-black/30 ring-1 ring-black/10 transition-all duration-300 ease-out translate-y-8 opacity-0 pointer-events-none sm:inset-x-auto sm:right-6 sm:bottom-6 sm:max-w-md bg-lime-400 text-zinc-950"
+>
+  <span
+    id="toast-icon"
+    aria-hidden="true"
+    class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-black/10"
+  >
+    <svg id="toast-icon-success" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><path d="M20 6 9 17l-5-5"></path></svg>
+    <svg id="toast-icon-error" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="hidden h-5 w-5"><line x1="12" y1="8" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+  </span>
+
+  <p id="toast-message" class="flex-1 text-[0.95rem] font-semibold leading-snug">
+    Message sent!
+  </p>
+
+  <button
+    id="toast-close"
+    type="button"
+    aria-label="Close notification"
+    class="-mr-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition hover:bg-black/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-current"
+  >
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+  </button>
+
+  <span id="toast-progress" class="absolute bottom-0 left-0 h-1 w-full origin-left bg-black/20"></span>
+</div>
+
+<script>
+  const toast = document.getElementById('toast')!;
+  const toastMsg = document.getElementById('toast-message')!;
+  const iconSuccess = document.getElementById('toast-icon-success')!;
+  const iconError = document.getElementById('toast-icon-error')!;
+  const toastClose = document.getElementById('toast-close')!;
+  const progress = document.getElementById('toast-progress')! as HTMLElement;
+
+  const SUCCESS_CLASSES = ['bg-lime-400', 'text-zinc-950'];
+  const ERROR_CLASSES = ['bg-red-600', 'text-white'];
+  const DURATION = 6000;
+  let hideTimer: ReturnType<typeof setTimeout> | null = null;
+
+  function clearTimer() {
+    if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
+  }
+
+  function showToast(message: string, type: 'success' | 'error' = 'success') {
+    clearTimer();
+    toastMsg.textContent = message;
+
+    // colours + icon
+    toast.classList.remove(...SUCCESS_CLASSES, ...ERROR_CLASSES);
+    toast.classList.add(...(type === 'error' ? ERROR_CLASSES : SUCCESS_CLASSES));
+    iconSuccess.classList.toggle('hidden', type === 'error');
+    iconError.classList.toggle('hidden', type !== 'error');
+    toast.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
+
+    // reveal
+    toast.classList.remove('translate-y-8', 'opacity-0', 'pointer-events-none');
+    toast.classList.add('translate-y-0', 'opacity-100', 'pointer-events-auto');
+
+    // restart the countdown progress bar
+    progress.style.transition = 'none';
+    progress.style.transform = 'scaleX(1)';
+    void progress.offsetWidth; // force reflow so the reset applies before animating
+    progress.style.transition = `transform ${DURATION}ms linear`;
+    progress.style.transform = 'scaleX(0)';
+
+    hideTimer = setTimeout(hideToast, DURATION);
+  }
+
+  function hideToast() {
+    toast.classList.remove('translate-y-0', 'opacity-100', 'pointer-events-auto');
+    toast.classList.add('translate-y-8', 'opacity-0', 'pointer-events-none');
+    clearTimer();
+  }
+
+  toastClose.addEventListener('click', hideToast);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') hideToast();
+  });
+
+  window.addEventListener('show-toast', (e: Event) => {
+    const detail = (e as CustomEvent<{ message: string; type?: 'success' | 'error' }>).detail;
+    showToast(detail.message, detail.type ?? 'success');
+  });
+</script>

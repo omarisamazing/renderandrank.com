@@ -288,23 +288,16 @@ const endpoint = siteConfig.forms.contactEndpoint ?? '/api/contact';
           `?subject=${encodeURIComponent('Free audit request — ' + data.get('website'))}` +
           `&body=${encodeURIComponent(body)}`;
 
-        const heading = success.querySelector('[data-success-title]');
-        const detail = success.querySelector('[data-success-body]');
-        if (heading) heading.textContent = 'Your email draft is open.';
-        if (detail)
-          detail.innerHTML =
-            'Send it and Omar pulls your geo-grid — the report lands within one ' +
-            `business day. If nothing opened, email <a href="mailto:${inbox}" class="font-medium underline underline-offset-4">${inbox}</a>.`;
-
-        form.classList.add('hidden');
-        success.classList.remove('hidden');
-        success.focus();
+        window.dispatchEvent(new CustomEvent('show-toast', { detail: { message: "Couldn't reach the server — we've opened your email app so you can send it directly.", type: 'error' } }));
       };
 
       const showSent = () => {
-        form.classList.add('hidden');
-        success.classList.remove('hidden');
-        success.focus();
+        window.dispatchEvent(new CustomEvent('show-toast', { detail: { message: "Request received! Your free geo-grid audit will land in your inbox within 1 business day.", type: 'success' } }));
+        form.reset();
+        if (submitBtn) {
+          submitBtn.removeAttribute('disabled');
+          submitBtn.removeAttribute('aria-busy');
+        }
       };
 
       if (!action) {

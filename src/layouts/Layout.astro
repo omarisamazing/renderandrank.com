@@ -4,6 +4,7 @@ import Footer from '../components/Footer.astro';
 import Motion from '../components/Motion.astro';
 import CalScript from '../components/CalScript.astro';
 import FloatingCalButton from '../components/FloatingCalButton.astro';
+import Toast from '../components/Toast.astro';
 import { siteConfig } from '../config/site';
 import '../styles/global.css';
 
@@ -191,5 +192,6 @@ const socialImage = new URL(image, siteConfig.url).href;
 
     <Footer />
     {showBookingPrompt && <FloatingCalButton />}
+    <Toast />
   </body>
 </html>
