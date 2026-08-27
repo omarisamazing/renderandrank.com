@@ -7,7 +7,11 @@ import { services } from '../../data/services';
 const service = services.find((s) => s.slug === 'local-seo')!;
 ---
 
-<Layout title={`${service.title} | Render and Rank`} description={service.shortDescription}>
+<Layout
+  title={`${service.title} | Render and Rank`}
+  description={service.shortDescription}
+  keywords="local SEO, Google Maps 3-pack, citation building, Google Business Profile, hyper-local rankings, NAP consistency"
+>
   <ServiceDetail
     service={service}
     block="cream"

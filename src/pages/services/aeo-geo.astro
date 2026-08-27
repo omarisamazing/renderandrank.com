@@ -7,7 +7,11 @@ import { services } from '../../data/services';
 const service = services.find((s) => s.slug === 'aeo-geo')!;
 ---
 
-<Layout title={`${service.title} | Render and Rank`} description={service.shortDescription}>
+<Layout
+  title={`${service.title} | Render and Rank`}
+  description={service.shortDescription}
+  keywords="AEO, GEO, answer engine optimization, generative engine optimization, ChatGPT SEO, Perplexity, Google AI Overviews, AI citations"
+>
   <ServiceDetail
     service={service}
     block="lilac"

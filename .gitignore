@@ -21,8 +21,9 @@ pnpm-debug.log*
 .dev.vars
 .wrangler/
 
-# local type-check output
+# local type-check / build output
 tsc-out.txt
+build.log
 
 # macOS-specific files
 .DS_Store

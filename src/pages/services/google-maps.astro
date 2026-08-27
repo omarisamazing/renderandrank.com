@@ -7,7 +7,11 @@ import { services } from '../../data/services';
 const service = services.find((s) => s.slug === 'google-maps')!;
 ---
 
-<Layout title={`${service.title} | Render and Rank`} description={service.shortDescription}>
+<Layout
+  title={`${service.title} | Render and Rank`}
+  description={service.shortDescription}
+  keywords="Google Maps 3-pack, Google Business Profile, map pack ranking, review velocity, proximity signals, local pack"
+>
   <ServiceDetail
     service={service}
     block="mint"
