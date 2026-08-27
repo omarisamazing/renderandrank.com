@@ -30,4 +30,10 @@ declare global {
     exec(query: string): Promise<unknown>;
     batch<T = unknown>(statements: D1PreparedStatement[]): Promise<T[]>;
   }
+
+  // Minimal Cloudflare KV surface used by the optional rate limiter.
+  interface KVNamespace {
+    get(key: string): Promise<string | null>;
+    put(key: string, value: string, opts?: { expirationTtl?: number }): Promise<void>;
+  }
 }

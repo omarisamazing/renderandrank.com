@@ -25,6 +25,18 @@
       "skillPath": "skills/backend-patterns/SKILL.md",
       "computedHash": "45bf0c6abd0549b56142690f49437bc59c7b4f55b62dc7717ef295ec6ed6617f"
     },
+    "competitive-landscape": {
+      "source": "every-app/open-seo",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/competitive-landscape/SKILL.md",
+      "computedHash": "f5799d00612ee703319826b027fa902d5862fd1c72d096854885e16e80af2f3d"
+    },
+    "competitor-analysis": {
+      "source": "every-app/open-seo",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/competitor-analysis/SKILL.md",
+      "computedHash": "ebcb36b476f95cf04775ab75335ce2db674c42fbffa463363f4421265af94aa7"
+    },
     "copywriting": {
       "source": "coreyhaines31/marketingskills",
       "sourceType": "github",
@@ -43,6 +55,30 @@
       "skillPath": "skills/productivity/grill-me/SKILL.md",
       "computedHash": "5e0c683385eafd83f106ac6c9d67dfbbfe5aa4b3fe65aad114eb1055a99c818f"
     },
+    "keyword-clustering": {
+      "source": "every-app/open-seo",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/keyword-clustering/SKILL.md",
+      "computedHash": "ee282d1469065baa23af848d2fcb8b5f64b443ab7ea5ad125634b41617abae37"
+    },
+    "keyword-research": {
+      "source": "every-app/open-seo",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/keyword-research/SKILL.md",
+      "computedHash": "7056e1cc56cddbe3e671e0059b84ad735aaa570d8c9e265b801a6ae0a566f3e2"
+    },
+    "link-prospecting": {
+      "source": "every-app/open-seo",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/link-prospecting/SKILL.md",
+      "computedHash": "95f5c30f9ba14d60efa03dcbeb1259ea3ba73648325e81ab5dd6bf028de1bbc0"
+    },
+    "local-seo": {
+      "source": "every-app/open-seo",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/local-seo/SKILL.md",
+      "computedHash": "c28a0d4613979288d57d31bb0671b5297f886141ce50c654303f918fa8285715"
+    },
     "programmatic-seo": {
       "source": "coreyhaines31/marketingskills",
       "sourceType": "github",
@@ -50,10 +86,16 @@
       "computedHash": "a53dc8741b0df338766ef8fc7d704bdfc75b8c8e7e1b1b2a5947d81d8c9508ff"
     },
     "seo-audit": {
-      "source": "coreyhaines31/marketingskills",
+      "source": "every-app/open-seo",
       "sourceType": "github",
-      "skillPath": "skills/seo-audit/SKILL.md",
-      "computedHash": "71435fbaf3622f1a6b16e20fda15f19aa8e285c9914fdeb92ac0a7612d6317bb"
+      "skillPath": ".agents/skills/seo-audit/SKILL.md",
+      "computedHash": "5893bb906d6e68235c0b28496adff52ccc0e2a8e76f3335ee10d770c2a1910b0"
+    },
+    "seo-coach": {
+      "source": "every-app/open-seo",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/seo-coach/SKILL.md",
+      "computedHash": "0c316c9cd42483598a1258353b7097cac5fcb38ad216b415d70782809d1f0fb0"
     },
     "seo-geo": {
       "source": "resciencelab/opc-skills",
@@ -61,11 +103,23 @@
       "skillPath": "skills/seo-geo/SKILL.md",
       "computedHash": "1d38520f453282af8712874c360e3e34a379827f737fb536bd45055e2d60d964"
     },
+    "seo-project-setup": {
+      "source": "every-app/open-seo",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/seo-project-setup/SKILL.md",
+      "computedHash": "257b15eb5b3ae57a358437433b54179c3bd23224cb94e850c50b68d9c1461b9d"
+    },
     "shadcn": {
       "source": "shadcn-ui/ui",
       "sourceType": "github",
       "skillPath": "skills/shadcn/SKILL.md",
       "computedHash": "f99ef49d9909d380ca683ceb8dc8c25775c20ee38140112c394e037d8c11ee18"
+    },
+    "simple-issue-description": {
+      "source": "every-app/open-seo",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/simple-issue-description/SKILL.md",
+      "computedHash": "7d97b412347c8954d666a9a2c015a404ea32efce4efbbecc55a4419db68074c5"
     },
     "tailwind-4-docs": {
       "source": "lombiq/tailwind-agent-skills",

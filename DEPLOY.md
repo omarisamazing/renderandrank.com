@@ -46,6 +46,92 @@ In Resend, verify the sending domain (e.g. `renderandrank.com`) and set
 `CONTACT_FROM` to something like `Render and Rank <hello@renderandrank.com>`
 for production deliverability.
 
+## ⚠️ Required pre-deploy checklist
+
+Do **not** deploy to production until all three of these are done. They are the
+common reasons a fresh deploy fails or silently drops leads.
+
+### 1. Replace the D1 `database_id` placeholder in `wrangler.toml`
+
+`wrangler.toml` currently ships with a placeholder that **must** be replaced
+with your real D1 database id before deploying:
+
+```toml
+[[d1_databases]]
+binding = "DB"
+database_name = "renderandrank_leads"
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"   # <-- must be replaced
+migrations_dir = "migrations"
+```
+
+Get the real id one of two ways, then paste it in place of the placeholder:
+
+```sh
+# Create the database — the command prints the database_id it generates:
+npx wrangler d1 create renderandrank_leads
+
+# ...or, if the database already exists, list databases and copy the id:
+npx wrangler d1 list
+```
+
+The binding name is `DB` and the database name is `renderandrank_leads`
+(as declared in `wrangler.toml`). After pasting the id, apply the schema
+migration (`migrations/0001_create_submissions.sql`) to the remote DB:
+
+```sh
+npx wrangler d1 migrations apply renderandrank_leads --remote
+```
+
+### 2. Move `CONTACT_FROM` off the shared Resend test address
+
+`wrangler.toml` currently sets:
+
+```toml
+CONTACT_FROM = "Render and Rank <onboarding@resend.dev>"
+```
+
+`onboarding@resend.dev` is **test-only**: Resend will only deliver from it to
+your own account address. To email real leads at arbitrary recipients, you must
+send from an address on a domain you have **verified in Resend**. Verify your
+domain (e.g. `renderandrank.com`) in the Resend dashboard, then set:
+
+```toml
+CONTACT_FROM = "Render and Rank <noreply@renderandrank.com>"
+```
+
+Resend only delivers to arbitrary recipients once the sending domain is verified.
+
+### 3. Set `RESEND_API_KEY` as a Cloudflare secret (never commit it)
+
+`RESEND_API_KEY` must **not** be committed to the repo or placed in
+`wrangler.toml`. Store it as an encrypted Cloudflare Pages secret:
+
+```sh
+# Cloudflare Pages:
+npx wrangler pages secret put RESEND_API_KEY
+```
+
+For local development, also add it to `.dev.vars` at the project root — this
+file is gitignored and is read automatically by `wrangler pages dev`:
+
+```sh
+# .dev.vars  (never committed)
+RESEND_API_KEY=re_your_key_here
+```
+
+## How to push a small update safely
+
+1. Create a branch off `master` and make your change.
+2. Run `npm run build` locally to confirm the site compiles.
+3. Commit with a clear message, then open/merge the change into `master`.
+4. `git push origin master` — Cloudflare Pages auto-builds and deploys from `master`.
+5. If the change touches the DB schema, add a **new** migration file under
+   `migrations/` (e.g. `0002_*.sql`) and apply it to the remote DB with
+   `npx wrangler d1 migrations apply renderandrank_leads --remote`.
+6. Verify the deployed site. If something is wrong, roll back in the Cloudflare
+   dashboard via **Workers & Pages → your project → Deployments → "Rollback to
+   this deployment"** on the last known-good build.
+
 > If `RESEND_API_KEY` is not set, the endpoint returns `503` and the form
 > gracefully falls back to opening a pre-filled email draft, so no lead is lost.
 
@@ -73,6 +159,52 @@ Query recent leads any time:
 npx wrangler d1 execute renderandrank_leads --remote \
   --command "SELECT created_at, name, email, website FROM submissions ORDER BY id DESC LIMIT 20"
 ```
+
+## Optional hardening
+
+The contact / audit forms work fully **without** any of the following. Each is
+gated: leave it unset and behavior is exactly as before (the widget/script does
+not render, and the server-side check is skipped).
+
+| Variable / binding          | Type                             | Purpose                                                                                                                                 |
+| --------------------------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `TURNSTILE_SECRET_KEY`      | **Encrypted Secret** (Pages)     | Server-side [Cloudflare Turnstile](https://developers.cloudflare.com/turnstile/) verification. When set, submissions must carry a valid `cf-turnstile-response` token or the endpoint returns `403`. |
+| `PUBLIC_TURNSTILE_SITE_KEY` | Build-time **public** var        | Client-side Turnstile site key. Read in `src/config/site.ts` as `siteConfig.turnstileSiteKey`. When non-empty, the forms render the Turnstile widget + script; when empty, they render exactly as today. |
+| `RATE_LIMIT`                | **KV namespace binding**         | IP rate limiting for `/api/contact` (max 5 submissions per 600s per IP → `429`). When the binding is absent, rate limiting is skipped.  |
+
+### Turnstile
+
+1. Create a Turnstile widget in the Cloudflare dashboard and copy both the
+   **site key** and **secret key**.
+2. Add the secret key as an encrypted Pages secret:
+
+   ```sh
+   npx wrangler pages secret put TURNSTILE_SECRET_KEY
+   ```
+
+3. Set the public site key as a build-time environment variable in the Pages
+   project (Settings → Environment variables), named `PUBLIC_TURNSTILE_SITE_KEY`.
+   For local dev, add it to `.env` at the project root so Astro exposes it at
+   build time.
+
+Set **both** for Turnstile to be enforced end-to-end. Setting only the public
+key renders the widget but the server does not verify; setting only the secret
+verifies a token the widget never produces (submissions will fail) — so pair them.
+
+### Rate limiting (KV)
+
+1. Create the namespace:
+
+   ```sh
+   npx wrangler kv namespace create RATE_LIMIT
+   ```
+
+2. Paste the returned id into the commented `[[kv_namespaces]]` block in
+   `wrangler.toml` and uncomment it, then add the same **KV namespace binding**
+   named `RATE_LIMIT` in the Pages project (Settings → Functions → KV namespace
+   bindings).
+
+The limiter fails open — if KV is unavailable it never blocks a legitimate lead.
 
 ## 3c. SEO / discovery
 

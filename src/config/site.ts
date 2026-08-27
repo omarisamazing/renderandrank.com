@@ -8,6 +8,12 @@ export interface SiteConfig {
     name: string;
     role: string;
     bio: string;
+    /**
+     * NOTE: No longer used for rendering. The founder portrait is now imported
+     * as an optimized asset via `astro:assets` (see FounderSection.astro and
+     * contact.astro, which import `src/assets/founder-omar-ali.png`). This value
+     * is retained only for reference / non-Astro consumers.
+     */
     avatar: string;
   };
   calCom: {
@@ -40,11 +46,22 @@ export interface SiteConfig {
      */
     contactEndpoint: string | null;
   };
+  /**
+   * Public (build-time) Cloudflare Turnstile site key. When non-empty the
+   * contact / audit forms render the Turnstile widget; when empty they render
+   * exactly as before with no widget or script. Server-side verification is
+   * gated separately on `TURNSTILE_SECRET_KEY` in the Pages Function.
+   */
+  turnstileSiteKey: string;
   socials: {
     twitter?: string;
     linkedin?: string;
     github?: string;
     youtube?: string;
+    facebook?: string;
+    instagram?: string;
+    tiktok?: string;
+    reddit?: string;
   };
 }
 
@@ -76,17 +93,22 @@ export const siteConfig: SiteConfig = {
   contact: {
     email: "hello@renderandrank.com",
     phone: "+1 (888) 736-3371",
-    address: "Austin, TX & Serving Growth-Minded Businesses Worldwide",
-    hours: "Mon – Fri: 9:00 AM – 6:00 PM EST",
+    address: "Dhaka, Bangladesh — serving the USA, UK & Europe (US virtual office)",
+    hours: "Mon–Fri · US, UK & EU hours covered",
   },
   forms: {
     auditEndpoint: null,
     contactEndpoint: "/api/contact",
   },
+  turnstileSiteKey: import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? "",
   socials: {
     twitter: "https://x.com/renderandrank",
     linkedin: "https://linkedin.com/company/renderandrank",
     youtube: "https://youtube.com/@renderandrank",
+    facebook: "https://facebook.com/renderandrank",
+    instagram: "https://instagram.com/renderandrank",
+    tiktok: "https://tiktok.com/@renderandrank",
+    reddit: "https://reddit.com/r/renderandrank",
   },
 };
 

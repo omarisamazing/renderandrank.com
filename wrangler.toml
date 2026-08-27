@@ -20,5 +20,13 @@ CONTACT_FROM = "Render and Rank <onboarding@resend.dev>"
 [[d1_databases]]
 binding = "DB"
 database_name = "renderandrank_leads"
-database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+database_id = "879d5a9e-7792-41b8-b763-5cc7c298f14e"
 migrations_dir = "migrations"
+
+# Optional: Cloudflare KV for contact-form rate limiting. The Function reads it
+# as `env.RATE_LIMIT`; when the binding is absent, rate limiting is skipped.
+# Create with:  npx wrangler kv namespace create RATE_LIMIT
+# then paste the returned id below and uncomment this block.
+# [[kv_namespaces]]
+# binding = "RATE_LIMIT"
+# id = "REPLACE_WITH_YOUR_KV_NAMESPACE_ID"

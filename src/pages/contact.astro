@@ -5,13 +5,15 @@ import Button from '../components/ui/Button.astro';
 import BookCallButton from '../components/BookCallButton.astro';
 import { siteConfig } from '../config/site';
 import { CircleCheck, Clock, Mail, MapPin, Phone } from '@lucide/astro';
+import { Picture } from 'astro:assets';
+import founderAvatar from '../assets/founder-omar-ali.png';
 
 const { contact, founder, forms } = siteConfig;
 
 const details = [
   { icon: Phone, label: 'Direct line', value: contact.phone, href: `tel:${contact.phone.replace(/[^\d+]/g, '')}` },
   { icon: Mail, label: 'Email', value: contact.email, href: `mailto:${contact.email}` },
-  { icon: MapPin, label: 'Based in', value: 'Austin, TX — working worldwide' },
+  { icon: MapPin, label: 'Based in', value: 'Dhaka, Bangladesh — serving the US, UK & Europe (US virtual office)' },
   { icon: Clock, label: 'Reply time', value: 'Usually within four business hours' },
 ];
 
@@ -25,6 +27,9 @@ const services = [
 
 const inputClass =
   'mt-2 w-full rounded-md border border-hairline bg-canvas px-3.5 py-3 text-[1.0625rem] text-ink placeholder:text-muted-foreground focus-visible:border-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ink';
+
+// Optional Cloudflare Turnstile. Renders only when a public site key is set.
+const turnstileSiteKey = siteConfig.turnstileSiteKey;
 ---
 
 <Layout
@@ -55,11 +60,13 @@ const inputClass =
         <aside class="lg:col-span-5" data-reveal>
           <div class="rounded-lg border border-hairline bg-canvas p-6 md:p-7">
             <div class="flex items-center gap-4 border-b border-hairline pb-5">
-              <img
-                src={founder.avatar}
+              <Picture
+                src={founderAvatar}
+                formats={['avif', 'webp']}
+                fallbackFormat="png"
                 alt=""
-                width="96"
-                height="96"
+                width={96}
+                height={96}
                 loading="lazy"
                 decoding="async"
                 class="size-12 shrink-0 rounded-full border border-hairline object-cover object-top"
@@ -130,7 +137,7 @@ const inputClass =
                 <label for="c-name" class="label block text-ink">
                   Your name<span class="text-destructive" aria-hidden="true"> *</span>
                 </label>
-                <input id="c-name" name="name" type="text" required autocomplete="name" placeholder="Jane Doe" class={inputClass} />
+                <input id="c-name" name="name" type="text" required autocomplete="name" maxlength="100" placeholder="Jane Doe" class={inputClass} />
                 <p class="caption mt-1.5 hidden text-destructive" data-error-for="c-name" role="alert"></p>
               </div>
 
@@ -138,20 +145,20 @@ const inputClass =
                 <label for="c-email" class="label block text-ink">
                   Email<span class="text-destructive" aria-hidden="true"> *</span>
                 </label>
-                <input id="c-email" name="email" type="email" required autocomplete="email" inputmode="email" spellcheck="false" autocapitalize="none" placeholder="jane@company.com" class={inputClass} />
+                <input id="c-email" name="email" type="email" required autocomplete="email" inputmode="email" spellcheck="false" autocapitalize="none" maxlength="254" placeholder="jane@company.com" class={inputClass} />
                 <p class="caption mt-1.5 hidden text-destructive" data-error-for="c-email" role="alert"></p>
               </div>
 
               <div>
                 <label for="c-phone" class="label block text-ink">Phone</label>
-                <input id="c-phone" name="phone" type="tel" autocomplete="tel" inputmode="tel" placeholder="(555) 000-0000" class={inputClass} />
+                <input id="c-phone" name="phone" type="tel" autocomplete="tel" inputmode="tel" maxlength="20" placeholder="(555) 000-0000" class={inputClass} />
               </div>
 
               <div>
                 <label for="c-website" class="label block text-ink">
                   Website<span class="text-destructive" aria-hidden="true"> *</span>
                 </label>
-                <input id="c-website" name="website" type="text" required autocomplete="url" spellcheck="false" autocapitalize="none" placeholder="company.com" class={inputClass} />
+                <input id="c-website" name="website" type="text" required autocomplete="url" spellcheck="false" autocapitalize="none" maxlength="200" placeholder="company.com" class={inputClass} />
                 <p class="caption mt-1.5 hidden text-destructive" data-error-for="c-website" role="alert"></p>
               </div>
 
@@ -166,7 +173,7 @@ const inputClass =
                 <label for="c-location" class="label block text-ink">
                   Target city<span class="text-destructive" aria-hidden="true"> *</span>
                 </label>
-                <input id="c-location" name="location" type="text" required autocomplete="address-level2" placeholder="Dallas, TX" class={inputClass} />
+                <input id="c-location" name="location" type="text" required autocomplete="address-level2" maxlength="120" placeholder="City, Country (e.g. London, UK)" class={inputClass} />
                 <p class="caption mt-1.5 hidden text-destructive" data-error-for="c-location" role="alert"></p>
               </div>
 
@@ -179,10 +186,17 @@ const inputClass =
                   name="message"
                   rows="5"
                   required
+                  maxlength="5000"
                   placeholder="Where you rank now, who is beating you, what you want to change."
                   class={inputClass}></textarea>
                 <p class="caption mt-1.5 hidden text-destructive" data-error-for="c-message" role="alert"></p>
               </div>
+
+              {
+                turnstileSiteKey && (
+                  <div class="cf-turnstile sm:col-span-2" data-sitekey={turnstileSiteKey} />
+                )
+              }
 
               <div class="sm:col-span-2">
                 <Button type="submit" size="lg" block>Send message</Button>
@@ -211,6 +225,8 @@ const inputClass =
     </div>
   </div>
 </Layout>
+
+{turnstileSiteKey && <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>}
 
 <script is:inline define:vars={{ inbox: contact.email }}>
   const form = document.querySelector('#contact-form');

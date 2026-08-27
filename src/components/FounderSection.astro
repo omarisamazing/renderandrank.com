@@ -5,6 +5,8 @@ import Button from './ui/Button.astro';
 import BookCallButton from './BookCallButton.astro';
 import { siteConfig } from '../config/site';
 import { Check } from '@lucide/astro';
+import { Picture } from 'astro:assets';
+import founderAvatar from '../assets/founder-omar-ali.png';
 
 const commitments = [
   {
@@ -26,11 +28,13 @@ const commitments = [
         <div
           class="mx-auto w-full max-w-xs overflow-hidden rounded-lg border border-black/10 bg-canvas lg:mx-0"
         >
-          <img
-            src={siteConfig.founder.avatar}
+          <Picture
+            src={founderAvatar}
+            formats={['avif', 'webp']}
+            fallbackFormat="png"
             alt={`${siteConfig.founder.name}, founder of ${siteConfig.name}`}
-            width="480"
-            height="560"
+            width={480}
+            height={560}
             loading="lazy"
             decoding="async"
             class="aspect-[6/7] w-full object-cover object-top"
@@ -41,7 +45,7 @@ const commitments = [
           <p class="card-title text-ink">{siteConfig.founder.name}</p>
           <p class="body-sm mt-1 text-ink">{siteConfig.founder.role}</p>
           <p class="caption mt-2 text-ink">
-            Austin, TX &middot; working with US and international businesses
+            Dhaka, Bangladesh &middot; serving businesses across the US, UK &amp; Europe
           </p>
         </div>
       </div>
@@ -56,9 +60,9 @@ const commitments = [
 
         <div class="mt-6 flex flex-col gap-4" data-reveal>
           <p class="body text-ink">
-            I'm Omar Ali. I started Render &amp; Rank after watching owners pay
-            agency retainers and get handed to a junior coordinator who had never
-            touched a Business Profile.
+            I'm Omar Ali. I started Render &amp; Rank as a global agency after
+            watching owners pay agency retainers and get handed to a junior
+            coordinator who had never touched a Business Profile.
           </p>
           <p class="body text-ink">
             I treat local search as an engineering problem: calibrate the entity

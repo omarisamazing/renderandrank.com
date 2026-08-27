@@ -17,6 +17,9 @@ pnpm-debug.log*
 .env
 .env.production
 
+# Deploy / secrets / build artifacts
+.env*
+
 # cloudflare / wrangler
 .dev.vars
 .wrangler/

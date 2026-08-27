@@ -1,7 +1,13 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@fontsource-variable/inter";
+
+/* Inter Variable is now subset to latin + latin-ext only. The two @font-face
+   rules live in src/layouts/Layout.astro, where the woff2 assets are imported
+   with `?url` so Vite emits exactly those two files (dropping the cyrillic /
+   greek / vietnamese subsets the all-subsets `@fontsource-variable/inter`
+   import used to bundle). The `--font-sans` token below still applies the
+   "Inter Variable" family unchanged. */
 
 @custom-variant dark (&:is(.dark *));
 
@@ -13,8 +19,7 @@
 @font-face {
   font-family: "Fuuld";
   src:
-    url("/fonts/fuuld.woff2") format("woff2"),
-    url("/fonts/fuuldtest-regular.otf") format("opentype");
+    url("/fonts/fuuld.woff2") format("woff2");
   font-weight: 400;
   font-style: normal;
   font-display: swap;

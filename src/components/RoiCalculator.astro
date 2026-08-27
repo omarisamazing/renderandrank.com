@@ -2,6 +2,28 @@
 import Section from './ui/Section.astro';
 import Eyebrow from './ui/Eyebrow.astro';
 import { RoiCalculator } from './roi/RoiCalculator';
+import { getLangFromUrl, useTranslations } from "../i18n/utils";
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+
+const labels = {
+  dealValueLabel: t("roi.dealValueLabel"),
+  dealValueMin: t("roi.dealValueMin"),
+  dealValueMax: t("roi.dealValueMax"),
+  searchVolumeLabel: t("roi.searchVolumeLabel"),
+  searchVolumeMin: t("roi.searchVolumeMin"),
+  searchVolumeMax: t("roi.searchVolumeMax"),
+  rankLegend: t("roi.rankLegend"),
+  rankOptions: [t("roi.rank.0"), t("roi.rank.1"), t("roi.rank.2")],
+  resultLabel: t("roi.resultLabel"),
+  perMonthSuffix: t("roi.perMonthSuffix"),
+  summary: t("roi.summary"),
+  missedCallsLabel: t("roi.missedCallsLabel"),
+  missedJobsLabel: t("roi.missedJobsLabel"),
+  cta: t("roi.cta"),
+  assumptions: t("roi.assumptions"),
+};
 ---
 
 <Section id="roi-calculator">
@@ -18,7 +40,7 @@ import { RoiCalculator } from './roi/RoiCalculator';
     </div>
 
     <div class="mt-12 md:mt-14" data-reveal>
-      <RoiCalculator client:visible />
+      <RoiCalculator client:visible labels={labels} />
     </div>
   </div>
 </Section>

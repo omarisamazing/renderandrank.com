@@ -21,6 +21,12 @@ interface Env {
   CONTACT_FROM?: string;
   // Cloudflare D1 binding (configured in wrangler.toml as `DB`).
   DB?: D1Database;
+  // Optional Cloudflare Turnstile secret. When set, submissions must carry a
+  // valid `cf-turnstile-response` token; when unset, Turnstile is skipped.
+  TURNSTILE_SECRET_KEY?: string;
+  // Optional KV namespace for IP rate limiting (bound as `RATE_LIMIT` in
+  // wrangler.toml). When unset, rate limiting is skipped.
+  RATE_LIMIT?: KVNamespace;
 }
 
 interface Submission {
@@ -42,31 +48,100 @@ const NAME_RE = /^\p{L}[\p{L}.'-]*(?:\s+\p{L}[\p{L}.'-]*)+$/u;
 // A domain like company.com, optionally with scheme/path.
 const WEBSITE_RE = /^(https?:\/\/)?([\w-]+\.)+[a-z]{2,}(\/\S*)?$/i;
 
+// Upper bounds per field. Mirrored as `maxlength` on the form inputs. Anything
+// over the cap is a validation failure (422), same as the other checks.
+const MAX_LENGTHS: Record<string, number> = {
+  name: 100,
+  email: 254,
+  phone: 20,
+  website: 200,
+  service: 100,
+  location: 120,
+  message: 5000,
+};
+
 /** Validate the human fields. Returns a map of field -> guidance message. */
 function validateFields(data: Submission): Record<string, string> {
   const errors: Record<string, string> = {};
 
-  if (!NAME_RE.test(data.name)) {
+  // Length caps first — reject oversized input before the shape checks.
+  for (const [field, max] of Object.entries(MAX_LENGTHS)) {
+    const value = (data as unknown as Record<string, string>)[field] || '';
+    if (value.length > max) {
+      errors[field] = `Please keep this under ${max} characters.`;
+    }
+  }
+
+  if (!errors.name && !NAME_RE.test(data.name)) {
     errors.name = 'Enter your first and last name.';
   }
-  if (!EMAIL_RE.test(data.email)) {
+  if (!errors.email && !EMAIL_RE.test(data.email)) {
     errors.email = 'Enter a valid email, like name@company.com.';
   }
   // Phone is optional; validate only when provided.
-  if (data.phone) {
+  if (!errors.phone && data.phone) {
     const digits = data.phone.replace(/[^\d]/g, '');
     if (digits.length < 7 || digits.length > 15) {
       errors.phone = 'Enter a valid phone number with area code.';
     }
   }
-  if (!WEBSITE_RE.test(data.website)) {
+  if (!errors.website && !WEBSITE_RE.test(data.website)) {
     errors.website = 'Enter a valid website, like company.com.';
   }
-  if (data.message.length < 10) {
+  if (!errors.message && data.message.length < 10) {
     errors.message = 'Add a little more detail (at least 10 characters).';
   }
 
   return errors;
+}
+
+/**
+ * Verify a Cloudflare Turnstile token. Gated by TURNSTILE_SECRET_KEY: when the
+ * secret is unset the caller skips this entirely.
+ */
+async function verifyTurnstile(
+  secret: string,
+  token: string,
+  remoteip: string | null
+): Promise<boolean> {
+  try {
+    const body = new URLSearchParams();
+    body.set('secret', secret);
+    body.set('response', token || '');
+    if (remoteip) body.set('remoteip', remoteip);
+    const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body,
+    });
+    const out = (await res.json()) as { success?: boolean };
+    return out.success === true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Fixed-window IP rate limit backed by KV. Allows up to `max` requests per
+ * `windowSeconds`. Gated by env.RATE_LIMIT: when unset the caller skips this.
+ * Fails open on KV errors so a storage hiccup never blocks a real lead.
+ */
+async function isRateLimited(
+  kv: KVNamespace,
+  ip: string | null,
+  max = 5,
+  windowSeconds = 600
+): Promise<boolean> {
+  if (!ip) return false;
+  const key = `rl:contact:${ip}`;
+  try {
+    const current = Number((await kv.get(key)) || '0');
+    if (current >= max) return true;
+    await kv.put(key, String(current + 1), { expirationTtl: windowSeconds });
+    return false;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -136,6 +211,25 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   // Honeypot: silently accept bots without sending anything.
   if (raw.company && raw.company.trim() !== '') {
     return json({ ok: true });
+  }
+
+  const clientIp = request.headers.get('cf-connecting-ip');
+
+  // Rate limit (gated on the RATE_LIMIT KV binding). Skipped when unbound.
+  if (env.RATE_LIMIT && (await isRateLimited(env.RATE_LIMIT, clientIp))) {
+    return json({ ok: false, error: 'Too many requests. Please try again in a few minutes.' }, 429);
+  }
+
+  // Turnstile verification (gated on TURNSTILE_SECRET_KEY). Skipped when unset.
+  if (env.TURNSTILE_SECRET_KEY) {
+    const token =
+      typeof (raw as Record<string, unknown>)['cf-turnstile-response'] === 'string'
+        ? ((raw as Record<string, string>)['cf-turnstile-response'] as string)
+        : '';
+    const ok = await verifyTurnstile(env.TURNSTILE_SECRET_KEY, token, clientIp);
+    if (!ok) {
+      return json({ ok: false, error: 'Could not verify you are human. Please try again.' }, 403);
+    }
   }
 
   const data: Submission = {

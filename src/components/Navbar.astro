@@ -5,6 +5,18 @@ import Button from './ui/Button.astro';
 import BookCallButton from './BookCallButton.astro';
 import { ServicesMenu } from './nav/ServicesMenu';
 import { MobileNav } from './nav/MobileNav';
+import { getLangFromUrl, useTranslations } from '../i18n/utils';
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+
+// Map a navLink to its translated label by matching name (lowercased) to a
+// `nav.<name>` key, falling back to the original name when no key exists.
+const navLabel = (name: string) => {
+  const key = `nav.${name.toLowerCase()}` as Parameters<typeof t>[0];
+  const translated = t(key);
+  return translated === key ? name : translated;
+};
 
 const currentPath = Astro.url.pathname;
 const { calCom } = siteConfig;
@@ -31,7 +43,7 @@ const isActive = (href: string) =>
           link.children ? (
             <ServicesMenu
               client:idle
-              label={link.name}
+              label={navLabel(link.name)}
               href={link.href}
               items={link.children}
             />
@@ -46,7 +58,7 @@ const isActive = (href: string) =>
                   : 'text-ink hover:bg-surface-soft',
               ]}
             >
-              {link.name}
+              {navLabel(link.name)}
             </a>
           )
         )

@@ -9,6 +9,10 @@ import sitemap from '@astrojs/sitemap';
 export default defineConfig({
   site: 'https://renderandrank.com',
 
+  prefetch: {
+    prefetchAll: true,
+  },
+
   vite: {
     plugins: [tailwindcss()],
   },

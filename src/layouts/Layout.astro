@@ -7,6 +7,34 @@ import FloatingCalButton from '../components/FloatingCalButton.astro';
 import { siteConfig } from '../config/site';
 import '../styles/global.css';
 
+// Inter Variable, subset to latin + latin-ext only (the site's i18n is en + de,
+// so cyrillic / greek / vietnamese are never needed). Importing the two woff2
+// assets with `?url` makes Vite emit exactly those files and gives us the final
+// hashed URLs to reference from the @font-face rules below — the all-subsets
+// `@fontsource-variable/inter` CSS import (which bundled all six subsets) is
+// gone. The "Inter Variable" family and 100–900 weight range are unchanged.
+import interLatinWoff2 from '@fontsource-variable/inter/files/inter-latin-wght-normal.woff2?url';
+import interLatinExtWoff2 from '@fontsource-variable/inter/files/inter-latin-ext-wght-normal.woff2?url';
+
+const interFontFaceCss = `
+@font-face {
+  font-family: "Inter Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("${interLatinExtWoff2}") format("woff2-variations");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Inter Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("${interLatinWoff2}") format("woff2-variations");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+`;
+
 interface Props {
   title?: string;
   description?: string;
@@ -15,15 +43,18 @@ interface Props {
   keywords?: string;
   /** The booking page hides the floating prompt — the calendar is already there. */
   showBookingPrompt?: boolean;
+  /** Legal and other non-indexable pages set this to emit a robots noindex tag. */
+  noindex?: boolean;
 }
 
 const {
   title = `${siteConfig.name} | Local SEO, AEO & Generative Search Engineering`,
   description = siteConfig.description,
   canonical = Astro.url.href,
-  image = "/Omar Ali's Facebook Profile cropped.png",
+  image = "/og-cover.png",
   keywords = 'local SEO, Google Maps 3-pack, AEO, generative engine optimization, GEO, AI search visibility, ChatGPT SEO, Google Business Profile, citation building, local search engineering',
   showBookingPrompt = true,
+  noindex = false,
 } = Astro.props;
 
 const sameAs = Object.values(siteConfig.socials).filter(Boolean);
@@ -47,11 +78,16 @@ const structuredData = {
       priceRange: '$$',
       address: {
         '@type': 'PostalAddress',
-        addressLocality: 'Austin',
-        addressRegion: 'TX',
-        addressCountry: 'US',
+        addressLocality: 'Dhaka',
+        addressCountry: 'BD',
       },
-      areaServed: { '@type': 'Country', name: 'Worldwide' },
+      areaServed: [
+        { '@type': 'Country', name: 'United States' },
+        { '@type': 'Country', name: 'GB' },
+        { '@type': 'Country', name: 'DE' },
+        { '@type': 'Country', name: 'FR' },
+        { '@type': 'Place', name: 'Europe' },
+      ],
       openingHoursSpecification: [
         {
           '@type': 'OpeningHoursSpecification',
@@ -98,7 +134,7 @@ const socialImage = new URL(image, siteConfig.url).href;
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="shortcut icon" href="/favicon.ico" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-    <meta name="apple-mobile-web-app-title" content="Render&Rank" />
+    <meta name="apple-mobile-web-app-title" content="Render & Rank" />
     <link rel="manifest" href="/site.webmanifest" />
 
     <!-- The wordmark face renders above the fold in the nav, so preload it -->
@@ -116,6 +152,8 @@ const socialImage = new URL(image, siteConfig.url).href;
     <link rel="canonical" href={canonical} />
     <meta name="generator" content={Astro.generator} />
 
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
+
     <meta property="og:type" content="website" />
     <meta property="og:url" content={canonical} />
     <meta property="og:title" content={title} />
@@ -127,6 +165,9 @@ const socialImage = new URL(image, siteConfig.url).href;
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={socialImage} />
+
+    <!-- Inter Variable @font-face — latin + latin-ext subsets only. -->
+    <style is:inline set:html={interFontFaceCss}></style>
 
     <script type="application/ld+json" set:html={JSON.stringify(structuredData)} />
 

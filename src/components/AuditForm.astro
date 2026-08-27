@@ -14,12 +14,15 @@ import { siteConfig } from '../config/site';
 import { Check, CircleCheck, Clock, Lock } from '@lucide/astro';
 
 const fields = [
-  { id: 'name', label: 'Your name', type: 'text', placeholder: 'Sarah Jenkins', span: 2 },
-  { id: 'email', label: 'Email', type: 'email', placeholder: 'sarah@business.com', span: 1 },
-  { id: 'phone', label: 'Phone', type: 'tel', placeholder: '(512) 555-0199', span: 1 },
-  { id: 'website', label: 'Website', type: 'text', placeholder: 'company.com', span: 1 },
-  { id: 'location', label: 'City and state', type: 'text', placeholder: 'Austin, TX', span: 1 },
+  { id: 'name', label: 'Your name', type: 'text', placeholder: 'Sarah Jenkins', span: 2, maxlength: 100 },
+  { id: 'email', label: 'Email', type: 'email', placeholder: 'sarah@business.com', span: 1, maxlength: 254 },
+  { id: 'phone', label: 'Phone', type: 'tel', placeholder: '(512) 555-0199', span: 1, maxlength: 20 },
+  { id: 'website', label: 'Website', type: 'text', placeholder: 'company.com', span: 1, maxlength: 200 },
+  { id: 'location', label: 'City and state', type: 'text', placeholder: 'City, Country (e.g. London, UK)', span: 1, maxlength: 120 },
 ] as const;
+
+// Optional Cloudflare Turnstile. Renders only when a public site key is set.
+const turnstileSiteKey = siteConfig.turnstileSiteKey;
 
 const included = [
   'Live geo-grid rank across your service radius',
@@ -120,6 +123,7 @@ const endpoint = siteConfig.forms.contactEndpoint ?? '/api/contact';
                       field.id === 'email' || field.id === 'website' ? 'none' : undefined
                     }
                     placeholder={field.placeholder}
+                    maxlength={field.maxlength}
                     class="mt-2 h-12 w-full rounded-md border border-hairline bg-canvas px-3.5 text-[1.0625rem] text-ink placeholder:text-muted-foreground focus-visible:border-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ink"
                   />
                   <p
@@ -130,6 +134,12 @@ const endpoint = siteConfig.forms.contactEndpoint ?? '/api/contact';
                   </p>
                 </div>
               ))
+            }
+
+            {
+              turnstileSiteKey && (
+                <div class="cf-turnstile sm:col-span-2" data-sitekey={turnstileSiteKey} />
+              )
             }
 
             <div class="sm:col-span-2">
@@ -163,6 +173,8 @@ const endpoint = siteConfig.forms.contactEndpoint ?? '/api/contact';
     </div>
   </div>
 </Section>
+
+{turnstileSiteKey && <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>}
 
 <script is:inline define:vars={{ inbox: siteConfig.contact.email }}>
   const form = document.querySelector('#audit-form');

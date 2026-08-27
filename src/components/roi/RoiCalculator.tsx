@@ -13,6 +13,36 @@ const RANK_OPTIONS = [
   { value: "top3", label: "Already top 3", missedShare: 0.02 },
 ] as const
 
+/**
+ * Visible copy, all optional. Each string falls back to the current English
+ * default at the render site, so the component is unchanged when no props are
+ * passed. `rankOptions[i]` overrides only the displayed label of RANK_OPTIONS[i];
+ * the option values, order and length are untouched.
+ */
+export interface RoiCalculatorLabels {
+  dealValueLabel?: string
+  dealValueMin?: string
+  dealValueMax?: string
+  searchVolumeLabel?: string
+  searchVolumeMin?: string
+  searchVolumeMax?: string
+  rankLegend?: string
+  rankOptions?: readonly (string | undefined)[]
+  resultLabel?: string
+  perMonthSuffix?: string
+  /** Rendered with {year}, {calls} and {jobs} placeholders. */
+  summary?: string
+  missedCallsLabel?: string
+  missedJobsLabel?: string
+  cta?: string
+  /** Rendered with {callRate} and {closeRate} placeholders. */
+  assumptions?: string
+}
+
+export interface RoiCalculatorProps {
+  labels?: RoiCalculatorLabels
+}
+
 const CALL_RATE = 0.35 // clicks that become a phone call
 const CLOSE_RATE = 0.4 // calls that become a job
 
@@ -43,7 +73,7 @@ function trackFill(value: number, min: number, max: number) {
  * and it shows its inputs — the point is to open a conversation, not to look
  * precise about something nobody can know exactly.
  */
-export function RoiCalculator() {
+export function RoiCalculator({ labels }: RoiCalculatorProps = {}) {
   const [dealValue, setDealValue] = React.useState(1500)
   const [searchVolume, setSearchVolume] = React.useState(2500)
   const [rank, setRank] = React.useState<string>("mid")
@@ -62,7 +92,7 @@ export function RoiCalculator() {
         <fieldset className="rounded-md border border-black/8 bg-canvas p-5">
           <div className="flex items-baseline justify-between gap-4">
             <Label htmlFor="deal-value" className="label text-ink">
-              Average job value
+              {labels?.dealValueLabel ?? "Average job value"}
             </Label>
             <output
               htmlFor="deal-value"
@@ -83,15 +113,15 @@ export function RoiCalculator() {
             className="range-brand mt-4 w-full accent-ink"
           />
           <div className="mt-2 flex justify-between">
-            <span className="caption text-ink">$200</span>
-            <span className="caption text-ink">$15,000</span>
+            <span className="caption text-ink">{labels?.dealValueMin ?? "$200"}</span>
+            <span className="caption text-ink">{labels?.dealValueMax ?? "$15,000"}</span>
           </div>
         </fieldset>
 
         <fieldset className="rounded-md border border-black/8 bg-canvas p-5">
           <div className="flex items-baseline justify-between gap-4">
             <Label htmlFor="search-volume" className="label text-ink">
-              Monthly local searches
+              {labels?.searchVolumeLabel ?? "Monthly local searches"}
             </Label>
             <output
               htmlFor="search-volume"
@@ -112,8 +142,8 @@ export function RoiCalculator() {
             className="range-brand mt-4 w-full accent-ink"
           />
           <div className="mt-2 flex justify-between">
-            <span className="caption text-ink">300</span>
-            <span className="caption text-ink">10,000+</span>
+            <span className="caption text-ink">{labels?.searchVolumeMin ?? "300"}</span>
+            <span className="caption text-ink">{labels?.searchVolumeMax ?? "10,000+"}</span>
           </div>
         </fieldset>
 
@@ -124,10 +154,10 @@ export function RoiCalculator() {
               freely and lines up with the labels on the cards above; the sibling
               flex container establishes a BFC, so it clears the float on its own. */}
           <legend className="label float-left w-full text-ink break-words">
-            Where you rank in Maps today
+            {labels?.rankLegend ?? "Where you rank in Maps today"}
           </legend>
-          <div className="mt-4 flex clear-both flex-col gap-2">
-            {RANK_OPTIONS.map((opt) => (
+          <div className="mt-6 flex clear-both flex-col gap-2">
+            {RANK_OPTIONS.map((opt, i) => (
               <label
                 key={opt.value}
                 className="flex cursor-pointer items-center gap-3 rounded-md px-3 py-2.5 transition-colors has-checked:bg-block-lilac"
@@ -140,7 +170,7 @@ export function RoiCalculator() {
                   onChange={() => setRank(opt.value)}
                   className="size-4 accent-ink"
                 />
-                <span className="body-sm text-ink">{opt.label}</span>
+                <span className="body-sm text-ink">{labels?.rankOptions?.[i] ?? opt.label}</span>
               </label>
             ))}
           </div>
@@ -151,7 +181,7 @@ export function RoiCalculator() {
       <div className="min-w-0 lg:col-span-6">
         <div className="@container rounded-lg border border-white/16 bg-inverse-canvas p-6 md:p-8">
           <p className="caption text-inverse-ink">
-            Estimated revenue going to competitors
+            {labels?.resultLabel ?? "Estimated revenue going to competitors"}
           </p>
 
           {/* Sized in cqw, not vw: at seven figures the number is wider than
@@ -162,25 +192,28 @@ export function RoiCalculator() {
           >
             {currency.format(monthly)}
             <span className="body-lg ml-2 align-baseline text-inverse-ink">
-              /mo
+              {labels?.perMonthSuffix ?? "/mo"}
             </span>
           </p>
 
           <p className="body-sm mt-4 text-inverse-ink">
-            About {currency.format(monthly * 12)} a year, on{" "}
-            {number.format(missedCalls)} calls and {number.format(missedJobs)} jobs
-            you never saw.
+            {labels?.summary
+              ? labels.summary
+                  .replace("{year}", currency.format(monthly * 12))
+                  .replace("{calls}", number.format(missedCalls))
+                  .replace("{jobs}", number.format(missedJobs))
+              : `About ${currency.format(monthly * 12)} a year, on ${number.format(missedCalls)} calls and ${number.format(missedJobs)} jobs you never saw.`}
           </p>
 
           <dl className="mt-7 grid grid-cols-2 gap-4 border-t border-white/16 pt-6">
             <div>
-              <dt className="caption text-inverse-ink">Missed calls / mo</dt>
+              <dt className="caption text-inverse-ink">{labels?.missedCallsLabel ?? "Missed calls / mo"}</dt>
               <dd className="numeric mt-1 text-[1.5rem] font-medium text-inverse-ink">
                 {number.format(missedCalls)}
               </dd>
             </div>
             <div>
-              <dt className="caption text-inverse-ink">Missed jobs / mo</dt>
+              <dt className="caption text-inverse-ink">{labels?.missedJobsLabel ?? "Missed jobs / mo"}</dt>
               <dd className="numeric mt-1 text-[1.5rem] font-medium text-inverse-ink">
                 {number.format(missedJobs)}
               </dd>
@@ -202,11 +235,14 @@ export function RoiCalculator() {
                  instead of setting the card's min-content width. */
               className="h-auto min-h-13 py-2.5 text-center whitespace-normal"
             >
-              Check this against your real grid
+              {labels?.cta ?? "Check this against your real grid"}
             </Button>
             <p className="caption mt-3 text-center text-inverse-ink">
-              Assumes a {Math.round(CALL_RATE * 100)}% click-to-call rate and a{" "}
-              {Math.round(CLOSE_RATE * 100)}% close rate.
+              {labels?.assumptions
+                ? labels.assumptions
+                    .replace("{callRate}", String(Math.round(CALL_RATE * 100)))
+                    .replace("{closeRate}", String(Math.round(CLOSE_RATE * 100)))
+                : `Assumes a ${Math.round(CALL_RATE * 100)}% click-to-call rate and a ${Math.round(CLOSE_RATE * 100)}% close rate.`}
             </p>
           </div>
         </div>

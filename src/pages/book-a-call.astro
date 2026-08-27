@@ -4,6 +4,8 @@ import Eyebrow from '../components/ui/Eyebrow.astro';
 import CalInline from '../components/CalInline.astro';
 import { siteConfig } from '../config/site';
 import { Check, Mail, Phone, Video } from '@lucide/astro';
+import { Picture } from 'astro:assets';
+import founderAvatar from '../assets/founder-omar-ali.png';
 
 const { calCom, founder, contact } = siteConfig;
 
@@ -53,11 +55,13 @@ const agenda = [
           <div class="rounded-lg border border-hairline bg-canvas p-6 md:p-7">
             <!-- Host -->
             <div class="flex items-center gap-4 border-b border-hairline pb-5">
-              <img
-                src={founder.avatar}
+              <Picture
+                src={founderAvatar}
+                formats={['avif', 'webp']}
+                fallbackFormat="png"
                 alt=""
-                width="112"
-                height="112"
+                width={112}
+                height={112}
                 loading="lazy"
                 decoding="async"
                 class="size-14 shrink-0 rounded-full border border-hairline object-cover object-top"

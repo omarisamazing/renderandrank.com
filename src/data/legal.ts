@@ -26,7 +26,7 @@ export interface LegalDocument {
   sections: LegalSection[];
 }
 
-const UPDATED = 'August 26, 2026';
+const UPDATED = 'August 27, 2026';
 
 export const terms: LegalDocument = {
   title: 'Terms and Conditions',
@@ -106,7 +106,8 @@ export const terms: LegalDocument = {
     {
       heading: 'Governing law and disputes',
       body: [
-        `These terms are governed by the laws of the State of Texas, USA, without regard to its conflict-of-laws rules. You and we agree that the state and federal courts located in Travis County (Austin), Texas have exclusive jurisdiction over any dispute.`,
+        // TODO: flag for lawyer review — governing law/jurisdiction changed to Bangladesh.
+        `These terms are governed by the laws of Bangladesh, without regard to its conflict-of-laws rules. You and we agree that the courts located in Dhaka, Bangladesh have exclusive jurisdiction over any dispute.`,
         `Before starting formal proceedings, both sides agree to try in good faith to resolve any dispute informally by talking it through first.`,
       ],
     },
@@ -128,7 +129,7 @@ export const privacy: LegalDocument = {
     {
       heading: 'What this policy covers',
       body: [
-        `${siteConfig.name} is the data controller responsible for the personal information described here. We are based in Austin, Texas, USA and work with clients worldwide. This policy covers this website and the services we offer through it — including our free-audit form, our contact page and our online booking scheduler.`,
+        `${siteConfig.name} is the data controller responsible for the personal information described here. We are based in Dhaka, Bangladesh and work with clients worldwide. This policy covers this website and the services we offer through it — including our free-audit form, our contact page and our online booking scheduler.`,
         `If you have any questions about your data or this policy, you can reach us using the contact details at the end of this page.`,
       ],
     },
