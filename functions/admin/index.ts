@@ -68,6 +68,21 @@ interface SubmissionRow {
   user_agent: string | null;
 }
 
+interface ConversationRow {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  visitor_email: string | null;
+  status: string;
+  msg_count: number;
+}
+
+interface MessageRow {
+  role: string;
+  content: string;
+  created_at: string;
+}
+
 // Session cookie config. Path is scoped to /admin so the token never leaks to
 // the rest of the site. SameSite=Strict blocks cross-site sends; Secure is
 // added only over https (see cookieSecure) so http://127.0.0.1 dev still works.
@@ -164,9 +179,13 @@ const TABLE_CSS = `
   background-attachment: local, local;
 }
 .rr-table {
-  /* Grow to natural content width and overflow .rr-scroll horizontally. */
-  width: max-content;
-  min-width: 1024px;
+  /* Fill the dashboard width so the table snaps to its container. The flexible
+     Message/thread columns absorb the remaining space (no large empty band to
+     the right). A modest min-width keeps the narrow columns legible and only
+     engages horizontal scroll on very small screens. */
+  width: 100%;
+  min-width: 640px;
+  table-layout: auto;
   border-collapse: collapse;
   background: ${CANVAS};
   font-family: ${FONT_SANS};
@@ -268,15 +287,98 @@ const TABLE_CSS = `
 .rr-muted {
   color: #9a9a93;
 }
-/* Message: wrap inside a 320–480px band; the row grows taller rather than
-   clipping. No ellipsis, no permanent truncation. */
+/* Message: the flexible column. It absorbs the remaining table width (no fixed
+   max-width, so there is no empty band to the right of the text) and wraps
+   cleanly. A min-width keeps it readable while the narrow columns stay at 1%. */
 .rr-msg {
-  min-width: 260px;
-  max-width: 400px;
+  width: auto;
+  min-width: 240px;
   white-space: normal;
   overflow-wrap: anywhere;
   word-break: break-word;
   color: #333;
+}
+/* --- Conversation message thread (CSP-safe <details>/<summary> drill-down) --- */
+/* The expandable row spans the full table width; its single cell holds the
+   thread. */
+.rr-convo-cell {
+  padding: 0 !important;
+  background: ${SURFACE_SOFT};
+}
+/* <details> wrapper — no border of its own; the row's cell provides the frame. */
+.rr-thread {
+  margin: 0;
+}
+/* <summary> — the click/keyboard target that expands the thread. Styled as a
+   compact mono affordance; list-style removed so no default triangle clutters
+   the monochrome look (a +/− glyph is supplied via ::before). */
+.rr-thread > summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 8px 12px;
+  font-family: ${FONT_MONO};
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #55554f;
+  user-select: none;
+}
+.rr-thread > summary::-webkit-details-marker {
+  display: none;
+}
+.rr-thread > summary::before {
+  content: '+ ';
+  color: #9a9a93;
+}
+.rr-thread[open] > summary::before {
+  content: '− ';
+}
+.rr-thread > summary:hover {
+  color: ${INK};
+}
+/* Message list inside the expander. */
+.rr-msglist {
+  padding: 4px 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+/* A single message bubble. user vs assistant are distinguished by tint and
+   alignment; long content wraps rather than overflowing. */
+.rr-bubble {
+  max-width: 90%;
+  padding: 8px 12px;
+  border: 1px solid ${HAIRLINE};
+  border-radius: 10px;
+  background: ${CANVAS};
+  font-size: 13px;
+  line-height: 1.5;
+  color: #222;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.rr-bubble.rr-user {
+  align-self: flex-end;
+  background: ${BLOCK_LIME};
+  border-color: #cfe295;
+}
+.rr-bubble.rr-assistant {
+  align-self: flex-start;
+}
+/* Small mono caption above each bubble: role + timestamp. */
+.rr-bubble-meta {
+  font-family: ${FONT_MONO};
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #9a9a93;
+  margin-bottom: 3px;
+}
+.rr-bubble.rr-user .rr-bubble-meta {
+  text-align: right;
 }`;
 
 /** The wordmark, reproduced from BrandLogo.astro (Fuuld, tight tracking, em
@@ -593,8 +695,35 @@ const TABLE_HEADERS = [
   'Message',
 ];
 
+/**
+ * Render a single conversation's message thread as a CSP-safe <details> block.
+ * No JavaScript — a native <summary> toggles the disclosure. Every dynamic
+ * value (role, content, timestamp) is escaped via esc(). Returns '' when the
+ * conversation has no messages so a bare "0 messages" expander is skipped.
+ */
+function renderConvoThread(messages: MessageRow[]): string {
+  if (!messages || messages.length === 0) return '';
+  const bubbles = messages
+    .map((m) => {
+      const role = (m.role || '').toLowerCase();
+      const roleClass = role === 'user' ? 'rr-user' : 'rr-assistant';
+      const roleLabel = role === 'user' ? 'User' : role === 'assistant' ? 'Assistant' : role || '—';
+      const content = m.content && m.content.trim() !== '' ? esc(m.content) : '—';
+      return `<div class="rr-bubble ${roleClass}"><div class="rr-bubble-meta">${esc(
+        roleLabel
+      )} · ${formatReceived(m.created_at)}</div>${content}</div>`;
+    })
+    .join('');
+  const label = messages.length === 1 ? 'View 1 message' : `View ${messages.length} messages`;
+  return `<details class="rr-thread"><summary>${esc(label)}</summary><div class="rr-msglist">${bubbles}</div></details>`;
+}
+
 /** Render the table of submissions inside the monochrome editorial shell. */
-function renderDashboard(rows: SubmissionRow[]): string {
+function renderDashboard(
+  rows: SubmissionRow[],
+  convos: ConversationRow[] = [],
+  messagesByConvo: Record<string, MessageRow[]> = {}
+): string {
   const headerCells = TABLE_HEADERS.map((label) => `<th scope="col">${esc(label)}</th>`).join('');
 
   const bodyRows = rows
@@ -665,6 +794,38 @@ function renderDashboard(rows: SubmissionRow[]): string {
 
   const countBadge = `<span style="display:inline-flex;align-items:center;height:28px;padding:0 12px;border:1px solid ${HAIRLINE};border-radius:50px;background:${CANVAS};font-family:${FONT_MONO};font-size:12px;font-weight:500;letter-spacing:0.04em;color:${INK};">${rows.length} total</span>`;
 
+  // Conversations section — mirrors the Leads section's look (same <h1> inline
+  // style reused for the <h2>, same count-badge pattern, same BLOCK_LIME empty
+  // state). Uses the shared rr-scroll/rr-table classes.
+  const convoBody = convos
+    .map((c) => {
+      const messages = messagesByConvo[c.id] || [];
+      const thread = renderConvoThread(messages);
+      // Extra full-width row beneath the summary row holding the CSP-safe
+      // <details> thread. colspan=5 matches the 5 conversation columns.
+      const threadRow = thread
+        ? `<tr><td class="rr-convo-cell" colspan="5">${thread}</td></tr>`
+        : '';
+      return `<tr>
+    <td class="rr-received">${formatReceived(c.created_at)}</td>
+    <td class="rr-received">${formatReceived(c.updated_at)}</td>
+    <td class="rr-name">${c.visitor_email ? esc(c.visitor_email) : '<span class="rr-muted">—</span>'}</td>
+    <td>${esc(c.status)}</td>
+    <td class="rr-num">${esc(String(c.msg_count))}</td>
+  </tr>${threadRow}`;
+    })
+    .join('');
+
+  const convoBadge = `<span style="display:inline-flex;align-items:center;height:28px;padding:0 12px;border:1px solid ${HAIRLINE};border-radius:50px;background:${CANVAS};font-family:${FONT_MONO};font-size:12px;font-weight:500;letter-spacing:0.04em;color:${INK};">${convos.length} total</span>`;
+
+  const convoSection =
+    convos.length === 0
+      ? `<section style="margin-top:48px;"><h2 style="font-size:clamp(1.75rem,3.5vw,2.75rem);font-weight:400;line-height:1.06;letter-spacing:-0.017em;margin:0 0 20px;text-wrap:balance;">Conversations</h2><div style="background:${BLOCK_LIME};border-radius:24px;padding:56px 48px;text-align:center;box-sizing:border-box;">
+<h2 style="font-size:28px;font-weight:400;line-height:1.2;letter-spacing:-0.013em;margin:0 0 10px;">No conversations yet</h2>
+<p style="font-size:18px;font-weight:350;line-height:1.55;letter-spacing:-0.008em;margin:0;max-width:520px;margin-left:auto;margin-right:auto;">Chat sessions from the on-site assistant will appear here automatically — most recently active first.</p>
+</div></section>`
+      : `<section style="margin-top:48px;"><div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:0 0 6px;"><h2 style="font-size:clamp(1.75rem,3.5vw,2.75rem);font-weight:400;line-height:1.06;letter-spacing:-0.017em;margin:0;text-wrap:balance;">Conversations</h2>${convoBadge}</div><p style="font-size:16px;font-weight:350;line-height:1.5;letter-spacing:-0.008em;margin:6px 0 20px;">Chat sessions from the on-site assistant, most recently active first. Expand a row to read its messages.</p><div class="rr-scroll" style="margin-top:8px;"><table class="rr-table"><thead><tr><th scope="col">Started</th><th scope="col">Last activity</th><th scope="col">Email</th><th scope="col">Status</th><th scope="col">Messages</th></tr></thead><tbody>${convoBody}</tbody></table></div></section>`;
+
   const inner = `
 <header style="border-bottom:1px solid ${HAIRLINE};background:${CANVAS};">
   <div style="max-width:1280px;margin:0 auto;padding:16px 32px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;box-sizing:border-box;">
@@ -681,6 +842,7 @@ function renderDashboard(rows: SubmissionRow[]): string {
   </div>
   <p style="font-size:16px;font-weight:350;line-height:1.5;letter-spacing:-0.008em;margin:0 0 20px;">Every enquiry from your contact form, newest first.</p>
   ${table}
+  ${convoSection}
 </main>`;
 
   return page('Leads · Render Rank Admin', inner, `background:${SURFACE_SOFT};`);
@@ -718,7 +880,47 @@ async function renderDashboardResponse(env: Env): Promise<Response> {
     );
   }
 
-  return html(renderDashboard(rows));
+  // Also load chat conversations (with per-conversation message counts). Kept in
+  // a SEPARATE try/catch so that if the conversations/messages tables don't
+  // exist yet the Leads view still renders — convos simply falls back to [].
+  let convos: ConversationRow[] = [];
+  if (env.DB) {
+    try {
+      const cres = await env.DB.prepare(
+        `SELECT c.id, c.created_at, c.updated_at, c.visitor_email, c.status, COUNT(m.id) AS msg_count FROM conversations c LEFT JOIN messages m ON m.conversation_id = c.id GROUP BY c.id ORDER BY c.updated_at DESC LIMIT 500`
+      ).all<ConversationRow>();
+      convos = cres.results || [];
+    } catch {
+      convos = [];
+    }
+  }
+
+  // Fetch the actual messages for the displayed conversations so the dashboard
+  // can render an expandable thread per conversation (one extra query, only
+  // when there are conversations). Grouped by conversation_id in JS below.
+  const messagesByConvo: Record<string, MessageRow[]> = {};
+  if (env.DB && convos.length > 0) {
+    try {
+      const ids = convos.map((c) => c.id).filter((id) => id !== null && id !== undefined);
+      if (ids.length > 0) {
+        const placeholders = ids.map(() => '?').join(', ');
+        const mres = await env.DB.prepare(
+          `SELECT conversation_id, role, content, created_at FROM messages WHERE conversation_id IN (${placeholders}) ORDER BY created_at ASC`
+        )
+          .bind(...ids)
+          .all<MessageRow & { conversation_id: string }>();
+        for (const m of mres.results || []) {
+          const cid = m.conversation_id;
+          if (!messagesByConvo[cid]) messagesByConvo[cid] = [];
+          messagesByConvo[cid].push({ role: m.role, content: m.content, created_at: m.created_at });
+        }
+      }
+    } catch {
+      // Messages table unavailable / query failed → fall back to counts only.
+    }
+  }
+
+  return html(renderDashboard(rows, convos, messagesByConvo));
 }
 
 export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {

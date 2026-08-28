@@ -1,0 +1,575 @@
+---
+/**
+ * Floating streaming chat widget. Fixed bottom-right launcher toggles a
+ * dialog panel that streams assistant replies from `/api/chat` over SSE.
+ *
+ * On-brand per DESIGN.md: monochrome ink/canvas chrome, pill launcher,
+ * hairline borders, --radius / --spacing tokens, brand easing. Sits above
+ * the FloatingCalButton (which occupies bottom-4 / sm:bottom-6) by offsetting
+ * its own baseline so the two never overlap.
+ *
+ * Dependency-free: vanilla JS in the module <script> below.
+ */
+import { MessageCircle, X, ArrowUp } from '@lucide/astro';
+---
+
+<div id="rr-chat" class="rr-chat" data-open="false">
+  <!-- Launcher -->
+  <button
+    type="button"
+    id="rr-chat-launcher"
+    class="rr-chat__launcher"
+    aria-label="Open chat with Render and Rank"
+    aria-haspopup="dialog"
+    aria-expanded="false"
+    aria-controls="rr-chat-panel"
+  >
+    <MessageCircle class="rr-chat__launcher-icon rr-chat__launcher-icon--open" aria-hidden="true" />
+    <X class="rr-chat__launcher-icon rr-chat__launcher-icon--close" aria-hidden="true" />
+  </button>
+
+  <!-- Panel -->
+  <section
+    id="rr-chat-panel"
+    class="rr-chat__panel"
+    role="dialog"
+    aria-modal="false"
+    aria-labelledby="rr-chat-title"
+    hidden
+  >
+    <header class="rr-chat__header">
+      <h2 id="rr-chat-title" class="rr-chat__title">Chat with Render and Rank</h2>
+      <button
+        type="button"
+        id="rr-chat-close"
+        class="rr-chat__close"
+        aria-label="Close chat"
+      >
+        <X class="rr-chat__close-icon" aria-hidden="true" />
+      </button>
+    </header>
+
+    <div
+      id="rr-chat-log"
+      class="rr-chat__log"
+      role="log"
+      aria-live="polite"
+      aria-relevant="additions text"
+    ></div>
+
+    <form id="rr-chat-form" class="rr-chat__form">
+      <label for="rr-chat-input" class="sr-only">Type your message</label>
+      <textarea
+        id="rr-chat-input"
+        class="rr-chat__input"
+        rows="1"
+        placeholder="Ask us anything…"
+        autocomplete="off"
+      ></textarea>
+      <button
+        type="submit"
+        id="rr-chat-send"
+        class="rr-chat__send"
+        aria-label="Send message"
+      >
+        <ArrowUp class="rr-chat__send-icon" aria-hidden="true" />
+      </button>
+    </form>
+  </section>
+</div>
+
+<style>
+  .rr-chat {
+    position: fixed;
+    right: 1rem;
+    /* Stack above FloatingCalButton (bottom-4 = 1rem, pill ~52px tall). */
+    bottom: 4.75rem;
+    z-index: 45;
+  }
+
+  @media (width >= 640px) {
+    .rr-chat {
+      right: 1.5rem;
+      bottom: 5.5rem;
+    }
+  }
+
+  /* ---- Launcher --------------------------------------------------------- */
+  .rr-chat__launcher {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 3.25rem;
+    height: 3.25rem;
+    margin-left: auto;
+    border: none;
+    border-radius: var(--radius-pill, 50px);
+    background-color: var(--color-ink, #000);
+    color: var(--color-inverse-ink, #fff);
+    cursor: pointer;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+    transition: transform 200ms var(--ease-brand, cubic-bezier(0.22, 1, 0.36, 1));
+  }
+
+  .rr-chat__launcher:hover {
+    transform: translateY(-2px);
+  }
+
+  .rr-chat__launcher-icon {
+    width: 1.375rem;
+    height: 1.375rem;
+    position: absolute;
+    transition: opacity 160ms var(--ease-brand, cubic-bezier(0.22, 1, 0.36, 1));
+  }
+
+  .rr-chat__launcher-icon--close { opacity: 0; }
+  .rr-chat[data-open='true'] .rr-chat__launcher-icon--open { opacity: 0; }
+  .rr-chat[data-open='true'] .rr-chat__launcher-icon--close { opacity: 1; }
+
+  /* ---- Panel ------------------------------------------------------------ */
+  .rr-chat__panel {
+    position: absolute;
+    right: 0;
+    bottom: calc(3.25rem + 0.75rem);
+    display: flex;
+    flex-direction: column;
+    width: min(23rem, calc(100vw - 2rem));
+    height: min(32rem, calc(100vh - 8rem));
+    background-color: var(--color-canvas, #fff);
+    border: 1px solid var(--color-hairline, #e6e6e6);
+    border-radius: var(--radius-lg, 24px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.16);
+    overflow: hidden;
+    transform-origin: bottom right;
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+    transition:
+      opacity 200ms var(--ease-brand, cubic-bezier(0.22, 1, 0.36, 1)),
+      transform 200ms var(--ease-brand, cubic-bezier(0.22, 1, 0.36, 1));
+  }
+
+  .rr-chat[data-open='true'] .rr-chat__panel {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  @media (width < 480px) {
+    .rr-chat__panel {
+      position: fixed;
+      right: 0.5rem;
+      left: 0.5rem;
+      bottom: 0.5rem;
+      width: auto;
+      height: min(80vh, 34rem);
+    }
+  }
+
+  .rr-chat__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid var(--color-hairline, #e6e6e6);
+    background-color: var(--color-canvas, #fff);
+  }
+
+  .rr-chat__title {
+    margin: 0;
+    font-size: 0.9375rem;
+    font-weight: 540;
+    letter-spacing: -0.006em;
+    color: var(--color-ink, #000);
+  }
+
+  .rr-chat__close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border: none;
+    border-radius: var(--radius-pill, 50px);
+    background-color: var(--color-surface-soft, #f7f7f5);
+    color: var(--color-ink, #000);
+    cursor: pointer;
+    transition: background-color 160ms var(--ease-brand, cubic-bezier(0.22, 1, 0.36, 1));
+  }
+
+  .rr-chat__close:hover { background-color: var(--color-hairline, #e6e6e6); }
+  .rr-chat__close-icon { width: 1rem; height: 1rem; }
+
+  /* ---- Message log ------------------------------------------------------ */
+  .rr-chat__log {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+    padding: 1rem;
+    overflow-y: auto;
+    background-color: var(--color-canvas, #fff);
+  }
+
+  .rr-chat__msg {
+    max-width: 85%;
+    padding: 0.625rem 0.875rem;
+    border-radius: var(--radius-lg, 24px);
+    font-size: 0.9375rem;
+    line-height: 1.5;
+    letter-spacing: -0.006em;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+
+  .rr-chat__msg--assistant {
+    align-self: flex-start;
+    background-color: var(--color-surface-soft, #f7f7f5);
+    color: var(--color-ink, #000);
+    border-bottom-left-radius: var(--radius-sm, 6px);
+  }
+
+  .rr-chat__msg--user {
+    align-self: flex-end;
+    background-color: var(--color-ink, #000);
+    color: var(--color-inverse-ink, #fff);
+    border-bottom-right-radius: var(--radius-sm, 6px);
+  }
+
+  .rr-chat__msg--error {
+    align-self: flex-start;
+    background-color: var(--color-block-pink, #efd4d4);
+    color: var(--color-ink, #000);
+    border-bottom-left-radius: var(--radius-sm, 6px);
+  }
+
+  /* ---- Suggested prompt chips ------------------------------------------ */
+  .rr-chat__suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-self: stretch;
+    margin-top: 0.125rem;
+  }
+
+  .rr-chat__chip {
+    padding: 0.4375rem 0.75rem;
+    border: 1px solid var(--color-hairline, #e6e6e6);
+    border-radius: var(--radius-pill, 50px);
+    background-color: var(--color-canvas, #fff);
+    color: var(--color-ink, #000);
+    font-family: inherit;
+    font-size: 0.8125rem;
+    line-height: 1.3;
+    letter-spacing: -0.006em;
+    cursor: pointer;
+    transition: background-color 160ms var(--ease-brand, cubic-bezier(0.22, 1, 0.36, 1));
+  }
+
+  .rr-chat__chip:hover {
+    background-color: var(--color-surface-soft, #f7f7f5);
+  }
+
+  .rr-chat__chip:focus-visible {
+    outline: 2px solid var(--color-ink, #000);
+    outline-offset: 1px;
+  }
+
+  /* ---- Form ------------------------------------------------------------- */
+  .rr-chat__form {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    border-top: 1px solid var(--color-hairline, #e6e6e6);
+    background-color: var(--color-canvas, #fff);
+  }
+
+  .rr-chat__input {
+    flex: 1;
+    resize: none;
+    max-height: 7rem;
+    padding: 0.625rem 0.75rem;
+    border: 1px solid var(--color-hairline, #e6e6e6);
+    border-radius: var(--radius-md, 8px);
+    background-color: var(--color-canvas, #fff);
+    color: var(--color-ink, #000);
+    font-family: inherit;
+    font-size: 0.9375rem;
+    line-height: 1.45;
+    letter-spacing: -0.006em;
+  }
+
+  .rr-chat__input:focus-visible {
+    outline: 2px solid var(--color-ink, #000);
+    outline-offset: 1px;
+  }
+
+  .rr-chat__send {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 2.5rem;
+    height: 2.5rem;
+    border: none;
+    border-radius: var(--radius-pill, 50px);
+    background-color: var(--color-ink, #000);
+    color: var(--color-inverse-ink, #fff);
+    cursor: pointer;
+    transition: opacity 160ms var(--ease-brand, cubic-bezier(0.22, 1, 0.36, 1));
+  }
+
+  .rr-chat__send:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .rr-chat__send-icon { width: 1.125rem; height: 1.125rem; }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .rr-chat__launcher,
+    .rr-chat__launcher-icon,
+    .rr-chat__panel,
+    .rr-chat__close,
+    .rr-chat__send {
+      transition: none !important;
+    }
+    .rr-chat__launcher:hover { transform: none; }
+  }
+</style>
+
+<script>
+  const CID_KEY = 'rr_chat_cid';
+  const GREETING =
+    "Hi! 👋 I'm the Render and Rank assistant. Ask me about local SEO, AEO, or getting your business found in AI search.";
+
+  // Conversation id, threaded across requests within a session.
+  let conversationId: string | null = sessionStorage.getItem(CID_KEY);
+
+  // In-memory transcript sent to the API on every turn.
+  const messages: { role: 'user' | 'assistant'; content: string }[] = [];
+
+  let isStreaming = false;
+  let greeted = false;
+
+  const root = document.getElementById('rr-chat');
+  const launcher = document.getElementById('rr-chat-launcher') as HTMLButtonElement | null;
+  const panel = document.getElementById('rr-chat-panel') as HTMLElement | null;
+  const closeBtn = document.getElementById('rr-chat-close') as HTMLButtonElement | null;
+  const log = document.getElementById('rr-chat-log');
+  const form = document.getElementById('rr-chat-form') as HTMLFormElement | null;
+  const input = document.getElementById('rr-chat-input') as HTMLTextAreaElement | null;
+  const sendBtn = document.getElementById('rr-chat-send') as HTMLButtonElement | null;
+
+  if (root && launcher && panel && closeBtn && log && form && input && sendBtn) {
+    function scrollToBottom() {
+      log!.scrollTop = log!.scrollHeight;
+    }
+
+    function addBubble(role: 'user' | 'assistant' | 'error', text: string): HTMLElement {
+      const el = document.createElement('div');
+      el.className = 'rr-chat__msg rr-chat__msg--' + role;
+      el.textContent = text;
+      log!.appendChild(el);
+      scrollToBottom();
+      return el;
+    }
+
+    // Ready-made starter prompts shown on first open; clicking one sends it.
+    const SUGGESTIONS = [
+      'What is local SEO?',
+      'How can you help my business rank?',
+      'What do AEO & GEO mean?',
+      'Can I book a call?',
+    ];
+    let suggestionsEl: HTMLElement | null = null;
+
+    function renderSuggestions() {
+      if (suggestionsEl) return;
+      const wrap = document.createElement('div');
+      wrap.className = 'rr-chat__suggestions';
+      wrap.setAttribute('aria-label', 'Suggested questions');
+      for (const text of SUGGESTIONS) {
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'rr-chat__chip';
+        chip.textContent = text;
+        chip.addEventListener('click', () => sendMessage(text));
+        wrap.appendChild(chip);
+      }
+      log!.appendChild(wrap);
+      suggestionsEl = wrap;
+      scrollToBottom();
+    }
+
+    function removeSuggestions() {
+      if (suggestionsEl) {
+        suggestionsEl.remove();
+        suggestionsEl = null;
+      }
+    }
+
+    function openPanel() {
+      root!.setAttribute('data-open', 'true');
+      panel!.hidden = false;
+      launcher!.setAttribute('aria-expanded', 'true');
+      if (!greeted) {
+        greeted = true;
+        addBubble('assistant', GREETING);
+        renderSuggestions();
+      }
+      // Move focus into the input on open.
+      window.setTimeout(() => input!.focus(), 50);
+    }
+
+    function closePanel() {
+      root!.setAttribute('data-open', 'false');
+      panel!.hidden = true;
+      launcher!.setAttribute('aria-expanded', 'false');
+      launcher!.focus();
+    }
+
+    function togglePanel() {
+      if (root!.getAttribute('data-open') === 'true') closePanel();
+      else openPanel();
+    }
+
+    function setStreaming(state: boolean) {
+      isStreaming = state;
+      sendBtn!.disabled = state;
+    }
+
+    function autoGrow() {
+      input!.style.height = 'auto';
+      input!.style.height = Math.min(input!.scrollHeight, 112) + 'px';
+    }
+
+    async function sendMessage(text: string) {
+      const trimmed = text.trim();
+      if (!trimmed || isStreaming) return;
+
+      // First user message: clear the starter prompt chips so they don't clutter.
+      removeSuggestions();
+
+      messages.push({ role: 'user', content: trimmed });
+      addBubble('user', trimmed);
+      input!.value = '';
+      autoGrow();
+      setStreaming(true);
+
+      // Placeholder assistant bubble that fills as the stream arrives.
+      const assistantEl = addBubble('assistant', '');
+      let assistantText = '';
+
+      try {
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages, conversationId }),
+        });
+
+        if (!res.ok || !res.body) {
+          throw new Error('Request failed: ' + res.status);
+        }
+
+        // Capture the conversation id from the first reply and persist it.
+        const cid = res.headers.get('X-Conversation-Id');
+        if (cid && !conversationId) {
+          conversationId = cid;
+          try {
+            sessionStorage.setItem(CID_KEY, cid);
+          } catch {
+            /* sessionStorage may be unavailable; threading still works in-memory */
+          }
+        }
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          // Keep the last, possibly-incomplete line in the buffer.
+          buffer = lines.pop() ?? '';
+
+          for (const rawLine of lines) {
+            const line = rawLine.trim();
+            if (!line.startsWith('data:')) continue;
+
+            const data = line.slice(5).trim();
+            if (data === '[DONE]' || data === '') continue;
+
+            try {
+              const parsed = JSON.parse(data);
+              if (typeof parsed.response === 'string') {
+                assistantText += parsed.response;
+                assistantEl.textContent = assistantText;
+                scrollToBottom();
+              }
+            } catch {
+              /* Ignore malformed / partial JSON chunks. */
+            }
+          }
+        }
+
+        if (assistantText) {
+          messages.push({ role: 'assistant', content: assistantText });
+        } else {
+          assistantEl.remove();
+          addBubble('error', "I didn't get a response that time. Please try again.");
+        }
+      } catch (err) {
+        assistantEl.remove();
+        addBubble(
+          'error',
+          "Something went wrong reaching the assistant. Please check your connection and try again."
+        );
+      } finally {
+        setStreaming(false);
+        input!.focus();
+      }
+    }
+
+    // ---- Wiring ---------------------------------------------------------
+    launcher.addEventListener('click', togglePanel);
+    closeBtn.addEventListener('click', closePanel);
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      sendMessage(input!.value);
+    });
+
+    input.addEventListener('input', autoGrow);
+
+    // Enter sends; Shift+Enter inserts a newline.
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage(input!.value);
+      }
+    });
+
+    // Escape closes when the panel is open.
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && root!.getAttribute('data-open') === 'true') {
+        closePanel();
+      }
+    });
+  }
+</script>

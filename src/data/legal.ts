@@ -26,7 +26,7 @@ export interface LegalDocument {
   sections: LegalSection[];
 }
 
-const UPDATED = 'August 27, 2026';
+const UPDATED = 'August 28, 2026';
 
 export const terms: LegalDocument = {
   title: 'Terms and Conditions',
@@ -137,6 +137,7 @@ export const privacy: LegalDocument = {
       heading: 'Information you give us',
       body: [
         `When you complete our free-audit form, send us a message through the contact page, or book a call using our scheduler, you give us information such as your name, email address, phone number, business or website details, and anything you type into a free-text field. When you book a call, the scheduler also collects your timezone.`,
+        `We also offer an on-site AI chat assistant. Any messages or information you type into the chat are collected, including an email address if you choose to provide one, so we can respond to you and follow up.`,
         `We use this information to respond to you, prepare your audit, schedule and hold calls, and provide the services you ask for. Our lawful basis is your consent and, where you become a client, our legitimate interest in and contractual need to deliver the work.`,
       ],
     },
@@ -158,6 +159,7 @@ export const privacy: LegalDocument = {
       heading: 'Third parties that process your data',
       body: [
         `We share personal data only with service providers that help us run our business, and only as far as they need it. Our booking scheduler is powered by Cal.com: when you reserve a slot, Cal.com receives the name, email address and timezone you enter, and processes that data under its own privacy policy. Our site and scheduling experience also rely on ${siteConfig.calCom.platform}.`,
+        `Messages you send through our AI chat assistant are processed by Cloudflare Workers AI (Cloudflare, Inc.) to generate responses, and are stored on Cloudflare infrastructure (Cloudflare D1). Cloudflare processes this data on our instructions and under its own privacy terms.`,
         `We also use general categories of providers for hosting, email and analytics. Each provider processes data only on our instructions and under its own privacy terms; we do not sell your personal information.`,
       ],
     },
@@ -165,6 +167,7 @@ export const privacy: LegalDocument = {
       heading: 'How long we keep your data',
       body: [
         `We keep personal data only as long as we need it. Enquiry and audit-form records that do not become engagements are kept for a limited period so we can follow up, then deleted or anonymised. Client records are kept for the length of the engagement and for a reasonable period afterwards to meet legal, tax and accounting obligations.`,
+        `AI chat conversation logs — the messages and any email address associated with them — are retained so our team can follow up with you and improve the service, and are deleted on request.`,
       ],
     },
     {

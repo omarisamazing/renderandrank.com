@@ -36,4 +36,19 @@ declare global {
     get(key: string): Promise<string | null>;
     put(key: string, value: string, opts?: { expirationTtl?: number }): Promise<void>;
   }
+
+  // Minimal Cloudflare Workers AI surface used by the chat assistant
+  // (functions/api/chat.ts). Bound as `env.AI` via the `[ai]` block in
+  // wrangler.toml. With `stream: true` the run resolves to a ReadableStream of
+  // SSE chunks; otherwise it resolves to the model's JSON output. The real
+  // `Ai` type is provided by the Cloudflare runtime at build time — this is a
+  // dependency-free stand-in so /functions type-checks without
+  // @cloudflare/workers-types.
+  interface Ai {
+    run(
+      model: string,
+      inputs: Record<string, unknown>,
+      options?: Record<string, unknown>
+    ): Promise<ReadableStream | Record<string, unknown>>;
+  }
 }

@@ -33,3 +33,23 @@ build.log
 
 # jetbrains setting folder
 .idea/
+
+# AI tooling / editor folders
+.kilo/
+.kilocode/
+.opencode/
+.agents/
+.claude/
+.gemini/
+.antigravity/
+.vscode/
+
+# local dev folder
+local/
+
+# Local dev artifacts
+out.txt
+tmp_dump_admin.cjs
+.rr-fontcheck-tmp
+tmp_*
+*.tmp
