@@ -53,3 +53,6 @@ tmp_dump_admin.cjs
 .rr-fontcheck-tmp
 tmp_*
 *.tmp
+
+# local reference images
+Photos for ai it should not be pushed in git/
