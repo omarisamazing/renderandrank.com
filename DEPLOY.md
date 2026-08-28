@@ -236,3 +236,42 @@ Then POST to `http://localhost:8788/api/contact` or submit the form on
 `name`, `email`, `website`, `location`, `message` (required), plus optional
 `phone` and `service`. It validates input, ignores bot submissions via a
 hidden `company` honeypot, and returns `{ "ok": true }` on success.
+
+## Local-only files (never deployed)
+
+Only two things are ever deployed to Cloudflare Pages: `dist/` (the built Astro
+site) and `functions/` (the Pages Functions). Nothing else in the repo ships.
+
+- **`local/`** — local-only D1 seed data. These files insert throwaway test
+  leads into your **local** D1 database and must **never** be run against
+  remote / production. Load them with the required `--local` flag:
+
+  ```sh
+  npx wrangler d1 execute renderandrank_leads --local --file=./local/seed-test-lead.sql
+  npx wrangler d1 execute renderandrank_leads --local --file=./local/seed-test-leads-bulk.sql
+  ```
+
+- **`migrations/`** — the deployable D1 schema. Apply it to the remote /
+  production database with:
+
+  ```sh
+  npx wrangler d1 migrations apply renderandrank_leads --remote
+  ```
+
+### Required D1 binding
+
+The Pages project needs a **D1 database binding** named `DB` pointing at the
+database whose `database_name` is `renderandrank_leads` (as declared in
+`wrangler.toml`). The Function reads it as `env.DB`.
+
+### Required secrets
+
+Set these as encrypted Cloudflare Pages secrets (never commit them):
+
+```sh
+npx wrangler pages secret put RESEND_API_KEY
+npx wrangler pages secret put ADMIN_PASSWORD
+```
+
+- `RESEND_API_KEY` — used to email each lead via Resend.
+- `ADMIN_PASSWORD` — protects the `/admin` leads dashboard.
