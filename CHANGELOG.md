@@ -18,6 +18,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Overhauled AI Visibility Checker UI/UX (`DESIGN.md` conformance)**:
+  - Fixed button contrast across the entire checker island using `buttonVariants({ variant: 'primary' })` (`bg-ink text-canvas hover:bg-[#1f1f1f]`) and `buttonVariants({ variant: 'secondary' })` with crisp typography.
+  - Eliminated monospace overuse: form labels, headings, quotes, and body copy now use clean `figmaSans` (Inter), reserving `font-mono` exclusively for category taxonomy eyebrows per `DESIGN.md`.
+  - Replaced generic scan outcomes with a **Rich KPI Diagnostic Dashboard**: computed Visibility Score (0–100), Current AI Rank position, Top Competing Entities Identified, Estimated Monthly Revenue Gap, and Local Entity Signal Audit matrix.
+  - Implemented a 4-phase live animated scanner checklist with real-time percentage progress bar during generative search queries.
+  - Polished the `/calculator` pre-check and handoff banners with pastel block styling and proper pill CTA buttons.
+
 - Redesigned `/book-a-call` with a wide (`max-w-5xl`) container for the Cal.com embed, allowing the `month_view` scheduler to render in full 3-column desktop mode (Host profile/details, Month grid, and side-by-side Time slots), so date clicks immediately display available times next to the calendar without vertical page jumping or hidden slots.
 - Removed the restrictive `max-height` and nested `overflow-y: auto` scroll trap on `#cal-inline`, giving the scheduler clean responsive auto-height.
 - Re-architected `/book-a-call` companion section: structured the 4-step diagnostic agenda ("On the call"), "No pitch" guarantee badge, and founder direct contact methods below the scheduler.

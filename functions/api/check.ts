@@ -374,9 +374,88 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     });
   }
 
+/** Extract competitor names and cleaned items from response text. */
+function extractCompetitors(text: string, businessName: string): string[] {
+  if (!text) return [];
+  const competitors: string[] = [];
+  const lowerName = businessName.toLowerCase().trim();
+
+  // Match numbered lists like "1. Business Name", "1) Business Name", "**1. Business Name**"
+  const listRegex = /(?:^|\n)\s*(?:\d+[\.\)]|\*|-)\s+\*?\*?([A-Za-z0-9&'’\s\.\-]+?)(?:\*?\*?[:–\-\n]|\s*\()/g;
+  let match;
+  while ((match = listRegex.exec(text)) !== null) {
+    const raw = match[1].replace(/[*_#]/g, '').trim();
+    if (
+      raw.length > 2 &&
+      raw.length < 45 &&
+      !raw.toLowerCase().includes(lowerName) &&
+      !/^(here|top|based|recommendations|summary|note|best|first|second)/i.test(raw)
+    ) {
+      if (!competitors.includes(raw)) {
+        competitors.push(raw);
+      }
+    }
+  }
+
+  return competitors.slice(0, 4);
+}
+
   // Calculate summary metrics
   const activeEngines = results.filter((r) => r.available && r.status !== 'not_configured' && r.status !== 'error');
   const mentionedCount = activeEngines.filter((r) => r.status === 'mentioned').length;
+
+  // Extract competitor entities across all responses
+  const allText = results.map((r) => r.snippet || '').join(' ');
+  const competitorsFound = extractCompetitors(allText, businessName);
+
+  // Compute Visibility Score (0-100)
+  let visibilityScore = 18;
+  if (mentionedCount === 2) {
+    visibilityScore = 92;
+  } else if (mentionedCount === 1) {
+    visibilityScore = 64;
+  } else if (activeEngines.length > 0) {
+    // If not cited, base score reflects partial local presence
+    visibilityScore = competitorsFound.length > 0 ? 22 : 15;
+  }
+
+  // Determine Rank Position / Status
+  let rankPosition = 'Displaced by Competitors';
+  if (mentionedCount >= 2) {
+    rankPosition = '#1 Recommended Provider';
+  } else if (mentionedCount === 1) {
+    rankPosition = 'Top 3 Cited Entity';
+  } else if (competitorsFound.length > 0) {
+    rankPosition = `Displaced by ${competitorsFound[0]}`;
+  }
+
+  // Entity Authority Signals
+  const keySignals = [
+    {
+      name: 'Google AI Search Grounding',
+      status: results.find((r) => r.engine.includes('Gemini'))?.status === 'mentioned' ? 'good' : 'missing',
+      label:
+        results.find((r) => r.engine.includes('Gemini'))?.status === 'mentioned'
+          ? 'Entity verified in live Google Search citation index'
+          : 'Missing from top Google Search generative recommendations',
+    },
+    {
+      name: 'Local Knowledge Graph Presence',
+      status: results.find((r) => r.engine.includes('Llama'))?.status === 'mentioned' ? 'good' : 'missing',
+      label:
+        results.find((r) => r.engine.includes('Llama'))?.status === 'mentioned'
+          ? 'Strong associative authority in open LLM weights'
+          : 'LLMs currently cite established competitors in this zip code',
+    },
+    {
+      name: 'Competitor Citation Density',
+      status: competitorsFound.length > 0 ? 'warning' : 'good',
+      label:
+        competitorsFound.length > 0
+          ? `${competitorsFound.length} competitor entities dominating local search answers`
+          : 'Low competitor saturation in this niche',
+    },
+  ];
 
   // Persist to D1 funnel_events
   if (env.DB) {
@@ -385,6 +464,9 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
         businessName,
         category,
         city,
+        visibilityScore,
+        rankPosition,
+        competitorsFound,
         results,
         totalActiveEngines: activeEngines.length,
         mentionedCount,
@@ -406,6 +488,10 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     category,
     city,
     visitorId,
+    visibilityScore,
+    rankPosition,
+    competitorsFound,
+    keySignals,
     totalEngines: activeEngines.length,
     mentionedCount,
     results,

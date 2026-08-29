@@ -2,6 +2,7 @@ import * as React from "react"
 
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
+import { buttonVariants } from "@/lib/button-variants"
 import { getVisitorId } from "../../lib/visitorClient"
 
 const RANK_OPTIONS = [
@@ -116,37 +117,44 @@ export function RoiCalculator({ labels }: RoiCalculatorProps = {}) {
     <div className="flex flex-col gap-6">
       {/* Contextual handoff banner from AI Checker */}
       {handoff ? (
-        <div className="rounded-lg bg-block-lime border border-emerald-300 p-5 text-ink animate-fade-in">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <span className="eyebrow block text-xs font-mono font-bold uppercase tracking-wider text-ink/70">
-                AI Diagnostic Result &middot; {handoff.businessName} ({handoff.city})
+        <div className="rounded-lg bg-block-lime border border-black/10 p-5 sm:p-6 text-ink animate-fade-in">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <span className="eyebrow block text-ink/70">
+                AI DIAGNOSTIC CONTEXT &middot; {handoff.businessName} ({handoff.city})
               </span>
-              <p className="body-sm mt-1 font-semibold text-ink">
+              <p className="card-title text-base sm:text-lg font-bold text-ink">
                 {handoff.mentionedCount === 0
-                  ? `Your business wasn't cited in AI search results for "${handoff.category}" in ${handoff.city}.`
-                  : `Your business was cited in ${handoff.mentionedCount}/${handoff.totalEngines} tested AI answer engines.`}
+                  ? `Your business was not cited in AI search results for "${handoff.category}" in ${handoff.city}.`
+                  : `Your business was cited in ${handoff.mentionedCount}/${handoff.totalEngines} active AI recommendation engines.`}
               </p>
-              <p className="text-xs text-ink/80 mt-0.5">
+              <p className="body-sm text-xs sm:text-sm text-ink/80">
                 Here is an estimate of the monthly call and job volume currently flowing to top-ranked competitors instead.
               </p>
             </div>
             <a
               href="/check"
-              className="shrink-0 text-xs font-mono font-medium underline underline-offset-4 text-ink hover:opacity-75"
+              className={buttonVariants({ variant: 'secondary', size: 'sm', className: 'shrink-0 self-start sm:self-center' })}
             >
-              Re-run scan &rarr;
+              Re-run scan →
             </a>
           </div>
         </div>
       ) : (
-        <div className="rounded-md border border-black/8 bg-canvas/80 px-4 py-2.5 flex items-center justify-between gap-3 text-xs text-ink">
-          <span>Curious if ChatGPT and Gemini recommend you right now?</span>
+        <div className="rounded-lg border border-hairline bg-surface-soft p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 text-ink">
+          <div className="space-y-0.5">
+            <p className="text-sm font-semibold text-ink">
+              Curious if ChatGPT and Gemini recommend your business right now?
+            </p>
+            <p className="text-xs text-ink/70">
+              Run an instant real-time diagnostic scan before setting your revenue numbers.
+            </p>
+          </div>
           <a
             href="/check"
-            className="font-mono font-semibold underline underline-offset-4 text-ink hover:opacity-75 shrink-0"
+            className={buttonVariants({ variant: 'secondary', size: 'sm', className: 'shrink-0 w-full sm:w-auto text-center justify-center' })}
           >
-            Run free AI Visibility Check &rarr;
+            Run Free AI Check →
           </a>
         </div>
       )}
