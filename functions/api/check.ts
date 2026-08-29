@@ -158,27 +158,44 @@ async function queryGemini(
 "What are the best ${category} providers or companies in ${city}? List top recommendations by name and why they are recommended."
 Provide a realistic, comprehensive list of the top local businesses in ${city}.`;
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-    const res = await fetch(url, {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    
+    // First attempt: with Google Search grounding
+    let res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [
-          {
-            parts: [{ text: prompt }],
-          },
-        ],
-        tools: [
-          {
-            google_search: {},
-          },
-        ],
+        contents: [{ parts: [{ text: prompt }] }],
+        tools: [{ googleSearch: {} }],
       }),
     });
 
+    // Fallback: If Search grounding is quota-limited or unsupported on key, try standard inference
+    if (!res.ok) {
+      res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+        }),
+      });
+    }
+
+    // Secondary fallback: Try gemini-3.6-flash if 2.5 is unavailable
+    if (!res.ok) {
+      const fallbackUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`;
+      res = await fetch(fallbackUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+        }),
+      });
+    }
+
     if (!res.ok) {
       const errText = await res.text();
-      console.error('Gemini API error:', res.status, errText);
+      console.error('Gemini API error after fallbacks:', res.status, errText);
       return {
         engine: 'Google Gemini',
         available: true,
@@ -196,7 +213,7 @@ Provide a realistic, comprehensive list of the top local businesses in ${city}.`
     const { mentioned, snippet } = findMentionSnippet(text, businessName);
 
     return {
-      engine: 'Google Gemini (with Live Search)',
+      engine: 'Google Gemini',
       available: true,
       status: mentioned ? 'mentioned' : 'not_mentioned',
       snippet,
