@@ -45,6 +45,7 @@ const MAX_CONTENT = 4000;
 const LEAD_MESSAGE_MAX = 500;
 
 const EMAIL_RE = /[^\s@]+@[^\s@]+\.[^\s@]+/;
+const CONVERSATION_ID_RE = /^[a-zA-Z0-9_-]{1,64}$/;
 
 // Fixed-window IP rate limit for chat: max requests per window (seconds).
 // Mirrors the contact endpoint's limiter semantics.
@@ -342,9 +343,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const latestUser = [...history].reverse().find((m) => m.role === 'user');
   const latestUserContent = latestUser ? latestUser.content : '';
 
-  // Conversation id: reuse the client's if present, otherwise mint one.
-  const isNewConversation = !body.conversationId;
-  const conversationId = body.conversationId || crypto.randomUUID();
+  // Conversation id: reuse the client's if present and valid, otherwise mint one.
+  const validClientCid =
+    typeof body.conversationId === 'string' && CONVERSATION_ID_RE.test(body.conversationId)
+      ? body.conversationId
+      : null;
+  const isNewConversation = !validClientCid;
+  const conversationId = validClientCid || crypto.randomUUID();
 
   // Persist conversation + latest user message BEFORE the model call.
   // All guarded internally so failures never block the chat.

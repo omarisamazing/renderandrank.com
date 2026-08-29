@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Security & Hardening**:
+  - Upgraded HTML escaping across `functions/admin/index.ts` and `functions/api/contact.ts` to full OWASP entity encoding (`&`, `<`, `>`, `"`, `'`) to prevent attribute breakout and stored XSS in the admin dashboard and email templates.
+  - Sanitized `mailto:` href attributes with `formatMailto()` to prevent URI control character injection.
+  - Hardened `/api/track-funnel` with IP rate limiting via KV, input format checks (`visitorId`, `eventType`), 8KB payload caps, and database error shielding.
+  - Validated `conversationId` against regex `/^[a-zA-Z0-9_-]{1,64}$/` in `functions/api/chat.ts` to prevent HTTP response splitting in `X-Conversation-Id` headers.
+  - Shifted Google Gemini API key transport from URL query parameters to the `x-goog-api-key` header in `functions/api/check.ts` and added input length clamping on business diagnostic queries.
+  - Added input length bounds to visitor metadata analytics parameters and `/api/booking` payloads.
+  - Enhanced admin dashboard reverse-proxy HTTPS detection via `x-forwarded-proto` and `cf-visitor` headers.
 - **AI Visibility Checker (`/check`) & Funnel**: Real-time AI search diagnostic checking whether local businesses are recommended by Google Gemini (free-tier with live Google Search grounding) and Cloudflare Workers AI, with progressive support for OpenAI / Anthropic.
 - **Connected Conversion Funnel**: Seamless `sessionStorage` (`rr_handoff`) context banner in the ROI Calculator showing the lost revenue gap, `POST /api/track-funnel` endpoint, and D1 `funnel_events` table (migration 0004).
 - **Contact Lead Enrichment**: Contact/audit form submissions now automatically append prior visitor funnel events (AI search results, calculator inputs) into lead emails and D1 storage.

@@ -24,6 +24,8 @@ interface Env {
   // `wrangler secret put CALCOM_API_KEY`). When present, the booking `uid` is
   // used to fetch the real attendee details server-side.
   CALCOM_API_KEY?: string;
+  // Optional KV namespace for IP rate limiting (bound as `RATE_LIMIT` in wrangler.toml)
+  RATE_LIMIT?: KVNamespace;
 }
 
 interface BookingBody {
@@ -44,6 +46,9 @@ interface BookingBody {
   utm_content?: string;
 }
 
+const RATE_LIMIT_MAX = 20;
+const RATE_LIMIT_WINDOW_SECONDS = 600;
+
 function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
     status,
@@ -51,11 +56,31 @@ function json(data: unknown, status = 200): Response {
   });
 }
 
-/** Coerce to a trimmed non-empty string, else null. */
-function str(value: unknown): string | null {
+/** Coerce to a trimmed non-empty string with maximum length cap, else null. */
+function str(value: unknown, maxLength = 250): string | null {
   if (value === null || value === undefined) return null;
   const s = String(value).trim();
-  return s.length ? s : null;
+  if (!s.length) return null;
+  return s.length > maxLength ? s.slice(0, maxLength) : s;
+}
+
+/** Fixed-window IP rate limit backed by KV. Fails open on KV errors. */
+async function isRateLimited(
+  kv: KVNamespace,
+  ip: string | null,
+  max = RATE_LIMIT_MAX,
+  windowSeconds = RATE_LIMIT_WINDOW_SECONDS
+): Promise<boolean> {
+  if (!ip) return false;
+  const key = `rl:booking:${ip}`;
+  try {
+    const current = Number((await kv.get(key)) || '0');
+    if (current >= max) return true;
+    await kv.put(key, String(current + 1), { expirationTtl: windowSeconds });
+    return false;
+  } catch {
+    return false;
+  }
 }
 
 /** Attendee details fetched from the Cal.com REST API for a booking uid. */
@@ -165,6 +190,11 @@ async function storeBooking(
 }
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
+  const clientIp = request.headers.get('cf-connecting-ip');
+  if (env.RATE_LIMIT && (await isRateLimited(env.RATE_LIMIT, clientIp))) {
+    return json({ ok: false, error: 'Too many requests.' }, 429);
+  }
+
   // Parse the body. A malformed body is still a soft-success from the visitor's
   // perspective — we just don't store anything.
   let body: BookingBody = {};
@@ -178,7 +208,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   // API key. Best-effort: fetchCalAttendee never throws, so a missing key or a
   // Cal API failure just leaves the enrichment empty and we insert what we have.
   let cal: CalEnrichment = {};
-  const uid = str(body.uid);
+  const uid = str(body.uid, 100);
   if (uid && env.CALCOM_API_KEY) {
     cal = await fetchCalAttendee(uid, env.CALCOM_API_KEY);
   }

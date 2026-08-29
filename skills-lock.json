@@ -121,6 +121,12 @@
       "skillPath": "skills/safe-debug/SKILL.md",
       "computedHash": "cfc579e27d8a40e45f8a18a2701dcde06a1591d004b36887b55d98917780019f"
     },
+    "security-review": {
+      "source": "getsentry/skills",
+      "sourceType": "github",
+      "skillPath": "skills/security-review/SKILL.md",
+      "computedHash": "1eee1e41aa0a0e75dbbe0cac387e3d61bedf51af1888f184301a173731e6973e"
+    },
     "seo-audit": {
       "source": "every-app/open-seo",
       "sourceType": "github",

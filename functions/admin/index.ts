@@ -446,12 +446,22 @@ function wordmark(fontSize: string, tone: 'ink' | 'inverse' = 'ink'): string {
   return `<span aria-label="Render Rank" translate="no" style="display:inline-flex;align-items:baseline;gap:0.22em;white-space:nowrap;font-family:${FONT_DISPLAY};font-weight:400;font-size:${fontSize};line-height:1;letter-spacing:-0.02em;color:${color};"><span aria-hidden="true">Render</span><span aria-hidden="true">Rank</span></span>`;
 }
 
-/** Escape HTML-significant characters to prevent stored-XSS from lead content. */
-function esc(value: string): string {
-  return value
+/** Escape HTML-significant characters to prevent stored-XSS and attribute breakout. */
+function esc(value: unknown): string {
+  if (value === null || value === undefined) return '';
+  return String(value)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/** Sanitize and encode email for safe mailto: href attribute interpolation. */
+function formatMailto(email: string | null): string {
+  if (!email) return '';
+  const clean = email.replace(/[\r\n\t\0]/g, '').trim();
+  return `mailto:${encodeURIComponent(clean).replace(/%40/g, '@')}`;
 }
 
 /**
@@ -571,6 +581,10 @@ async function verifySession(cookieHeader: string | null, secret: string): Promi
 /** Whether the request is over https (drives the cookie Secure attribute). */
 function isHttps(request: Request): boolean {
   try {
+    const proto = request.headers.get('x-forwarded-proto');
+    if (proto) return proto.toLowerCase().split(',')[0].trim() === 'https';
+    const cfVisitor = request.headers.get('cf-visitor');
+    if (cfVisitor && cfVisitor.includes('"scheme":"https"')) return true;
     return new URL(request.url).protocol === 'https:';
   } catch {
     return false;
@@ -896,7 +910,7 @@ function renderDashboard(
       // Email → mailto: link. Full value shown (selectable), never truncated.
       const emailCell =
         row.email && row.email.trim() !== ''
-          ? `<td class="rr-copyable"><a class="rr-link" href="mailto:${esc(row.email)}">${esc(row.email)}</a></td>`
+          ? `<td class="rr-copyable"><a class="rr-link" href="${esc(formatMailto(row.email))}">${esc(row.email)}</a></td>`
           : `<td>${dash}</td>`;
 
       // Website → external link (https-normalised), bare host text. Full value
@@ -1008,7 +1022,7 @@ function renderDashboard(
       const metaLine = renderBookingMeta(b);
       const emailInner =
         b.email && b.email.trim() !== ''
-          ? `<a class="rr-link" href="mailto:${esc(b.email)}">${esc(b.email)}</a>`
+          ? `<a class="rr-link" href="${esc(formatMailto(b.email))}">${esc(b.email)}</a>`
           : dash;
       const nameInner = b.name && b.name.trim() !== '' ? esc(b.name) : dash;
       const tzInner = b.timezone && b.timezone.trim() !== '' ? esc(b.timezone) : dash;

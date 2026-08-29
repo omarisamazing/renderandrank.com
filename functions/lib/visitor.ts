@@ -40,11 +40,12 @@ export interface VisitorMetadata {
   utm_content: string | null;
 }
 
-/** Coerce anything to a trimmed non-empty string, else null. */
-function str(value: unknown): string | null {
+/** Coerce anything to a trimmed non-empty string with maximum length cap, else null. */
+function str(value: unknown, maxLength = 500): string | null {
   if (value === null || value === undefined) return null;
   const s = String(value).trim();
-  return s.length ? s : null;
+  if (!s.length) return null;
+  return s.length > maxLength ? s.slice(0, maxLength) : s;
 }
 
 /** Prefer a client-supplied value, falling back to a server value / null. */

@@ -158,12 +158,16 @@ async function queryGemini(
 "What are the best ${category} providers or companies in ${city}? List top recommendations by name and why they are recommended."
 Provide a realistic, comprehensive list of the top local businesses in ${city}.`;
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+    const headers = {
+      'Content-Type': 'application/json',
+      'x-goog-api-key': apiKey,
+    };
     
     // First attempt: with Google Search grounding
     let res = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
         tools: [{ googleSearch: {} }],
@@ -174,7 +178,7 @@ Provide a realistic, comprehensive list of the top local businesses in ${city}.`
     if (!res.ok) {
       res = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
         }),
@@ -183,10 +187,10 @@ Provide a realistic, comprehensive list of the top local businesses in ${city}.`
 
     // Secondary fallback: Try gemini-3.6-flash if 2.5 is unavailable
     if (!res.ok) {
-      const fallbackUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`;
+      const fallbackUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent';
       res = await fetch(fallbackUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
         }),
@@ -276,10 +280,12 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     return json({ ok: false, error: 'Could not parse request JSON.' }, 400);
   }
 
-  const businessName = (body.businessName || '').trim();
-  const category = (body.category || '').trim();
-  const city = (body.city || '').trim();
-  const visitorId = (body.visitorId || '').trim() || 'v_' + Math.random().toString(36).slice(2);
+  const businessName = (body.businessName || '').trim().slice(0, 100);
+  const category = (body.category || '').trim().slice(0, 80);
+  const city = (body.city || '').trim().slice(0, 80);
+  const visitorId =
+    (body.visitorId || '').trim().slice(0, 128) ||
+    'v_' + Math.random().toString(36).slice(2);
 
   if (!businessName || !category || !city) {
     return json(
