@@ -362,9 +362,15 @@ import { MessageCircle, X, ArrowUp } from '@lucide/astro';
 </style>
 
 <script>
+  import { getClientVisitorData } from '../lib/visitorClient';
+
+  // This is a plain bundled module <script> (no define:vars), so the ESM import
+  // above resolves normally in the browser and getClientVisitorData() runs at
+  // runtime when a message is sent. No inline fix needed here.
+
   const CID_KEY = 'rr_chat_cid';
   const GREETING =
-    "Hi! 👋 I'm the Render and Rank assistant. Ask me about local SEO, AEO, or getting your business found in AI search.";
+    "Hi, I'm Omli, the Render and Rank assistant. I help with local SEO and getting your business found online. What can I help you with today?";
 
   // Conversation id, threaded across requests within a session.
   let conversationId: string | null = sessionStorage.getItem(CID_KEY);
@@ -492,7 +498,7 @@ import { MessageCircle, X, ArrowUp } from '@lucide/astro';
         const res = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ messages, conversationId }),
+          body: JSON.stringify({ messages, conversationId, ...getClientVisitorData() }),
         });
 
         if (!res.ok || !res.body) {

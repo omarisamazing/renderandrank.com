@@ -177,6 +177,23 @@ const endpoint = siteConfig.forms.contactEndpoint ?? '/api/contact';
 {turnstileSiteKey && <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>}
 
 <script is:inline define:vars={{ inbox: siteConfig.contact.email }}>
+  // This script uses define:vars (for `inbox`), so Astro renders it inline and
+  // does NOT bundle it — an ESM `import` of getClientVisitorData would not
+  // resolve in the browser. We inline an equivalent runtime collector that runs
+  // in the browser at submit time.
+  function getClientVisitorData() {
+    const params = new URLSearchParams(window.location.search);
+    return {
+      referrer: document.referrer || null,
+      landing_page: window.location.href,
+      utm_source: params.get('utm_source') || null,
+      utm_medium: params.get('utm_medium') || null,
+      utm_campaign: params.get('utm_campaign') || null,
+      utm_term: params.get('utm_term') || null,
+      utm_content: params.get('utm_content') || null,
+    };
+  }
+
   const form = document.querySelector('#audit-form');
   const success = document.querySelector('#audit-success');
 
@@ -269,6 +286,13 @@ const endpoint = siteConfig.forms.contactEndpoint ?? '/api/contact';
       event.preventDefault();
 
       const data = new FormData(form);
+      // Attach the client marketing / referrer context the server accepts as
+      // optional fields (server derives geo/device itself). Null values are
+      // dropped so we only send what we actually have.
+      const visitor = getClientVisitorData();
+      for (const [key, value] of Object.entries(visitor)) {
+        if (value != null) data.set(key, value);
+      }
       const action = form.getAttribute('action');
       const submitBtn = form.querySelector('button[type="submit"], [type="submit"]');
 

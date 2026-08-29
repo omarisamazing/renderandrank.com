@@ -15,6 +15,8 @@
  *                   Use a sender on a domain you verified in Resend for production.
  */
 
+import { getVisitorMetadata } from '../lib/visitor';
+
 interface Env {
   RESEND_API_KEY?: string;
   CONTACT_TO?: string;
@@ -148,13 +150,25 @@ async function isRateLimited(
  * Persist a submission to D1. Best-effort: a storage failure must never lose
  * the lead, so we swallow errors here (the email path still runs).
  */
-async function storeSubmission(env: Env, data: Submission, request: Request): Promise<boolean> {
+async function storeSubmission(
+  env: Env,
+  data: Submission,
+  request: Request,
+  clientData?: Record<string, any>
+): Promise<boolean> {
   if (!env.DB) return false;
+  // Enrich with visitor metadata (geo/UA/UTM). Never throws; fields are null
+  // when unavailable. The audit/contact form may send referrer/landing_page/
+  // utm_* in the body — getVisitorMetadata reads them if present.
+  const meta = getVisitorMetadata(request, clientData);
   try {
     await env.DB.prepare(
       `INSERT INTO submissions
-        (name, email, phone, website, service, location, message, ip, user_agent)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        (name, email, phone, website, service, location, message, ip, user_agent,
+         country, region, city, timezone, latitude, longitude, isp,
+         device_type, browser, os, language, referrer, landing_page,
+         utm_source, utm_medium, utm_campaign, utm_term, utm_content)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
       .bind(
         data.name,
@@ -164,8 +178,26 @@ async function storeSubmission(env: Env, data: Submission, request: Request): Pr
         data.service || null,
         data.location,
         data.message,
-        request.headers.get('cf-connecting-ip'),
-        request.headers.get('user-agent')
+        meta.ip,
+        meta.user_agent,
+        meta.country,
+        meta.region,
+        meta.city,
+        meta.timezone,
+        meta.latitude,
+        meta.longitude,
+        meta.isp,
+        meta.device_type,
+        meta.browser,
+        meta.os,
+        meta.language,
+        meta.referrer,
+        meta.landing_page,
+        meta.utm_source,
+        meta.utm_medium,
+        meta.utm_campaign,
+        meta.utm_term,
+        meta.utm_content
       )
       .run();
     return true;
@@ -254,7 +286,8 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   }
 
   // Persist to D1 first so the lead is durable even if email delivery fails.
-  const stored = await storeSubmission(env, data, request);
+  // Pass the raw body so getVisitorMetadata can read referrer/landing_page/utm_*.
+  const stored = await storeSubmission(env, data, request, raw as Record<string, any>);
 
   const apiKey = env.RESEND_API_KEY;
   if (!apiKey) {

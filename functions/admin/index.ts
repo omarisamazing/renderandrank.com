@@ -75,6 +75,18 @@ interface ConversationRow {
   visitor_email: string | null;
   status: string;
   msg_count: number;
+  // Visitor context (migration 0003). All nullable — old rows predate these.
+  country: string | null;
+  region: string | null;
+  city: string | null;
+  device_type: string | null;
+  browser: string | null;
+  os: string | null;
+  language: string | null;
+  referrer: string | null;
+  utm_source: string | null;
+  utm_medium: string | null;
+  utm_campaign: string | null;
 }
 
 interface MessageRow {
@@ -379,6 +391,20 @@ const TABLE_CSS = `
 }
 .rr-bubble.rr-user .rr-bubble-meta {
   text-align: right;
+}
+/* Compact secondary metadata line under a conversation row's Email cell —
+   small, muted, wraps freely. Emoji glyphs act as inline labels; the whole
+   line is dropped when there is no metadata to show. */
+.rr-convo-meta {
+  margin-top: 4px;
+  font-family: ${FONT_SANS};
+  font-size: 11.5px;
+  font-weight: 400;
+  line-height: 1.4;
+  letter-spacing: -0.002em;
+  color: #8a8a83;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }`;
 
 /** The wordmark, reproduced from BrandLogo.astro (Fuuld, tight tracking, em
@@ -704,6 +730,49 @@ const TABLE_HEADERS = [
  * value (role, content, timestamp) is escaped via esc(). Returns '' when the
  * conversation has no messages so a bare "0 messages" expander is skipped.
  */
+/**
+ * Build the compact, human-friendly visitor-metadata summary line shown under
+ * each conversation row. Assembles up to four segments — location, device/
+ * browser/os, language, source (referrer, else UTM tags) — from the row's
+ * migration-0003 columns, joined by " · ". Any null/empty/"unknown" field is
+ * dropped, and a segment is skipped entirely if it has no parts, so we never
+ * render "null", empty parentheses, or dangling separators. Returns '' when
+ * there is nothing worth showing so the caller omits the line altogether.
+ */
+function renderConvoMeta(c: ConversationRow): string {
+  // Normalise: trim, treat empty / "unknown" as absent, and escape for HTML.
+  const clean = (v: string | null | undefined): string => {
+    if (v === null || v === undefined) return '';
+    const t = String(v).trim();
+    if (t === '' || t.toLowerCase() === 'unknown') return '';
+    return esc(t);
+  };
+  const join = (parts: string[], sep: string) => parts.filter((p) => p !== '').join(sep);
+
+  const segments: string[] = [];
+
+  // location — city, region, country (comma-joined, nulls dropped).
+  const place = join([clean(c.city), clean(c.region), clean(c.country)], ', ');
+  if (place) segments.push(`Location: ${place}`);
+
+  // device / browser / os (slash-joined, nulls dropped).
+  const device = join([clean(c.device_type), clean(c.browser), clean(c.os)], '/');
+  if (device) segments.push(`Device: ${device}`);
+
+  // preferred language.
+  const language = clean(c.language);
+  if (language) segments.push(`Language: ${language}`);
+
+  // source — prefer the referrer; otherwise summarise the UTM tags.
+  const referrer = clean(c.referrer);
+  const utm = join([clean(c.utm_source), clean(c.utm_medium), clean(c.utm_campaign)], '/');
+  const source = referrer || utm;
+  if (source) segments.push(`Source: ${source}`);
+
+  if (segments.length === 0) return '';
+  return `<div class="rr-convo-meta">${segments.join(' · ')}</div>`;
+}
+
 function renderConvoThread(messages: MessageRow[]): string {
   if (!messages || messages.length === 0) return '';
   const bubbles = messages
@@ -812,10 +881,16 @@ function renderDashboard(
       const threadRow = thread
         ? `<tr><td class="rr-convo-cell" colspan="5">${thread}</td></tr>`
         : '';
+      // Compact secondary metadata line (location · device · language · source)
+      // shown beneath the email; empty when the row carries no metadata.
+      const metaLine = renderConvoMeta(c);
+      const emailInner = c.visitor_email
+        ? esc(c.visitor_email)
+        : '<span class="rr-muted">—</span>';
       return `<tr>
     <td class="rr-received">${formatReceived(c.created_at)}</td>
     <td class="rr-received">${formatReceived(c.updated_at)}</td>
-    <td class="rr-name">${c.visitor_email ? esc(c.visitor_email) : '<span class="rr-muted">—</span>'}</td>
+    <td class="rr-name">${emailInner}${metaLine}</td>
     <td>${esc(c.status)}</td>
     <td class="rr-num">${esc(String(c.msg_count))}</td>
   </tr>${threadRow}`;
@@ -837,7 +912,7 @@ function renderDashboard(
   const convoSection =
     convos.length === 0
       ? `<section style="margin-top:48px;"><h2 style="font-size:clamp(1.75rem,3.5vw,2.75rem);font-weight:400;line-height:1.06;letter-spacing:-0.017em;margin:0 0 20px;text-wrap:balance;">Conversations</h2>${convoEmptyBlock}</section>`
-      : `<section style="margin-top:48px;"><div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:0 0 6px;"><h2 style="font-size:clamp(1.75rem,3.5vw,2.75rem);font-weight:400;line-height:1.06;letter-spacing:-0.017em;margin:0;text-wrap:balance;">Conversations</h2>${convoBadge}</div><p style="font-size:16px;font-weight:350;line-height:1.5;letter-spacing:-0.008em;margin:6px 0 20px;">Chat sessions from the on-site assistant, most recently active first. Expand a row to read its messages.</p><div class="rr-scroll" style="margin-top:8px;"><table class="rr-table"><thead><tr><th scope="col">Started</th><th scope="col">Last activity</th><th scope="col">Email</th><th scope="col">Status</th><th scope="col">Messages</th></tr></thead><tbody>${convoBody}</tbody></table></div></section>`;
+      : `<section style="margin-top:48px;"><div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:0 0 6px;"><h2 style="font-size:clamp(1.75rem,3.5vw,2.75rem);font-weight:400;line-height:1.06;letter-spacing:-0.017em;margin:0;text-wrap:balance;">Conversations</h2>${convoBadge}</div><p style="font-size:16px;font-weight:350;line-height:1.5;letter-spacing:-0.008em;margin:6px 0 20px;">Chat sessions from the on-site assistant, most recently active first. Visitor context (location, device, language and source) shows under each email. Expand a row to read its messages.</p><div class="rr-scroll" style="margin-top:8px;"><table class="rr-table"><thead><tr><th scope="col">Started</th><th scope="col">Last activity</th><th scope="col">Email</th><th scope="col">Status</th><th scope="col">Messages</th></tr></thead><tbody>${convoBody}</tbody></table></div></section>`;
 
   const inner = `
 <header style="border-bottom:1px solid ${HAIRLINE};background:${CANVAS};">
@@ -901,7 +976,10 @@ async function renderDashboardResponse(env: Env): Promise<Response> {
   if (env.DB) {
     try {
       const cres = await env.DB.prepare(
-        `SELECT c.id, c.created_at, c.updated_at, c.visitor_email, c.status, COUNT(m.id) AS msg_count FROM conversations c LEFT JOIN messages m ON m.conversation_id = c.id GROUP BY c.id ORDER BY c.updated_at DESC LIMIT 500`
+        // Selects the migration-0003 visitor-context columns alongside the
+        // per-conversation message count. GROUP BY c.id still works in D1/SQLite.
+        // renderConvoMeta coalesces any that are null/empty so pre-0003 rows render.
+        `SELECT c.id, c.created_at, c.updated_at, c.visitor_email, c.status, c.country, c.region, c.city, c.device_type, c.browser, c.os, c.language, c.referrer, c.utm_source, c.utm_medium, c.utm_campaign, COUNT(m.id) AS msg_count FROM conversations c LEFT JOIN messages m ON m.conversation_id = c.id GROUP BY c.id ORDER BY c.updated_at DESC LIMIT 500`
       ).all<ConversationRow>();
       convos = cres.results || [];
     } catch (err) {

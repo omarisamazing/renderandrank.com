@@ -15,6 +15,8 @@
  * never break the live chat stream.
  */
 
+import { getVisitorMetadata, type VisitorMetadata } from '../lib/visitor';
+
 interface Env {
   AI: Ai;
   // Cloudflare D1 binding (configured in wrangler.toml as `DB`).
@@ -52,9 +54,9 @@ const RATE_LIMIT_WINDOW_SECONDS = 600;
 // Business-aware system prompt. The assistant represents Render and Rank and
 // must stay honest: no #1 ranking guarantees, no invented pricing.
 const SYSTEM_PROMPT = [
-  'You are the friendly on-site sales assistant for Render and Rank, a local SEO / AEO / GEO agency. Your job is to help visitors AND to convert them into leads.',
+  'You are Omli, the professional on-site assistant for Render and Rank, a local SEO / AEO / GEO agency. Introduce yourself as "Omli, the Render and Rank assistant". Your job is to help visitors with local SEO / AEO / GEO AND to convert them into leads.',
   'Founder: Omar Ali. Contact email: hello@renderandrank.com. Visitors can book a call via Cal.com at /book-a-call.',
-  'Persona: warm, proactive, and confident — like a helpful salesperson. Briefly answer relevant questions, then keep the conversation moving toward a next step.',
+  'Persona: professional, warm, proactive, and confident — a helpful assistant. Briefly answer relevant questions, then keep the conversation moving toward a next step.',
   'Qualify the visitor by asking about their business (what they do), their location/market, their website, and their goals. Ask one focused question at a time so it feels like a conversation, not an interrogation.',
   'Sell the value of our work: hands-on, manual local SEO / AEO / GEO done by real people (not automated spam), month-to-month with no long lock-in, focused on getting local businesses found by real nearby customers and by AI answer engines.',
   'AEO (Answer Engine Optimization) and GEO (Generative Engine Optimization) mean making a business the answer that tools like Google AI Overviews, ChatGPT, and other assistants recommend — explain this simply when asked.',
@@ -74,13 +76,42 @@ function json(data: unknown, status = 200): Response {
 async function insertConversation(
   db: D1Database,
   id: string,
-  ip: string | null,
-  userAgent: string | null
+  meta: VisitorMetadata
 ): Promise<void> {
   try {
     await db
-      .prepare('INSERT INTO conversations (id, ip, user_agent) VALUES (?, ?, ?) ON CONFLICT(id) DO NOTHING')
-      .bind(id, ip, userAgent)
+      .prepare(
+        `INSERT INTO conversations
+          (id, ip, user_agent,
+           country, region, city, timezone, latitude, longitude, isp,
+           device_type, browser, os, language, referrer, landing_page,
+           utm_source, utm_medium, utm_campaign, utm_term, utm_content)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(id) DO NOTHING`
+      )
+      .bind(
+        id,
+        meta.ip,
+        meta.user_agent,
+        meta.country,
+        meta.region,
+        meta.city,
+        meta.timezone,
+        meta.latitude,
+        meta.longitude,
+        meta.isp,
+        meta.device_type,
+        meta.browser,
+        meta.os,
+        meta.language,
+        meta.referrer,
+        meta.landing_page,
+        meta.utm_source,
+        meta.utm_medium,
+        meta.utm_campaign,
+        meta.utm_term,
+        meta.utm_content
+      )
       .run();
   } catch (err) {
     console.error('D1 insert conversation failed for conversation ' + id, String(err));
@@ -133,8 +164,7 @@ async function maybeCaptureLead(
   conversationId: string,
   isNewConversation: boolean,
   userMessage: string,
-  ip: string | null,
-  userAgent: string | null
+  meta: VisitorMetadata
 ): Promise<void> {
   const match = userMessage.match(EMAIL_RE);
   if (!match) return;
@@ -162,8 +192,11 @@ async function maybeCaptureLead(
     await db
       .prepare(
         `INSERT INTO submissions
-          (name, email, phone, website, service, location, message, ip, user_agent)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          (name, email, phone, website, service, location, message, ip, user_agent,
+           country, region, city, timezone, latitude, longitude, isp,
+           device_type, browser, os, language, referrer, landing_page,
+           utm_source, utm_medium, utm_campaign, utm_term, utm_content)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .bind(
         'Chat visitor',
@@ -173,8 +206,26 @@ async function maybeCaptureLead(
         'Chat assistant',
         'Unknown',
         userMessage.slice(0, LEAD_MESSAGE_MAX),
-        ip,
-        userAgent
+        meta.ip,
+        meta.user_agent,
+        meta.country,
+        meta.region,
+        meta.city,
+        meta.timezone,
+        meta.latitude,
+        meta.longitude,
+        meta.isp,
+        meta.device_type,
+        meta.browser,
+        meta.os,
+        meta.language,
+        meta.referrer,
+        meta.landing_page,
+        meta.utm_source,
+        meta.utm_medium,
+        meta.utm_campaign,
+        meta.utm_term,
+        meta.utm_content
       )
       .run();
   } catch (err) {
@@ -262,7 +313,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   }
 
   const ip = request.headers.get('cf-connecting-ip');
-  const userAgent = request.headers.get('user-agent');
+
+  // Build visitor metadata once (geo/UA/UTM). The widget may send
+  // referrer/landing_page/utm_* on the body — read them if present, ignore if
+  // absent. Never throws; fields are null when unavailable.
+  const meta = getVisitorMetadata(request, body as unknown as Record<string, any>);
 
   // Rate limit (gated on the RATE_LIMIT KV binding). Skipped when unbound and
   // fails open on KV errors, so a storage hiccup never blocks the chat. Runs
@@ -299,7 +354,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // or STALE conversationId (e.g. from sessionStorage created before the table
     // existed) that was never persisted; the idempotent upsert prevents orphaned
     // messages and lost conversations, and self-heals old browser sessions.
-    await insertConversation(db, conversationId, ip, userAgent);
+    await insertConversation(db, conversationId, meta);
     if (latestUserContent) {
       await insertMessage(db, conversationId, 'user', latestUserContent);
       await maybeCaptureLead(
@@ -307,8 +362,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         conversationId,
         isNewConversation,
         latestUserContent,
-        ip,
-        userAgent
+        meta
       );
     }
   }
@@ -354,7 +408,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   // Pipe the SSE stream straight to the client while accumulating the reply.
   const decoder = new TextDecoder();
-  const encoder = new TextEncoder();
   let assistantReply = '';
   let sseBuffer = '';
 
