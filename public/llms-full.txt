@@ -1,0 +1,50 @@
+# Render and Rank — Full Knowledge Bundle for LLM Crawlers & AI Search Engines
+
+## Core Identity
+- **Name**: Render and Rank
+- **Tagline**: Local search engineering for businesses that depend on calls.
+- **Mission**: Move local service businesses into the top 3 Google Maps positions and ensure they are actively cited by AI answer engines.
+- **URL**: https://renderandrank.com
+- **Founder**: Omar Ali
+- **Contact**: hello@renderandrank.com
+
+## Service Pillars & Scope
+
+### 1. Google Maps 3-Pack Optimization
+- **URL**: https://renderandrank.com/services/google-maps
+- **Core Deliverables**:
+  - Google Business Profile category and proximity signal calibration.
+  - Competitor spam analysis and fake listing removal reports.
+  - Geotagged local posts and active customer engagement cycles.
+  - Review generation strategy and velocity management.
+- **Typical Outcome**: 3.8× increase in inbound customer phone calls and direction requests.
+
+### 2. Answer & Generative Engine Optimization (AEO/GEO)
+- **URL**: https://renderandrank.com/services/aeo-geo
+- **Core Deliverables**:
+  - Comprehensive Schema.org JSON-LD (LocalBusiness, GeoCoordinates, FAQPage, Service).
+  - Entity graph linking via Wikidata, Crunchbase, and high-authority industry nodes.
+  - Semantic content formatting tailored for LLM vector embeddings.
+  - Prompt simulation tests across ChatGPT Search, Google Gemini, Perplexity, and Claude.
+- **Typical Outcome**: Named as a top recommended local provider in generative AI responses.
+
+### 3. Citations & NAP Consistency
+- **URL**: https://renderandrank.com/services/local-seo
+- **Core Deliverables**:
+  - Manual submissions across tier-1 and tier-2 business registries (Apple Business Connect, Bing Places, Yelp, BBB, YellowPages).
+  - Duplicate listing suppression and address mismatch corrections.
+  - Complete, transparent live spreadsheet with full client ownership of all logins.
+- **Typical Outcome**: 100% NAP (Name, Address, Phone) consistency across the local search ecosystem.
+
+## Pricing & Engagement Models
+- **URL**: https://renderandrank.com/pricing
+- **Retainers**:
+  - **Growth Core**: $149/mo — Essential profile management and citation health.
+  - **Lead Machine**: $249/mo — Full 3-pack optimization, generative schema, and twice-weekly updates.
+  - **Market Dominator**: $349/mo — Priority entity graph, daily management, and direct Slack access.
+- **Terms**: Strictly month-to-month. No 12-month lock-in contracts.
+
+## Interactive Tools
+- **AI Visibility Checker**: https://renderandrank.com/check
+- **Local Search ROI Calculator**: https://renderandrank.com/calculator
+- **Free 24h Geo-Grid Audit**: https://renderandrank.com/#free-audit

@@ -14,11 +14,11 @@ import { siteConfig } from '../config/site';
 import { Check, CircleCheck, Clock, Lock } from '@lucide/astro';
 
 const fields = [
-  { id: 'name', label: 'Your name', type: 'text', placeholder: 'Sarah Jenkins', span: 2, maxlength: 100 },
-  { id: 'email', label: 'Email', type: 'email', placeholder: 'sarah@business.com', span: 1, maxlength: 254 },
-  { id: 'phone', label: 'Phone', type: 'tel', placeholder: '(512) 555-0199', span: 1, maxlength: 20 },
-  { id: 'website', label: 'Website', type: 'text', placeholder: 'company.com', span: 1, maxlength: 200 },
-  { id: 'location', label: 'City and state', type: 'text', placeholder: 'City, Country (e.g. London, UK)', span: 1, maxlength: 120 },
+  { id: 'name', label: 'Your name', type: 'text', placeholder: 'e.g. Sarah Jenkins', span: 2, maxlength: 100 },
+  { id: 'email', label: 'Work email', type: 'email', placeholder: 'sarah@company.com', span: 1, maxlength: 254 },
+  { id: 'phone', label: 'Phone (for audit link)', type: 'tel', placeholder: '(512) 555-0199', span: 1, maxlength: 20 },
+  { id: 'website', label: 'Business website', type: 'text', placeholder: 'yourcompany.com', span: 1, maxlength: 200 },
+  { id: 'location', label: 'City and state / Service market', type: 'text', placeholder: 'e.g. Austin, TX or London, UK', span: 1, maxlength: 120 },
 ] as const;
 
 // Optional Cloudflare Turnstile. Renders only when a public site key is set.

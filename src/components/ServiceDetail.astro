@@ -27,7 +27,41 @@ const blockClass = {
   coral: 'color-block-coral',
   pink: 'color-block-pink',
 }[block];
+
+const serviceSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Service',
+  name: service.title,
+  description: service.fullDescription,
+  provider: {
+    '@type': 'ProfessionalService',
+    name: 'Render and Rank',
+    url: 'https://renderandrank.com',
+  },
+  serviceType: service.title,
+  areaServed: 'United States',
+};
+
+const faqSchema =
+  service.faqs.length > 0
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: service.faqs.map((faq) => ({
+          '@type': 'Question',
+          name: faq.q,
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: faq.a,
+          },
+        })),
+      }
+    : null;
 ---
+
+<script type="application/ld+json" set:html={JSON.stringify(serviceSchema)} />
+{faqSchema && <script type="application/ld+json" set:html={JSON.stringify(faqSchema)} />}
+
 
 <!-- Header -->
 <div class="border-b border-hairline bg-canvas py-16 md:py-20">

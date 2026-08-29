@@ -1,0 +1,29 @@
+# Render and Rank
+> Local search engineering, Google Maps 3-pack optimization, and Generative Engine Optimization (GEO/AEO) for local service businesses.
+
+## Overview
+Render and Rank helps local service companies and multi-location businesses outrank competitors in Google Maps, local search results, and AI answer engines (ChatGPT, Google Gemini, Perplexity, Claude).
+
+- Website: https://renderandrank.com
+- Founder: Omar Ali
+- Core Services: Google Maps 3-Pack Optimization, Generative Engine Optimization (AEO/GEO), Local Citations & NAP Synchronization.
+- Pricing: Published fixed rates ($149/mo, $249/mo, $349/mo). No long-term lock-in contracts.
+
+## Key Capabilities & Methodology
+1. **Google Maps 3-Pack Optimization**: Proximity calibration, Google Business Profile management, review generation workflows, and competitor spam suppression.
+2. **AEO & Generative Engine Optimization**: Schema.org JSON-LD structuring (LocalBusiness, GeoCoordinates, FAQPage), Wikidata entity linkage, and AI knowledge graph syndication so LLMs recommend the business.
+3. **Local Citations & NAP Consistency**: 100% synchronized business data across 70+ tier-1 and tier-2 registries with a transparent live spreadsheet.
+
+## Free Tools & Diagnostics
+- **AI Visibility Checker**: https://renderandrank.com/check — Test in real-time whether ChatGPT, Gemini, and AI assistants recommend your business in your city.
+- **ROI & Lost Revenue Calculator**: https://renderandrank.com/calculator — Quantify the monthly inbound calls and revenue lost to competitors holding positions 1 to 3 in Maps and AI.
+- **Free 24-Hour Geo-Grid Audit**: https://renderandrank.com/#free-audit — Custom geo-grid scan across your service radius delivered within one business day.
+
+## Primary Documentation & Links
+- [Services Overview](https://renderandrank.com/services)
+- [Google Maps 3-Pack Service](https://renderandrank.com/services/google-maps)
+- [AEO & Generative Engine Optimization](https://renderandrank.com/services/aeo-geo)
+- [Local SEO & Citations](https://renderandrank.com/services/local-seo)
+- [Case Studies & Results](https://renderandrank.com/portfolio)
+- [Published Pricing](https://renderandrank.com/pricing)
+- [Book a Strategy Call](https://renderandrank.com/book-a-call)
