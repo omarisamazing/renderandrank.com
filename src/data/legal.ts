@@ -26,7 +26,7 @@ export interface LegalDocument {
   sections: LegalSection[];
 }
 
-const UPDATED = 'August 28, 2026';
+const UPDATED = 'August 29, 2026';
 
 export const terms: LegalDocument = {
   title: 'Terms and Conditions',
@@ -144,15 +144,15 @@ export const privacy: LegalDocument = {
     {
       heading: 'Information collected automatically',
       body: [
-        `Like most websites, we automatically collect some technical information when you visit — server logs, your device and browser type, the pages you view, referral information, and an approximate location derived from your IP address. We use this to keep the site secure, understand how it is used, and improve it.`,
+        `Like most websites, we automatically collect some technical information when you visit. This includes server logs; your device type, browser and operating system; your preferred language; the pages you view; referral information about how you reached us (the referrer); and any marketing campaign parameters in the links you click, including UTM parameters such as utm_source, utm_medium and utm_campaign. We also derive an approximate location from your IP address — specifically your city, region and country. We use this to keep the site secure, understand how it is used, and improve it.`,
         `We keep this technical data only as long as needed for those purposes, typically no longer than is reasonable for security and analytics, after which it is deleted or aggregated.`,
       ],
     },
     {
       heading: 'Cookies and similar technologies',
       body: [
-        `We use cookies and local storage to make the site work and to understand how it is used. Strictly necessary cookies keep core features functioning and cannot be switched off. Analytics and any marketing cookies are optional and set only where consent is given.`,
-        `You can manage or withdraw consent through your browser settings or any cookie controls we provide on the site. Blocking some cookies may affect how parts of the site work.`,
+        `We use only strictly necessary cookies and local storage — nothing beyond what is technically required to run the site and keep it secure, such as the cookies set by Cloudflare. These essential cookies keep core features functioning and cannot be switched off.`,
+        `We do not set optional analytics or marketing cookies, and we do not track you across the web. Because we use no optional tracking, there is no cookie-consent banner on this site — none is needed. You can still block or clear cookies at any time through your browser settings, though blocking essential cookies may affect how parts of the site work.`,
       ],
     },
     {
@@ -180,7 +180,7 @@ export const privacy: LegalDocument = {
     {
       heading: 'International transfers',
       body: [
-        `We are based in the United States, and your data may be stored and processed there and in other countries where our service providers operate. Where data moves across borders, we rely on appropriate safeguards — such as standard contractual clauses or equivalent protections — so that it stays protected wherever it is handled.`,
+        `We are based in Dhaka, Bangladesh, and your data may be stored and processed there and in other countries where our service providers operate — for example, by Cloudflare and Cal.com. Where data moves across borders, we rely on appropriate safeguards — such as standard contractual clauses or equivalent protections — so that it stays protected wherever it is handled.`,
       ],
     },
     {
