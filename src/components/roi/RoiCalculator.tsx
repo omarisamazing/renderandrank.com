@@ -163,23 +163,29 @@ export function RoiCalculator({ labels }: RoiCalculatorProps = {}) {
                 )}
               </p>
             </div>
-            <div className="flex items-center gap-3 shrink-0 self-start lg:self-center">
+            <div className="flex flex-wrap items-center gap-2.5 shrink-0 self-start lg:self-center">
               <button
                 type="button"
                 onClick={handleClearHandoff}
-                className="caption text-ink/60 hover:text-ink transition-colors cursor-pointer px-2 py-1"
+                className="inline-flex items-center gap-1.5 rounded-full border border-black/10 bg-canvas px-3.5 py-1.5 text-xs font-medium text-ink/70 hover:text-ink hover:border-black/25 hover:bg-surface-soft transition-all cursor-pointer shadow-2xs"
                 title="Reset to default calculator values"
               >
-                Reset to default &times;
+                <svg className="size-3 text-ink/50" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                  <path d="M3 3v5h5" />
+                </svg>
+                <span>Reset to default</span>
               </button>
               <a
                 href="/check"
                 className={buttonVariants({
-                  variant: "secondary",
+                  variant: "primary",
                   size: "sm",
+                  className: "text-canvas shadow-xs",
                 })}
               >
-                Re-run scan →
+                <span>Re-run scan</span>
+                <span aria-hidden="true">→</span>
               </a>
             </div>
           </div>
