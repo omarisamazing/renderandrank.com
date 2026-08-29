@@ -95,6 +95,36 @@ interface MessageRow {
   created_at: string;
 }
 
+interface BookingRow {
+  id: number | string | null;
+  created_at: string | null;
+  name: string | null;
+  email: string | null;
+  timezone: string | null;
+  event_type: string | null;
+  // Visitor context (parity with the submissions/conversations visitor columns).
+  // All nullable — a booking may arrive with little or no derived context.
+  country: string | null;
+  region: string | null;
+  city: string | null;
+  latitude: number | string | null;
+  longitude: number | string | null;
+  isp: string | null;
+  device_type: string | null;
+  browser: string | null;
+  os: string | null;
+  language: string | null;
+  referrer: string | null;
+  landing_page: string | null;
+  utm_source: string | null;
+  utm_medium: string | null;
+  utm_campaign: string | null;
+  utm_term: string | null;
+  utm_content: string | null;
+  ip: string | null;
+  user_agent: string | null;
+}
+
 // Session cookie config. Path is scoped to /admin so the token never leaks to
 // the rest of the site. SameSite=Strict blocks cross-site sends; Secure is
 // added only over https (see cookieSecure) so http://127.0.0.1 dev still works.
@@ -773,6 +803,50 @@ function renderConvoMeta(c: ConversationRow): string {
   return `<div class="rr-convo-meta">${segments.join(' · ')}</div>`;
 }
 
+/**
+ * Build the compact, human-friendly visitor-metadata summary line shown under
+ * each booking row. Mirrors renderConvoMeta exactly — the SAME professional,
+ * no-emoji labelled format (Location: … · Device: … · Language: … · Source: …)
+ * assembled from the booking's visitor-context columns and joined by " · ".
+ * Any null/empty/"unknown" field is dropped, and a segment is skipped entirely
+ * if it has no parts, so we never render "null", empty parentheses, or dangling
+ * separators. Source prefers the referrer, otherwise summarises the UTM tags.
+ * Returns '' when there is nothing worth showing so the caller omits the line.
+ */
+function renderBookingMeta(b: BookingRow): string {
+  // Normalise: trim, treat empty / "unknown" as absent, and escape for HTML.
+  const clean = (v: string | null | undefined): string => {
+    if (v === null || v === undefined) return '';
+    const t = String(v).trim();
+    if (t === '' || t.toLowerCase() === 'unknown') return '';
+    return esc(t);
+  };
+  const join = (parts: string[], sep: string) => parts.filter((p) => p !== '').join(sep);
+
+  const segments: string[] = [];
+
+  // location — city, region, country (comma-joined, nulls dropped).
+  const place = join([clean(b.city), clean(b.region), clean(b.country)], ', ');
+  if (place) segments.push(`Location: ${place}`);
+
+  // device / browser / os (slash-joined, nulls dropped).
+  const device = join([clean(b.device_type), clean(b.browser), clean(b.os)], '/');
+  if (device) segments.push(`Device: ${device}`);
+
+  // preferred language.
+  const language = clean(b.language);
+  if (language) segments.push(`Language: ${language}`);
+
+  // source — prefer the referrer; otherwise summarise the UTM tags.
+  const referrer = clean(b.referrer);
+  const utm = join([clean(b.utm_source), clean(b.utm_medium), clean(b.utm_campaign)], '/');
+  const source = referrer || utm;
+  if (source) segments.push(`Source: ${source}`);
+
+  if (segments.length === 0) return '';
+  return `<div class="rr-convo-meta">${segments.join(' · ')}</div>`;
+}
+
 function renderConvoThread(messages: MessageRow[]): string {
   if (!messages || messages.length === 0) return '';
   const bubbles = messages
@@ -795,7 +869,9 @@ function renderDashboard(
   rows: SubmissionRow[],
   convos: ConversationRow[] = [],
   messagesByConvo: Record<string, MessageRow[]> = {},
-  convosError = false
+  convosError = false,
+  bookings: BookingRow[] = [],
+  bookingsError = false
 ): string {
   const headerCells = TABLE_HEADERS.map((label) => `<th scope="col">${esc(label)}</th>`).join('');
 
@@ -914,6 +990,51 @@ function renderDashboard(
       ? `<section style="margin-top:48px;"><h2 style="font-size:clamp(1.75rem,3.5vw,2.75rem);font-weight:400;line-height:1.06;letter-spacing:-0.017em;margin:0 0 20px;text-wrap:balance;">Conversations</h2>${convoEmptyBlock}</section>`
       : `<section style="margin-top:48px;"><div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:0 0 6px;"><h2 style="font-size:clamp(1.75rem,3.5vw,2.75rem);font-weight:400;line-height:1.06;letter-spacing:-0.017em;margin:0;text-wrap:balance;">Conversations</h2>${convoBadge}</div><p style="font-size:16px;font-weight:350;line-height:1.5;letter-spacing:-0.008em;margin:6px 0 20px;">Chat sessions from the on-site assistant, most recently active first. Visitor context (location, device, language and source) shows under each email. Expand a row to read its messages.</p><div class="rr-scroll" style="margin-top:8px;"><table class="rr-table"><thead><tr><th scope="col">Started</th><th scope="col">Last activity</th><th scope="col">Email</th><th scope="col">Status</th><th scope="col">Messages</th></tr></thead><tbody>${convoBody}</tbody></table></div></section>`;
 
+  // Bookings section — mirrors the Conversations section's look (same <h2>
+  // inline style, same count-badge pattern, same BLOCK_LIME empty state and
+  // red storage-error block). Uses the shared rr-scroll/rr-table classes.
+  // Columns: Created, Name, Email, Timezone, Event type — with the SAME
+  // labelled no-emoji metadata line (Location · Device · Language · Source)
+  // rendered beneath the email via renderBookingMeta.
+  const bookingBody = bookings
+    .map((b) => {
+      const dash = '<span class="rr-muted">—</span>';
+      const metaLine = renderBookingMeta(b);
+      const emailInner =
+        b.email && b.email.trim() !== ''
+          ? `<a class="rr-link" href="mailto:${esc(b.email)}">${esc(b.email)}</a>`
+          : dash;
+      const nameInner = b.name && b.name.trim() !== '' ? esc(b.name) : dash;
+      const tzInner = b.timezone && b.timezone.trim() !== '' ? esc(b.timezone) : dash;
+      const evtInner =
+        b.event_type && b.event_type.trim() !== '' ? esc(b.event_type) : dash;
+      return `<tr>
+    <td class="rr-received">${formatReceived(b.created_at)}</td>
+    <td class="rr-name">${nameInner}</td>
+    <td class="rr-copyable">${emailInner}${metaLine}</td>
+    <td class="rr-service">${tzInner}</td>
+    <td class="rr-service">${evtInner}</td>
+  </tr>`;
+    })
+    .join('');
+
+  const bookingBadge = `<span style="display:inline-flex;align-items:center;height:28px;padding:0 12px;border:1px solid ${HAIRLINE};border-radius:50px;background:${CANVAS};font-family:${FONT_MONO};font-size:12px;font-weight:500;letter-spacing:0.04em;color:${INK};">${bookings.length} total</span>`;
+
+  const bookingEmptyBlock = bookingsError
+    ? `<div style="background:#fbeae8;border:1px solid #f0c9c4;border-radius:24px;padding:40px 40px;text-align:center;box-sizing:border-box;">
+<h2 style="font-size:24px;font-weight:400;line-height:1.2;letter-spacing:-0.013em;margin:0 0 10px;color:${DESTRUCTIVE};">Couldn&rsquo;t load bookings &mdash; storage error</h2>
+<p style="font-size:17px;font-weight:350;line-height:1.55;letter-spacing:-0.008em;margin:0;max-width:520px;margin-left:auto;margin-right:auto;color:${DESTRUCTIVE};">The bookings couldn&rsquo;t be read from the database. This is a query/storage error, not an empty inbox &mdash; check the D1 binding and that the bookings table exists (its migration may not be applied yet).</p>
+</div>`
+    : `<div style="background:${BLOCK_LIME};border-radius:24px;padding:56px 48px;text-align:center;box-sizing:border-box;">
+<h2 style="font-size:28px;font-weight:400;line-height:1.2;letter-spacing:-0.013em;margin:0 0 10px;">No bookings yet</h2>
+<p style="font-size:18px;font-weight:350;line-height:1.55;letter-spacing:-0.008em;margin:0;max-width:520px;margin-left:auto;margin-right:auto;">Calls booked through the on-site scheduler will appear here automatically &mdash; newest first.</p>
+</div>`;
+
+  const bookingSection =
+    bookings.length === 0
+      ? `<section style="margin-top:48px;"><h2 style="font-size:clamp(1.75rem,3.5vw,2.75rem);font-weight:400;line-height:1.06;letter-spacing:-0.017em;margin:0 0 20px;text-wrap:balance;">Bookings</h2>${bookingEmptyBlock}</section>`
+      : `<section style="margin-top:48px;"><div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:0 0 6px;"><h2 style="font-size:clamp(1.75rem,3.5vw,2.75rem);font-weight:400;line-height:1.06;letter-spacing:-0.017em;margin:0;text-wrap:balance;">Bookings</h2>${bookingBadge}</div><p style="font-size:16px;font-weight:350;line-height:1.5;letter-spacing:-0.008em;margin:6px 0 20px;">Calls booked through the on-site scheduler, newest first. Visitor context (location, device, language and source) shows under each email.</p><div class="rr-scroll" style="margin-top:8px;"><table class="rr-table"><thead><tr><th scope="col">Created</th><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Timezone</th><th scope="col">Event type</th></tr></thead><tbody>${bookingBody}</tbody></table></div></section>`;
+
   const inner = `
 <header style="border-bottom:1px solid ${HAIRLINE};background:${CANVAS};">
   <div style="max-width:1280px;margin:0 auto;padding:16px 32px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;box-sizing:border-box;">
@@ -931,6 +1052,7 @@ function renderDashboard(
   <p style="font-size:16px;font-weight:350;line-height:1.5;letter-spacing:-0.008em;margin:0 0 20px;">Every enquiry from your contact form, newest first.</p>
   ${table}
   ${convoSection}
+  ${bookingSection}
 </main>`;
 
   return page('Leads · Render Rank Admin', inner, `background:${SURFACE_SOFT};`);
@@ -1014,7 +1136,28 @@ async function renderDashboardResponse(env: Env): Promise<Response> {
     }
   }
 
-  return html(renderDashboard(rows, convos, messagesByConvo, convosError));
+  // Also load calendar bookings. Kept in its OWN try/catch (exactly like the
+  // conversations query above) so that if the bookings table doesn't exist yet
+  // (migration not applied) the Leads/Conversations views still render — bookings
+  // simply falls back to []. Explicit column list keeps the shape stable.
+  let bookings: BookingRow[] = [];
+  let bookingsError = false;
+  if (env.DB) {
+    try {
+      const bres = await env.DB.prepare(
+        `SELECT id, created_at, name, email, timezone, event_type, country, region, city, latitude, longitude, isp, device_type, browser, os, language, referrer, landing_page, utm_source, utm_medium, utm_campaign, utm_term, utm_content, ip, user_agent FROM bookings ORDER BY created_at DESC LIMIT 500`
+      ).all<BookingRow>();
+      bookings = bres.results || [];
+    } catch (err) {
+      console.error('D1 bookings query failed', String(err));
+      bookingsError = true;
+      bookings = [];
+    }
+  }
+
+  return html(
+    renderDashboard(rows, convos, messagesByConvo, convosError, bookings, bookingsError)
+  );
 }
 
 export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
