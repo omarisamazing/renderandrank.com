@@ -79,11 +79,11 @@ async function insertConversation(
 ): Promise<void> {
   try {
     await db
-      .prepare('INSERT INTO conversations (id, ip, user_agent) VALUES (?, ?, ?)')
+      .prepare('INSERT INTO conversations (id, ip, user_agent) VALUES (?, ?, ?) ON CONFLICT(id) DO NOTHING')
       .bind(id, ip, userAgent)
       .run();
   } catch (err) {
-    console.error('D1 insert conversation failed', String(err));
+    console.error('D1 insert conversation failed for conversation ' + id, String(err));
   }
 }
 
@@ -102,7 +102,7 @@ async function insertMessage(
       .bind(crypto.randomUUID(), conversationId, role, content)
       .run();
   } catch (err) {
-    console.error('D1 insert message failed', String(err));
+    console.error('D1 insert message failed for conversation ' + conversationId, String(err));
   }
 }
 
@@ -118,7 +118,7 @@ async function getVisitorEmail(
       .first<{ visitor_email: string | null }>();
     return row ? row.visitor_email : null;
   } catch (err) {
-    console.error('D1 select visitor_email failed', String(err));
+    console.error('D1 select visitor_email failed for conversation ' + conversationId, String(err));
     return null;
   }
 }
@@ -155,7 +155,7 @@ async function maybeCaptureLead(
       .bind(email, conversationId)
       .run();
   } catch (err) {
-    console.error('D1 update conversation lead failed', String(err));
+    console.error('D1 update conversation lead failed for conversation ' + conversationId, String(err));
   }
 
   try {
@@ -178,7 +178,7 @@ async function maybeCaptureLead(
       )
       .run();
   } catch (err) {
-    console.error('D1 insert chat lead failed', String(err));
+    console.error('D1 insert chat lead failed for conversation ' + conversationId, String(err));
   }
 }
 
@@ -215,7 +215,7 @@ async function touchConversation(db: D1Database, conversationId: string): Promis
       .bind(conversationId)
       .run();
   } catch (err) {
-    console.error('D1 touch conversation failed', String(err));
+    console.error('D1 touch conversation failed for conversation ' + conversationId, String(err));
   }
 }
 
@@ -295,9 +295,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   // All guarded internally so failures never block the chat.
   if (env.DB) {
     const db = env.DB;
-    if (isNewConversation) {
-      await insertConversation(db, conversationId, ip, userAgent);
-    }
+    // Always ensure the conversation row exists. The client may send a resumed
+    // or STALE conversationId (e.g. from sessionStorage created before the table
+    // existed) that was never persisted; the idempotent upsert prevents orphaned
+    // messages and lost conversations, and self-heals old browser sessions.
+    await insertConversation(db, conversationId, ip, userAgent);
     if (latestUserContent) {
       await insertMessage(db, conversationId, 'user', latestUserContent);
       await maybeCaptureLead(

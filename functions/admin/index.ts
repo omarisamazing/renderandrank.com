@@ -573,6 +573,7 @@ function page(title: string, inner: string, bodyStyle = ''): string {
 </head>
 <body style="margin:0;background:${CANVAS};color:${INK};font-family:${FONT_SANS};font-weight:380;letter-spacing:-0.006em;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;${bodyStyle}">
 ${inner}
+<script src="/admin-time.js" defer></script>
 </body>
 </html>`;
 }
@@ -659,7 +660,9 @@ function formatReceived(value: string | null): string {
   const year = d.getUTCFullYear();
   const hh = String(d.getUTCHours()).padStart(2, '0');
   const mm = String(d.getUTCMinutes()).padStart(2, '0');
-  return esc(`${day} ${month} ${year}, ${hh}:${mm}`);
+  const iso = d.toISOString();
+  const text = esc(`${day} ${month} ${year}, ${hh}:${mm} UTC`);
+  return `<time class="rr-time" datetime="${esc(iso)}">${text}</time>`;
 }
 
 /**
@@ -722,7 +725,8 @@ function renderConvoThread(messages: MessageRow[]): string {
 function renderDashboard(
   rows: SubmissionRow[],
   convos: ConversationRow[] = [],
-  messagesByConvo: Record<string, MessageRow[]> = {}
+  messagesByConvo: Record<string, MessageRow[]> = {},
+  convosError = false
 ): string {
   const headerCells = TABLE_HEADERS.map((label) => `<th scope="col">${esc(label)}</th>`).join('');
 
@@ -756,7 +760,9 @@ function renderDashboard(
         row.service && row.service.trim() !== '' ? esc(row.service) : dash
       }</td>`;
       const locationCell = `<td class="rr-location">${
-        row.location && row.location.trim() !== '' ? esc(row.location) : dash
+        row.location && row.location.trim() !== '' && row.location.trim().toLowerCase() !== 'unknown'
+          ? esc(row.location)
+          : dash
       }</td>`;
 
       // Location → wraps naturally; can hold long strings.
@@ -818,12 +824,19 @@ function renderDashboard(
 
   const convoBadge = `<span style="display:inline-flex;align-items:center;height:28px;padding:0 12px;border:1px solid ${HAIRLINE};border-radius:50px;background:${CANVAS};font-family:${FONT_MONO};font-size:12px;font-weight:500;letter-spacing:0.04em;color:${INK};">${convos.length} total</span>`;
 
+  const convoEmptyBlock = convosError
+    ? `<div style="background:#fbeae8;border:1px solid #f0c9c4;border-radius:24px;padding:40px 40px;text-align:center;box-sizing:border-box;">
+<h2 style="font-size:24px;font-weight:400;line-height:1.2;letter-spacing:-0.013em;margin:0 0 10px;color:${DESTRUCTIVE};">Couldn&rsquo;t load conversations &mdash; storage error</h2>
+<p style="font-size:17px;font-weight:350;line-height:1.55;letter-spacing:-0.008em;margin:0;max-width:520px;margin-left:auto;margin-right:auto;color:${DESTRUCTIVE};">The conversations couldn&rsquo;t be read from the database. This is a query/storage error, not an empty inbox &mdash; check the D1 binding and that the conversations/messages tables exist.</p>
+</div>`
+    : `<div style="background:${BLOCK_LIME};border-radius:24px;padding:56px 48px;text-align:center;box-sizing:border-box;">
+<h2 style="font-size:28px;font-weight:400;line-height:1.2;letter-spacing:-0.013em;margin:0 0 10px;">No conversations yet</h2>
+<p style="font-size:18px;font-weight:350;line-height:1.55;letter-spacing:-0.008em;margin:0;max-width:520px;margin-left:auto;margin-right:auto;">Chat sessions from the on-site assistant will appear here automatically &mdash; most recently active first.</p>
+</div>`;
+
   const convoSection =
     convos.length === 0
-      ? `<section style="margin-top:48px;"><h2 style="font-size:clamp(1.75rem,3.5vw,2.75rem);font-weight:400;line-height:1.06;letter-spacing:-0.017em;margin:0 0 20px;text-wrap:balance;">Conversations</h2><div style="background:${BLOCK_LIME};border-radius:24px;padding:56px 48px;text-align:center;box-sizing:border-box;">
-<h2 style="font-size:28px;font-weight:400;line-height:1.2;letter-spacing:-0.013em;margin:0 0 10px;">No conversations yet</h2>
-<p style="font-size:18px;font-weight:350;line-height:1.55;letter-spacing:-0.008em;margin:0;max-width:520px;margin-left:auto;margin-right:auto;">Chat sessions from the on-site assistant will appear here automatically — most recently active first.</p>
-</div></section>`
+      ? `<section style="margin-top:48px;"><h2 style="font-size:clamp(1.75rem,3.5vw,2.75rem);font-weight:400;line-height:1.06;letter-spacing:-0.017em;margin:0 0 20px;text-wrap:balance;">Conversations</h2>${convoEmptyBlock}</section>`
       : `<section style="margin-top:48px;"><div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:0 0 6px;"><h2 style="font-size:clamp(1.75rem,3.5vw,2.75rem);font-weight:400;line-height:1.06;letter-spacing:-0.017em;margin:0;text-wrap:balance;">Conversations</h2>${convoBadge}</div><p style="font-size:16px;font-weight:350;line-height:1.5;letter-spacing:-0.008em;margin:6px 0 20px;">Chat sessions from the on-site assistant, most recently active first. Expand a row to read its messages.</p><div class="rr-scroll" style="margin-top:8px;"><table class="rr-table"><thead><tr><th scope="col">Started</th><th scope="col">Last activity</th><th scope="col">Email</th><th scope="col">Status</th><th scope="col">Messages</th></tr></thead><tbody>${convoBody}</tbody></table></div></section>`;
 
   const inner = `
@@ -884,13 +897,16 @@ async function renderDashboardResponse(env: Env): Promise<Response> {
   // a SEPARATE try/catch so that if the conversations/messages tables don't
   // exist yet the Leads view still renders — convos simply falls back to [].
   let convos: ConversationRow[] = [];
+  let convosError = false;
   if (env.DB) {
     try {
       const cres = await env.DB.prepare(
         `SELECT c.id, c.created_at, c.updated_at, c.visitor_email, c.status, COUNT(m.id) AS msg_count FROM conversations c LEFT JOIN messages m ON m.conversation_id = c.id GROUP BY c.id ORDER BY c.updated_at DESC LIMIT 500`
       ).all<ConversationRow>();
       convos = cres.results || [];
-    } catch {
+    } catch (err) {
+      console.error('D1 conversations query failed', String(err));
+      convosError = true;
       convos = [];
     }
   }
@@ -920,7 +936,7 @@ async function renderDashboardResponse(env: Env): Promise<Response> {
     }
   }
 
-  return html(renderDashboard(rows, convos, messagesByConvo));
+  return html(renderDashboard(rows, convos, messagesByConvo, convosError));
 }
 
 export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {

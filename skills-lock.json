@@ -115,6 +115,12 @@
       "skillPath": "skills/programmatic-seo/SKILL.md",
       "computedHash": "a53dc8741b0df338766ef8fc7d704bdfc75b8c8e7e1b1b2a5947d81d8c9508ff"
     },
+    "safe-debug": {
+      "source": "lllllllama/rigorpilot-skills",
+      "sourceType": "github",
+      "skillPath": "skills/safe-debug/SKILL.md",
+      "computedHash": "cfc579e27d8a40e45f8a18a2701dcde06a1591d004b36887b55d98917780019f"
+    },
     "seo-audit": {
       "source": "every-app/open-seo",
       "sourceType": "github",
@@ -150,6 +156,12 @@
       "sourceType": "github",
       "skillPath": ".agents/skills/simple-issue-description/SKILL.md",
       "computedHash": "7d97b412347c8954d666a9a2c015a404ea32efce4efbbecc55a4419db68074c5"
+    },
+    "systematic-debugging": {
+      "source": "obra/superpowers",
+      "sourceType": "github",
+      "skillPath": "skills/systematic-debugging/SKILL.md",
+      "computedHash": "a2750dfbaed1690da73b120254892c4f926b4576cb82eb16fc877783941fe39b"
     },
     "tailwind-4-docs": {
       "source": "lombiq/tailwind-agent-skills",

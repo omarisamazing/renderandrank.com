@@ -48,7 +48,7 @@ for production deliverability.
 
 ## ⚠️ Required pre-deploy checklist
 
-Do **not** deploy to production until all three of these are done. They are the
+Do **not** deploy to production until all four of these are done. They are the
 common reasons a fresh deploy fails or silently drops leads.
 
 ### 1. Replace the D1 `database_id` placeholder in `wrangler.toml`
@@ -125,9 +125,19 @@ RESEND_API_KEY=re_your_key_here
 2. Run `npm run build` locally to confirm the site compiles.
 3. Commit with a clear message, then open/merge the change into `master`.
 4. `git push origin master` — Cloudflare Pages auto-builds and deploys from `master`.
-5. If the change touches the DB schema, add a **new** migration file under
-   `migrations/` (e.g. `0002_*.sql`) and apply it to the remote DB with
-   `npx wrangler d1 migrations apply renderandrank_leads --remote`.
+5. **⚠️ Migrations do NOT auto-run on deploy.** Cloudflare Pages git deploys build and ship your code, but they do **not** run D1 migrations. So after adding **any** new migration file under `migrations/` (e.g. `0002_*.sql`) and pushing/deploying the code, you **MUST** separately apply it to the remote (production) database — otherwise the new tables/columns simply won't exist in production and writes will fail **silently**:
+
+   ```sh
+   npm run db:migrate:remote
+   # equivalently:
+   npx wrangler d1 migrations apply renderandrank_leads --remote
+   ```
+
+   Then verify the expected tables exist in production:
+
+   ```sh
+   npx wrangler d1 execute renderandrank_leads --remote --command "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
+   ```
 6. Verify the deployed site. If something is wrong, roll back in the Cloudflare
    dashboard via **Workers & Pages → your project → Deployments → "Rollback to
    this deployment"** on the last known-good build.
@@ -275,3 +285,19 @@ npx wrangler pages secret put ADMIN_PASSWORD
 
 - `RESEND_API_KEY` — used to email each lead via Resend.
 - `ADMIN_PASSWORD` — protects the `/admin` leads dashboard.
+
+### 4. Apply every D1 migration to the REMOTE database after deploying
+
+Cloudflare Pages git deploys do **NOT** run D1 migrations automatically. Any time you add a migration file under `migrations/`, applying it is a **separate, manual** step against the production database — skipping it means the tables/columns won't exist in production and writes fail silently:
+
+```sh
+npm run db:migrate:remote
+# equivalently:
+npx wrangler d1 migrations apply renderandrank_leads --remote
+```
+
+Then confirm the expected tables exist:
+
+```sh
+npx wrangler d1 execute renderandrank_leads --remote --command "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
+```
