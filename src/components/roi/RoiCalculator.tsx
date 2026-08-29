@@ -78,15 +78,28 @@ export function RoiCalculator({ labels }: RoiCalculatorProps = {}) {
   const [dealValue, setDealValue] = React.useState(1500)
   const [searchVolume, setSearchVolume] = React.useState(2500)
   const [rank, setRank] = React.useState<string>("mid")
-  const [handoff, setHandoff] = React.useState<HandoffData | null>(null)
+  function handleClearHandoff() {
+    if (typeof window !== "undefined" && window.sessionStorage) {
+      window.sessionStorage.removeItem("rr_handoff")
+    }
+    setHandoff(null)
+    setDealValue(1500)
+    setSearchVolume(2500)
+    setRank("mid")
+  }
 
   React.useEffect(() => {
     if (typeof window !== "undefined" && window.sessionStorage) {
       try {
         const stored = window.sessionStorage.getItem("rr_handoff")
         if (stored) {
-          const parsed = JSON.parse(stored) as HandoffData
-          if (parsed && parsed.businessName) {
+          const parsed = JSON.parse(stored) as HandoffData & { timestamp?: number }
+          // Stored handoff is valid for 30 minutes
+          if (
+            parsed &&
+            parsed.businessName &&
+            (!parsed.timestamp || Date.now() - parsed.timestamp < 30 * 60 * 1000)
+          ) {
             setHandoff(parsed)
             if (parsed.recommendedDealValue) {
               setDealValue(parsed.recommendedDealValue)
@@ -97,6 +110,8 @@ export function RoiCalculator({ labels }: RoiCalculatorProps = {}) {
             if (parsed.recommendedRank) {
               setRank(parsed.recommendedRank)
             }
+          } else {
+            window.sessionStorage.removeItem("rr_handoff")
           }
         }
       } catch {
@@ -120,12 +135,14 @@ export function RoiCalculator({ labels }: RoiCalculatorProps = {}) {
     <div className="flex flex-col gap-8">
       {/* Contextual handoff banner from AI Diagnostic */}
       {handoff ? (
-        <div className="rounded-lg bg-surface-soft border border-hairline p-6 sm:p-7 text-ink animate-fade-in">
+        <div className="rounded-xl bg-block-cream border border-black/10 p-6 sm:p-7 text-ink animate-fade-in">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
             <div className="space-y-1.5 max-w-2xl">
-              <span className="eyebrow block text-ink/70">
-                DIAGNOSTIC CONTEXT &middot; {handoff.businessName.toUpperCase()} ({handoff.city})
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="eyebrow block text-ink/70">
+                  DIAGNOSTIC CONTEXT &middot; {handoff.businessName.toUpperCase()} ({handoff.city})
+                </span>
+              </div>
               <h3 className="headline text-ink">
                 {handoff.mentionedCount === 0
                   ? `AI search engines are directing 100% of ${handoff.category} inquiries to competitors.`
@@ -144,16 +161,25 @@ export function RoiCalculator({ labels }: RoiCalculatorProps = {}) {
                 )}
               </p>
             </div>
-            <a
-              href="/check"
-              className={buttonVariants({
-                variant: "secondary",
-                size: "sm",
-                className: "shrink-0 self-start lg:self-center",
-              })}
-            >
-              Re-run scan →
-            </a>
+            <div className="flex items-center gap-3 shrink-0 self-start lg:self-center">
+              <button
+                type="button"
+                onClick={handleClearHandoff}
+                className="text-xs body-sm text-ink/60 hover:text-ink transition-colors cursor-pointer px-2 py-1"
+                title="Reset to default calculator values"
+              >
+                Reset to default &times;
+              </button>
+              <a
+                href="/check"
+                className={buttonVariants({
+                  variant: "secondary",
+                  size: "sm",
+                })}
+              >
+                Re-run scan →
+              </a>
+            </div>
           </div>
         </div>
       ) : (
