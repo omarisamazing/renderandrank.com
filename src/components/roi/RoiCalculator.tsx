@@ -78,6 +78,8 @@ export function RoiCalculator({ labels }: RoiCalculatorProps = {}) {
   const [dealValue, setDealValue] = React.useState(1500)
   const [searchVolume, setSearchVolume] = React.useState(2500)
   const [rank, setRank] = React.useState<string>("mid")
+  const [handoff, setHandoff] = React.useState<HandoffData | null>(null)
+
   function handleClearHandoff() {
     if (typeof window !== "undefined" && window.sessionStorage) {
       window.sessionStorage.removeItem("rr_handoff")
