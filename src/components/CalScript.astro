@@ -76,15 +76,26 @@ const { calCom } = siteConfig;
   // `CalInline.astro` swaps in its confirmation off `rr:booking-confirmed`
   // without importing anything, and further listeners (analytics, a pixel) can
   // hook the same event later.
+  // Prefer the newer `bookingSuccessfulV2` action (it carries the booking
+  // `uid`, which the server uses to fetch the real attendee details). We also
+  // keep a listener for the legacy `bookingSuccessful` so nothing regresses if
+  // an older embed build fires only the old event.
+  function reDispatchBookingConfirmed(event) {
+    document.dispatchEvent(
+      new CustomEvent('rr:booking-confirmed', {
+        detail: (event && event.detail) || null,
+      })
+    );
+  }
+
+  Cal.ns[namespace]('on', {
+    action: 'bookingSuccessfulV2',
+    callback: reDispatchBookingConfirmed,
+  });
+
   Cal.ns[namespace]('on', {
     action: 'bookingSuccessful',
-    callback: function (event) {
-      document.dispatchEvent(
-        new CustomEvent('rr:booking-confirmed', {
-          detail: (event && event.detail) || null,
-        })
-      );
-    },
+    callback: reDispatchBookingConfirmed,
   });
 
   // Analytics beacon: fire-and-forget a POST to /api/booking when a booking is
@@ -129,15 +140,19 @@ const { calCom } = siteConfig;
           return undefined;
         }
 
+        // Capture the booking `uid` and event type. The server uses `uid` to
+        // fetch the real attendee name/email/timezone from the Cal.com REST API
+        // (GET /v2/bookings/{uid}); the embed event does not expose that PII
+        // reliably, so we no longer depend on attendeeName/attendee.* here. We
+        // still forward a trivially-available timezone as a harmless fallback.
         var booking = {
-          name: firstNonEmpty(data.attendeeName, attendee.name),
-          email: firstNonEmpty(data.email, attendee.email),
-          timezone: firstNonEmpty(attendee.timeZone, data.timeZone, data.timezone),
+          uid: firstNonEmpty(data.uid, data.bookingUid),
           event_type: firstNonEmpty(
             data.eventType && data.eventType.slug,
             typeof data.eventType === 'string' ? data.eventType : undefined,
             data.eventTypeSlug
           ),
+          timezone: firstNonEmpty(attendee.timeZone, data.timeZone, data.timezone),
         };
 
         // Merge client visitor context with the booking detail; drop undefined

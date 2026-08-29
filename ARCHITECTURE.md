@@ -163,6 +163,13 @@ Book-a-call captures from the Cal.com embed.
 
 Index: `idx_bookings_created_at` (created_at DESC).
 
+### Timestamps
+
+Booking `created_at` is stored as UTC ISO-8601 (via `new Date().toISOString()`).
+The admin dashboard's `formatReceived()` normalizes any legacy space-separated
+`datetime('now')` values (no `T`/`Z`) to UTC before formatting, and
+`public/admin-time.js` localizes them to the viewer's timezone in the browser.
+
 ## Key flows
 
 ### (i) AI chat capture and storage
@@ -183,15 +190,25 @@ endpoint is also rate limited.
 
 ### (iii) Cal.com booking capture
 
-The CalScript island listens to the Cal.com embed and, on a successful
-booking, fires a beacon to `/api/booking`, which does a best-effort insert
-into the `bookings` table.
+The CalScript island listens to the Cal.com embed (the `bookingSuccessfulV2`
+action, with a legacy `bookingSuccessful` fallback) and, on a successful
+booking, fires a beacon to `/api/booking` carrying the booking `uid` (from
+`e.detail.data.uid`), the `event_type` (`data.eventType.slug`), and the
+visitor/UTM context. `/api/booking` does a best-effort insert into the
+`bookings` table.
 
-**Known issue:** the `bookingSuccessful` embed payload does not reliably
-expose the attendee's name, email, and timezone. The `event_type` is available
-via `data.eventType.slug` and works. Planned fixes: read `e.detail.data.uid`
-and fetch details from the Cal API, or use redirect query parameters; and
-migrate to the `bookingSuccessfulV2` event.
+**Attendee capture (resolved):** the embed payload does not expose the
+attendee's name, email, and timezone reliably, so the server enriches the
+record itself. When a booking `uid` and the `CALCOM_API_KEY` secret are both
+present, `functions/api/booking.ts` fetches
+`GET https://api.cal.com/v2/bookings/{uid}` (headers `Authorization: Bearer
+${CALCOM_API_KEY}` and `cal-api-version: 2024-08-13`) and reads the first
+attendee's `name`, `email`, and `timeZone`, preferring those over the client
+body. The fetch is best-effort and never throws: on a missing key or any
+failure it logs and inserts whatever data exists, and the endpoint always
+returns `{ ok: true }`. Set `CALCOM_API_KEY` locally in `.dev.vars` (see
+`.dev.vars.example`) and remotely as an encrypted Pages Secret. The
+`event_type` is available via `data.eventType.slug` and works.
 
 ### (iv) Visitor metadata
 

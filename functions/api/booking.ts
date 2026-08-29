@@ -20,6 +20,10 @@ import { getVisitorMetadata } from '../lib/visitor';
 interface Env {
   // Cloudflare D1 binding (configured in wrangler.toml as `DB`).
   DB?: D1Database;
+  // Cal.com REST API key (secret; local via `.dev.vars`, remote via
+  // `wrangler secret put CALCOM_API_KEY`). When present, the booking `uid` is
+  // used to fetch the real attendee details server-side.
+  CALCOM_API_KEY?: string;
 }
 
 interface BookingBody {
@@ -27,6 +31,9 @@ interface BookingBody {
   email?: string;
   timezone?: string;
   event_type?: string;
+  // Cal.com booking uid, captured client-side from the embed event. When set,
+  // the server fetches authoritative attendee details from the Cal REST API.
+  uid?: string;
   // Optional client analytics fields (read by getVisitorMetadata):
   referrer?: string;
   landing_page?: string;
@@ -51,27 +58,86 @@ function str(value: unknown): string | null {
   return s.length ? s : null;
 }
 
+/** Attendee details fetched from the Cal.com REST API for a booking uid. */
+interface CalEnrichment {
+  name?: string;
+  email?: string;
+  timezone?: string;
+  event_type?: string;
+}
+
+/**
+ * Fetch the full booking from Cal.com's REST API v2 using the booking `uid`
+ * and extract the real attendee name/email/timezone (the embed event does not
+ * expose these reliably). Best-effort: any missing key, network error, non-2xx
+ * response, or malformed JSON is logged and swallowed — callers continue with
+ * whatever data they already have.
+ */
+async function fetchCalAttendee(uid: string, apiKey: string): Promise<CalEnrichment> {
+  try {
+    const res = await fetch(`https://api.cal.com/v2/bookings/${encodeURIComponent(uid)}`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'cal-api-version': '2024-08-13',
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+    });
+    if (!res.ok) {
+      console.error('Cal.com booking fetch non-2xx', res.status);
+      return {};
+    }
+    // Cal v2 wraps the payload as `{ status, data: { ... } }`.
+    const payload = (await res.json()) as any;
+    const data = (payload && payload.data) || {};
+    const attendees = Array.isArray(data.attendees) ? data.attendees : [];
+    const attendee = attendees[0] || {};
+    const responses = data.responses || {};
+    return {
+      name: str(attendee.name) ?? str(responses.name) ?? undefined,
+      email: str(attendee.email) ?? str(responses.email) ?? undefined,
+      timezone: str(attendee.timeZone) ?? undefined,
+      event_type: str(data.eventType && data.eventType.slug) ?? undefined,
+    };
+  } catch (err) {
+    console.error('Cal.com booking fetch failed', String(err));
+    return {};
+  }
+}
+
 /** Persist a booking to D1. Best-effort; swallows errors. */
-async function storeBooking(db: D1Database, body: BookingBody, request: Request): Promise<void> {
+async function storeBooking(
+  db: D1Database,
+  body: BookingBody,
+  request: Request,
+  cal: CalEnrichment
+): Promise<void> {
   const meta = getVisitorMetadata(request, body as Record<string, any>);
+  // Prefer the authoritative attendee details fetched from the Cal.com API;
+  // fall back to whatever the client body carried.
+  const name = str(cal.name) ?? str(body.name);
+  const email = str(cal.email) ?? str(body.email);
+  const timezone = str(cal.timezone) ?? str(body.timezone) ?? meta.timezone;
+  const eventType = str(body.event_type) ?? str(cal.event_type);
   try {
     await db
       .prepare(
         `INSERT INTO bookings
-          (name, email, timezone, event_type,
+          (created_at, name, email, timezone, event_type,
            country, region, city, latitude, longitude, isp,
            device_type, browser, os, language,
            referrer, landing_page,
            utm_source, utm_medium, utm_campaign, utm_term, utm_content,
            ip, user_agent)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .bind(
-        str(body.name),
-        str(body.email),
-        // Prefer the client-supplied timezone; fall back to the cf-derived one.
-        str(body.timezone) ?? meta.timezone,
-        str(body.event_type),
+        new Date().toISOString(),
+        name,
+        email,
+        timezone,
+        eventType,
         meta.country,
         meta.region,
         meta.city,
@@ -108,9 +174,18 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     return json({ ok: true });
   }
 
+  // Enrich with the real attendee details when we have a booking uid and a Cal
+  // API key. Best-effort: fetchCalAttendee never throws, so a missing key or a
+  // Cal API failure just leaves the enrichment empty and we insert what we have.
+  let cal: CalEnrichment = {};
+  const uid = str(body.uid);
+  if (uid && env.CALCOM_API_KEY) {
+    cal = await fetchCalAttendee(uid, env.CALCOM_API_KEY);
+  }
+
   // Best-effort persistence — never throws into the request.
   if (env.DB) {
-    await storeBooking(env.DB, body, request);
+    await storeBooking(env.DB, body, request, cal);
   }
 
   return json({ ok: true });

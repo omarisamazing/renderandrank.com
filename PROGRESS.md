@@ -10,7 +10,7 @@
 
 ## Current status
 
-Documentation system in place; migration 0003 and the Cal.com attendee-capture fix are the outstanding items.
+Documentation system in place; the Cal.com attendee-capture fix is implemented. Applying migration 0003 and setting the CALCOM_API_KEY secret are the outstanding items.
 
 ## Done
 
@@ -18,11 +18,12 @@ Documentation system in place; migration 0003 and the Cal.com attendee-capture f
 - Updated privacy policy (`src/data/legal.ts`): visitor-metadata disclosure, strictly-necessary cookie wording, Dhaka location; Last updated August 29, 2026.
 - Added the Bookings section to the admin dashboard.
 - Created the documentation system (`ARCHITECTURE.md`, `PROGRESS.md`, `CHANGELOG.md`).
+- Fixed Cal.com attendee capture: `CalScript.astro` now uses `bookingSuccessfulV2` and sends the booking `uid`; `functions/api/booking.ts` fetches `GET /v2/bookings/{uid}` (Bearer `CALCOM_API_KEY`, `cal-api-version: 2024-08-13`) best-effort and prefers the fetched attendee name/email/timezone. See `docs/bookings.md`.
 
 ## In progress / Next up
 
 - Apply migration 0003 to local and remote D1.
-- Fix Cal.com attendee capture (name / email / timezone). See `docs/bookings.md`.
+- Set `CALCOM_API_KEY` secret (local `.dev.vars` + remote) and test a real booking end-to-end.
 
 ## Unapplied migrations / manual steps
 

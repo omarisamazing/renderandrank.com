@@ -6,36 +6,53 @@ end to end and surfaced in the admin dashboard.
 ## Flow
 
 1. **Embed callback:** `src/components/CalScript.astro` registers a Cal.com embed
-   callback for the `bookingSuccessful` action and re-dispatches it as a DOM
+   callback for the `bookingSuccessfulV2` action (with a legacy
+   `bookingSuccessful` listener kept as a fallback) and re-dispatches it as a DOM
    event.
 2. **Listener + payload:** A listener builds a payload combining visitor/UTM
-   context with the booking fields.
+   context with the booking `uid` (from `e.detail.data.uid`) and `event_type`
+   (from `e.detail.data.eventType.slug`). The client no longer tries to read the
+   attendee name/email, which the embed payload does not expose reliably.
 3. **Transport:** The payload is POSTed to `/api/booking` via
    `navigator.sendBeacon`, with a `fetch` `keepalive` fallback.
-4. **Server insert:** `functions/api/booking.ts` calls `getVisitorMetadata` and
-   inserts a row into the `bookings` table.
+4. **Server enrichment + insert:** `functions/api/booking.ts` parses the body,
+   and when both a booking `uid` and the `CALCOM_API_KEY` secret are present it
+   fetches the authoritative booking from the Cal.com REST API
+   (`GET https://api.cal.com/v2/bookings/{uid}`) and extracts the first
+   attendee's `name`, `email`, and `timeZone`. It then calls
+   `getVisitorMetadata` and inserts a row into the `bookings` table, preferring
+   the server-fetched attendee fields over the client body.
 5. **Dashboard:** `functions/admin/index.ts` renders the **Bookings** section in
    the `/admin` dashboard.
 
-## Known issue / TODO
+## Attendee capture — IMPLEMENTED
 
-Attendee `name`, `email`, and `timezone` are likely **NOT captured**.
+Attendee `name`, `email`, and `timezone` are now captured server-side.
 
-The Cal.com `bookingSuccessful` embed payload does not expose attendee PII
-directly. The current code reads `data.attendeeName`, `attendee.email`, and
-`attendee.timeZone`, which are typically **undefined**. The `organizer` object in
-the payload is the **host**, not the attendee.
+The Cal.com embed payload does not expose attendee PII reliably, so the client
+only forwards the booking `uid` (plus the trivially-available `event_type` and
+timezone as a harmless fallback). The server uses the `uid` to fetch the full
+booking from the Cal.com REST API and reads the real attendee details from it.
 
-**Fix options:**
+**Server fetch details (`functions/api/booking.ts`):**
 
-- **(a)** Capture `e.detail.data.uid` and fetch the full booking (attendee name,
-  email, timeZone) from the Cal.com REST API server-side:
-  `GET /v2/bookings/{uid}`.
-- **(b)** Use redirect query parameters to receive attendee details.
+- Endpoint: `GET https://api.cal.com/v2/bookings/{uid}`.
+- Headers: `Authorization: Bearer ${CALCOM_API_KEY}`,
+  `cal-api-version: 2024-08-13`, `Accept: application/json`.
+- Response envelope `{ status, data: { attendees:[{name,email,timeZone}],
+  responses?, eventType?:{slug}, start } }`. The first attendee is used, with a
+  `responses.*` fallback for name/email and `data.eventType.slug` for the event
+  type.
+- Best-effort: the fetch runs inside try/catch and **never throws**. On a
+  missing key, non-2xx response, or any error it logs and inserts with whatever
+  data is available. The endpoint always returns `{ ok: true }`.
 
-Also consider migrating to the newer `bookingSuccessfulV2` action.
+**Requirement:** set the `CALCOM_API_KEY` secret. Locally add it to `.dev.vars`
+(see `.dev.vars.example`); remotely add it as an encrypted Pages Secret
+(`wrangler pages secret put CALCOM_API_KEY`). Without the key the booking is
+still stored, but only with the visitor/UTM context and event type.
 
-**Note:** event type extraction via `e.detail.data.eventType.slug` **does work**.
+**Note:** event type extraction via `e.detail.data.eventType.slug` also works.
 
 ## Migration requirement
 

@@ -10,3 +10,8 @@ CONTACT_TO=hello@renderandrank.com
 
 # Verified Resend sender. Use an address on a domain you verified in Resend.
 CONTACT_FROM=Render and Rank <onboarding@resend.dev>
+
+# Cal.com REST API key (https://app.cal.com/settings/developer/api-keys).
+# Used server-side to fetch attendee name/email/timezone for a booking uid via
+# GET /v2/bookings/{uid}. In production add it as an encrypted Pages Secret.
+CALCOM_API_KEY=your-cal-com-api-key-here

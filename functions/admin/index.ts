@@ -706,7 +706,13 @@ function messagePage(status: number, heading: string, detail: string): Response 
  */
 function formatReceived(value: string | null): string {
   if (value === null || value === undefined || value === '') return '—';
-  const d = new Date(value);
+  // created_at from SQLite datetime('now') is UTC but lacks a 'T'/'Z';
+  // normalize so JS parses it as UTC instead of the server's local timezone.
+  const normalized =
+    typeof value === 'string' && !/[zZ]|[+-]\d\d:?\d\d$/.test(value)
+      ? value.trim().replace(' ', 'T') + 'Z'
+      : value;
+  const d = new Date(normalized);
   if (Number.isNaN(d.getTime())) return esc(String(value));
   const day = d.getUTCDate();
   const month = [
