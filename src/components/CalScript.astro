@@ -104,87 +104,156 @@ const { calCom } = siteConfig;
   // body carries the client marketing/referrer context (server derives
   // geo/device itself) merged with any booking detail Cal exposes on the event.
   // Never blocks the UI and never throws into the page.
+  // Cal fires TWO near-simultaneous events for a single booking:
+  // `bookingSuccessfulV2` (carries the `uid` the server needs) and the legacy
+  // `bookingSuccessful` (fires for the same booking WITHOUT a usable uid).
+  // Both re-dispatch `rr:booking-confirmed`, so without coalescing we'd POST
+  // twice — one enriched row (from the uid beacon) and one blank row (from the
+  // no-uid beacon). To fix that we merge each event's fields into a single
+  // module-scoped `pendingBooking` (preferring DEFINED values, so a uid from
+  // the V2 event is never clobbered by an undefined uid from the legacy one),
+  // debounce the actual send, and guard against sending the same booking twice.
+  var pendingBooking = null;
+  var sendTimer = null;
+  var lastSentUid = null;
+  var lastSentAt = 0;
+
+  function collectBookingFields(event) {
+    // Collect the visitor's marketing/referrer context in the BROWSER, at
+    // event time. Inlined here because this <script> uses define:vars and is
+    // therefore rendered inline and NOT bundled — an ESM import of
+    // getClientVisitorData would not resolve in the browser, and calling it
+    // through define:vars would run at SSR (window undefined → all null).
+    function readVisitorData() {
+      var params = new URLSearchParams(window.location.search);
+      return {
+        referrer: document.referrer || null,
+        landing_page: window.location.href,
+        utm_source: params.get('utm_source') || null,
+        utm_medium: params.get('utm_medium') || null,
+        utm_campaign: params.get('utm_campaign') || null,
+        utm_term: params.get('utm_term') || null,
+        utm_content: params.get('utm_content') || null,
+      };
+    }
+    var clientVisitor = readVisitorData();
+
+    // Cal's payload, when present, lives under event.detail.data.
+    var detail = (event && event.detail) || {};
+    var data = detail.data || detail || {};
+    var attendee = data.attendee || {};
+
+    function firstNonEmpty() {
+      for (var i = 0; i < arguments.length; i++) {
+        var v = arguments[i];
+        if (typeof v === 'string' && v.trim()) return v.trim();
+      }
+      return undefined;
+    }
+
+    // Capture the booking `uid` and event type. The server uses `uid` to
+    // fetch the real attendee name/email/timezone from the Cal.com REST API
+    // (GET /v2/bookings/{uid}); the embed event does not expose that PII
+    // reliably, so we no longer depend on attendeeName/attendee.* here. We
+    // still forward a trivially-available timezone as a harmless fallback.
+    var booking = {
+      uid: firstNonEmpty(data.uid, data.bookingUid),
+      event_type: firstNonEmpty(
+        data.eventType && data.eventType.slug,
+        typeof data.eventType === 'string' ? data.eventType : undefined,
+        data.eventTypeSlug
+      ),
+      timezone: firstNonEmpty(attendee.timeZone, data.timeZone, data.timezone),
+    };
+
+    // The visitor context plus the booking detail, with undefined keys dropped
+    // so a later (legacy) event never overwrites a defined value with nothing.
+    var fields = Object.assign({}, clientVisitor);
+    Object.keys(booking).forEach(function (key) {
+      if (booking[key] !== undefined) fields[key] = booking[key];
+    });
+    return fields;
+  }
+
+  function mergePreferDefined(target, source) {
+    // Fold `source` into `target`, keeping any already-defined value on
+    // `target` when `source`'s value is undefined. This is what lets the
+    // uid-bearing V2 event win over the legacy event regardless of order.
+    Object.keys(source).forEach(function (key) {
+      if (source[key] === undefined) return;
+      if (target[key] === undefined || target[key] === null || target[key] === '') {
+        target[key] = source[key];
+      }
+    });
+    return target;
+  }
+
+  function flushPendingBooking() {
+    sendTimer = null;
+    var payload = pendingBooking;
+    pendingBooking = null;
+    if (!payload) return;
+
+    var uid = payload.uid;
+
+    // Dedupe guard: never send the same booking twice. If we have a uid and
+    // it matches the last sent uid, skip. If we have no uid, avoid re-sending
+    // within a short window (covers the case where only legacy events fire).
+    var now = Date.now();
+    if (uid) {
+      if (uid === lastSentUid) return;
+    } else {
+      if (now - lastSentAt < 5000) return;
+    }
+
+    var bodyStr = JSON.stringify(payload);
+
+    // Prefer sendBeacon (survives the navigation Cal may trigger); fall
+    // back to fetch with keepalive so the request still completes.
+    var sent = false;
+    if (navigator && typeof navigator.sendBeacon === 'function') {
+      try {
+        var blob = new Blob([bodyStr], { type: 'application/json' });
+        sent = navigator.sendBeacon('/api/booking', blob);
+      } catch (e) {
+        sent = false;
+      }
+    }
+    if (!sent) {
+      fetch('/api/booking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: bodyStr,
+        keepalive: true,
+      }).catch(function () {
+        /* fire-and-forget: never surface a beacon failure to the visitor */
+      });
+    }
+
+    // Mark this booking as sent so a trailing duplicate event is ignored.
+    if (uid) lastSentUid = uid;
+    lastSentAt = now;
+  }
+
   document.addEventListener(
     'rr:booking-confirmed',
     function (event) {
       try {
-        // Collect the visitor's marketing/referrer context in the BROWSER, at
-        // event time. Inlined here because this <script> uses define:vars and is
-        // therefore rendered inline and NOT bundled — an ESM import of
-        // getClientVisitorData would not resolve in the browser, and calling it
-        // through define:vars would run at SSR (window undefined → all null).
-        function readVisitorData() {
-          var params = new URLSearchParams(window.location.search);
-          return {
-            referrer: document.referrer || null,
-            landing_page: window.location.href,
-            utm_source: params.get('utm_source') || null,
-            utm_medium: params.get('utm_medium') || null,
-            utm_campaign: params.get('utm_campaign') || null,
-            utm_term: params.get('utm_term') || null,
-            utm_content: params.get('utm_content') || null,
-          };
-        }
-        var clientVisitor = readVisitorData();
+        var fields = collectBookingFields(event);
 
-        // Cal's payload, when present, lives under event.detail.data.
-        var detail = (event && event.detail) || {};
-        var data = detail.data || detail || {};
-        var attendee = data.attendee || {};
-
-        function firstNonEmpty() {
-          for (var i = 0; i < arguments.length; i++) {
-            var v = arguments[i];
-            if (typeof v === 'string' && v.trim()) return v.trim();
-          }
-          return undefined;
+        // Coalesce this event into the pending booking, preferring defined
+        // values so the uid (and event_type/timezone/clientVisitor fields)
+        // from whichever event carries them survives.
+        if (!pendingBooking) {
+          pendingBooking = fields;
+        } else {
+          mergePreferDefined(pendingBooking, fields);
         }
 
-        // Capture the booking `uid` and event type. The server uses `uid` to
-        // fetch the real attendee name/email/timezone from the Cal.com REST API
-        // (GET /v2/bookings/{uid}); the embed event does not expose that PII
-        // reliably, so we no longer depend on attendeeName/attendee.* here. We
-        // still forward a trivially-available timezone as a harmless fallback.
-        var booking = {
-          uid: firstNonEmpty(data.uid, data.bookingUid),
-          event_type: firstNonEmpty(
-            data.eventType && data.eventType.slug,
-            typeof data.eventType === 'string' ? data.eventType : undefined,
-            data.eventTypeSlug
-          ),
-          timezone: firstNonEmpty(attendee.timeZone, data.timeZone, data.timezone),
-        };
-
-        // Merge client visitor context with the booking detail; drop undefined
-        // keys so we only send what we actually have.
-        var payload = Object.assign({}, clientVisitor);
-        Object.keys(booking).forEach(function (key) {
-          if (booking[key] !== undefined) payload[key] = booking[key];
-        });
-
-        var bodyStr = JSON.stringify(payload);
-
-        // Prefer sendBeacon (survives the navigation Cal may trigger); fall
-        // back to fetch with keepalive so the request still completes.
-        var sent = false;
-        if (navigator && typeof navigator.sendBeacon === 'function') {
-          try {
-            var blob = new Blob([bodyStr], { type: 'application/json' });
-            sent = navigator.sendBeacon('/api/booking', blob);
-          } catch (e) {
-            sent = false;
-          }
-        }
-        if (!sent) {
-          fetch('/api/booking', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: bodyStr,
-            keepalive: true,
-          }).catch(function () {
-            /* fire-and-forget: never surface a beacon failure to the visitor */
-          });
-        }
+        // Debounce: reset the timer on every event so the two near-simultaneous
+        // events collapse into a SINGLE send ~600ms after the last one.
+        if (sendTimer) clearTimeout(sendTimer);
+        sendTimer = setTimeout(flushPendingBooking, 600);
       } catch (e) {
         /* Analytics must never break the booking UX. */
       }

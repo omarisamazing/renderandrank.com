@@ -195,7 +195,11 @@ action, with a legacy `bookingSuccessful` fallback) and, on a successful
 booking, fires a beacon to `/api/booking` carrying the booking `uid` (from
 `e.detail.data.uid`), the `event_type` (`data.eventType.slug`), and the
 visitor/UTM context. `/api/booking` does a best-effort insert into the
-`bookings` table.
+`bookings` table. Because both bookingSuccessful and bookingSuccessfulV2 fire
+for one booking, CalScript coalesces them into a single deduped beacon —
+merging fields while preferring defined values (so the uid-bearing V2 payload
+wins), debouncing ~600ms, and guarding on the last-sent uid — so each booking
+produces exactly one enriched row.
 
 **Attendee capture (resolved):** the embed payload does not expose the
 attendee's name, email, and timezone reliably, so the server enriches the
