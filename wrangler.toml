@@ -1,6 +1,6 @@
 # Cloudflare Pages configuration for renderandrank.com
 # Docs: https://developers.cloudflare.com/pages/functions/wrangler-configuration/
-name = "renderandrank"
+name = "renderandrank-com"
 compatibility_date = "2024-11-01"
 
 # Astro builds the static site to ./dist; Pages Functions live in ./functions
