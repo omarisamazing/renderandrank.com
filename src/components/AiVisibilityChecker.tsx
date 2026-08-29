@@ -154,30 +154,30 @@ export default function AiVisibilityChecker() {
   }
 
   return (
-    <div className="w-full max-w-5xl mx-auto">
-      <div className="rounded-lg border border-hairline bg-canvas p-6 sm:p-8 md:p-10">
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            <div>
-              <label htmlFor="businessName" className="label block text-ink mb-2">
-                Business Name
-              </label>
-              <input
-                id="businessName"
-                type="text"
-                required
-                placeholder="e.g. Apex Climate Heating"
-                value={businessName}
-                onChange={(e) => setBusinessName(e.target.value)}
-                disabled={loading}
-                className="w-full h-12 rounded-md border border-hairline bg-canvas px-4 py-3 body-sm text-ink placeholder:text-ink/40 focus:outline-none focus:ring-1 focus:ring-ink transition-all"
-              />
-            </div>
+    <div className="rounded-lg border border-black/8 bg-canvas p-6 md:p-8">
+      {/* Form State */}
+      {!data && (
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div>
+            <label htmlFor="businessName" className="label block text-ink mb-1.5">
+              Business Name <span className="text-[#b42318]">*</span>
+            </label>
+            <input
+              id="businessName"
+              type="text"
+              required
+              placeholder="e.g. Apex Climate Heating"
+              value={businessName}
+              onChange={(e) => setBusinessName(e.target.value)}
+              disabled={loading}
+              className="w-full h-11 rounded-md border border-hairline bg-canvas px-3.5 py-2.5 body-sm text-ink placeholder:text-ink/40 focus:outline-none focus:ring-1 focus:ring-ink transition-all"
+            />
+          </div>
 
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label htmlFor="category" className="label block text-ink mb-2">
-                Service / Category
+              <label htmlFor="category" className="label block text-ink mb-1.5">
+                Service / Category <span className="text-[#b42318]">*</span>
               </label>
               <input
                 id="category"
@@ -187,13 +187,13 @@ export default function AiVisibilityChecker() {
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
                 disabled={loading}
-                className="w-full h-12 rounded-md border border-hairline bg-canvas px-4 py-3 body-sm text-ink placeholder:text-ink/40 focus:outline-none focus:ring-1 focus:ring-ink transition-all"
+                className="w-full h-11 rounded-md border border-hairline bg-canvas px-3.5 py-2.5 body-sm text-ink placeholder:text-ink/40 focus:outline-none focus:ring-1 focus:ring-ink transition-all"
               />
             </div>
 
             <div>
-              <label htmlFor="city" className="label block text-ink mb-2">
-                City, State / Market
+              <label htmlFor="city" className="label block text-ink mb-1.5">
+                City and state <span className="text-[#b42318]">*</span>
               </label>
               <input
                 id="city"
@@ -203,25 +203,22 @@ export default function AiVisibilityChecker() {
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
                 disabled={loading}
-                className="w-full h-12 rounded-md border border-hairline bg-canvas px-4 py-3 body-sm text-ink placeholder:text-ink/40 focus:outline-none focus:ring-1 focus:ring-ink transition-all"
+                className="w-full h-11 rounded-md border border-hairline bg-canvas px-3.5 py-2.5 body-sm text-ink placeholder:text-ink/40 focus:outline-none focus:ring-1 focus:ring-ink transition-all"
               />
             </div>
           </div>
 
           {error && (
-            <div className="rounded-md bg-surface-soft border border-hairline p-4 text-sm text-[#721c24]" role="alert">
+            <div className="rounded-md bg-surface-soft border border-hairline p-3 text-sm text-[#721c24]" role="alert">
               {error}
             </div>
           )}
 
-          <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <span className="caption text-ink/70">
-              Free real-time scan &middot; 3 checks per IP / day
-            </span>
+          <div className="pt-2">
             <button
               type="submit"
               disabled={loading}
-              className={buttonVariants({ variant: 'primary', size: 'lg', className: 'w-full sm:w-auto text-canvas' })}
+              className={buttonVariants({ variant: 'primary', size: 'lg', className: 'w-full text-canvas justify-center' })}
             >
               {loading ? (
                 <span className="inline-flex items-center gap-2">
@@ -229,157 +226,146 @@ export default function AiVisibilityChecker() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                   </svg>
-                  Running Diagnostic...
+                  Running AI Check...
                 </span>
               ) : (
                 'Run AI Visibility Check →'
               )}
             </button>
+            <p className="caption mt-3 text-center text-ink/60">
+              Free real-time scan &middot; 3 checks per IP / day &middot; No pitch attached.
+            </p>
           </div>
         </form>
+      )}
 
-        {/* Live Multi-Step Scanning Experience */}
-        {loading && (
-          <div className="mt-8 pt-8 border-t border-hairline animate-fade-in" aria-live="polite">
-            <div className="rounded-lg border border-hairline bg-surface-soft p-6 sm:p-8">
-              <div className="flex items-center justify-between mb-4">
-                <span className="eyebrow text-ink">
-                  LIVE DIAGNOSTIC SCAN IN PROGRESS
-                </span>
-                <span className="numeric text-sm font-medium text-ink">{progress}%</span>
-              </div>
-
-              {/* Progress Bar */}
-              <div className="w-full bg-canvas rounded-full h-2.5 overflow-hidden border border-hairline mb-6">
-                <div
-                  className="bg-ink h-full transition-all duration-300 ease-out"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-
-              {/* Step Checklist */}
-              <div className="space-y-3">
-                {scanSteps.map((step, idx) => {
-                  const isDone = idx < scanStep;
-                  const isActive = idx === scanStep;
-                  return (
-                    <div
-                      key={idx}
-                      className={`flex items-start gap-3.5 transition-opacity duration-300 ${
-                        isDone || isActive ? 'opacity-100' : 'opacity-40'
-                      }`}
-                    >
-                      <div className="mt-0.5 shrink-0">
-                        {isDone ? (
-                          <span className="size-4 rounded-full bg-ink text-canvas flex items-center justify-center text-[10px]">
-                            ✓
-                          </span>
-                        ) : isActive ? (
-                          <span className="size-4 rounded-full border-2 border-ink border-t-transparent animate-spin block" />
-                        ) : (
-                          <span className="size-4 rounded-full border border-hairline bg-canvas block" />
-                        )}
-                      </div>
-                      <div>
-                        <p className={`body-sm text-ink ${isActive ? 'font-medium' : 'text-ink/80'}`}>
-                          {step.title}
-                        </p>
-                        <p className="caption text-ink/60 mt-0.5">{step.desc}</p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+      {/* Live Multi-Step Scanning Experience */}
+      {loading && (
+        <div className="space-y-4 animate-fade-in" aria-live="polite">
+          <div className="flex items-center justify-between">
+            <span className="eyebrow text-ink">
+              SCANNING REAL-TIME AI MODELS
+            </span>
+            <span className="numeric text-sm font-medium text-ink">{progress}%</span>
           </div>
-        )}
 
-        {/* High-Impact Diagnostic Result */}
-        {data && (
-          <div className="mt-8 pt-8 border-t border-hairline animate-fade-in" aria-live="polite">
-            <div className="rounded-lg border border-hairline bg-surface-soft p-6 sm:p-8 md:p-9 text-ink">
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                <div className="space-y-2 max-w-2xl">
-                  <span className="eyebrow block text-ink/70">
-                    DIAGNOSTIC OUTCOME &middot; {data.businessName?.toUpperCase()} ({data.city})
-                  </span>
-                  <h3 className="display-md text-ink">
-                    {(data.mentionedCount ?? 0) > 0
-                      ? 'Recommended in AI search answers'
-                      : 'Not cited in top AI recommendations'}
-                  </h3>
-                  <p className="body-sm text-ink/85 max-w-xl">
-                    {data.diagnosticSummary}
-                  </p>
-                </div>
+          {/* Progress Bar */}
+          <div className="w-full bg-surface-soft rounded-full h-2 overflow-hidden border border-hairline">
+            <div
+              className="bg-ink h-full transition-all duration-300 ease-out"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
 
-                <div className="shrink-0 flex flex-col sm:flex-row lg:flex-col gap-3">
-                  <button
-                    onClick={handleGoToCalculator}
-                    className={buttonVariants({ variant: 'primary', size: 'md', className: 'text-canvas justify-center' })}
-                  >
-                    Calculate Lost Revenue →
-                  </button>
-                  <a
-                    href="/book-a-call"
-                    className={buttonVariants({ variant: 'secondary', size: 'md', className: 'justify-center' })}
-                  >
-                    Book Free 1-on-1 Audit
-                  </a>
-                </div>
-              </div>
-
-              {/* Market Comparison Strip in Clean Cards */}
-              <div className="mt-8 pt-6 border-t border-hairline grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* 1: Entity Status */}
-                <div className="rounded-lg border border-hairline bg-canvas p-5">
-                  <span className="eyebrow text-ink/60 block text-xs">YOUR CITATION STATUS</span>
-                  <div className="mt-2.5">
-                    {(data.mentionedCount ?? 0) > 0 ? (
-                      <span className="inline-flex items-center gap-2 text-ink font-medium">
-                        <span className="size-2 rounded-full bg-[#1ea64a]"></span>
-                        <span className="card-title text-base text-ink">Active in AI</span>
+          {/* Step Checklist */}
+          <div className="space-y-3 pt-2">
+            {scanSteps.map((step, idx) => {
+              const isDone = idx < scanStep;
+              const isActive = idx === scanStep;
+              return (
+                <div
+                  key={idx}
+                  className={`flex items-start gap-3 transition-opacity duration-300 ${
+                    isDone || isActive ? 'opacity-100' : 'opacity-40'
+                  }`}
+                >
+                  <div className="mt-0.5 shrink-0">
+                    {isDone ? (
+                      <span className="size-4 rounded-full bg-ink text-canvas flex items-center justify-center text-[10px]">
+                        ✓
                       </span>
+                    ) : isActive ? (
+                      <span className="size-4 rounded-full border-2 border-ink border-t-transparent animate-spin block" />
                     ) : (
-                      <span className="inline-flex items-center gap-2 text-ink font-medium">
-                        <span className="size-2 rounded-full bg-[#b42318]"></span>
-                        <span className="card-title text-base text-ink">Displaced</span>
-                      </span>
+                      <span className="size-4 rounded-full border border-hairline bg-canvas block" />
                     )}
                   </div>
-                  <p className="caption text-ink/60 mt-2">
-                    Tested across live generative search models
-                  </p>
+                  <div>
+                    <p className={`body-sm text-ink ${isActive ? 'font-medium' : 'text-ink/80'}`}>
+                      {step.title}
+                    </p>
+                    <p className="caption text-ink/60">{step.desc}</p>
+                  </div>
                 </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
-                {/* 2: Competitor Dominance */}
-                <div className="rounded-lg border border-hairline bg-canvas p-5">
-                  <span className="eyebrow text-ink/60 block text-xs">COMPETITORS WINNING</span>
-                  <p className="card-title text-base text-ink mt-2.5 line-clamp-1">
-                    {data.competitorsFound && data.competitorsFound.length > 0
-                      ? data.competitorsFound.slice(0, 2).join(', ')
-                      : 'Local competitors'}
-                  </p>
-                  <p className="caption text-ink/60 mt-2">
-                    Currently capturing direct customer inquiries
-                  </p>
-                </div>
+      {/* High-Impact Diagnostic Result */}
+      {data && (
+        <div className="space-y-6 animate-fade-in" aria-live="polite">
+          <div className="space-y-2">
+            <span className="eyebrow block text-ink/70">
+              DIAGNOSTIC OUTCOME &middot; {data.businessName?.toUpperCase()} ({data.city})
+            </span>
+            <h3 className="card-title text-xl text-ink">
+              {(data.mentionedCount ?? 0) > 0
+                ? 'Recommended in AI Search Answers'
+                : 'Not Cited in Top AI Recommendations'}
+            </h3>
+            <p className="body-sm text-ink/80">
+              {data.diagnosticSummary}
+            </p>
+          </div>
 
-                {/* 3: Search Demand */}
-                <div className="rounded-lg border border-hairline bg-canvas p-5">
-                  <span className="eyebrow text-ink/60 block text-xs">LOCAL SEARCH DEMAND</span>
-                  <p className="card-title text-base text-ink mt-2.5">
-                    ~{data.recommendedSearchVolume?.toLocaleString() || '2,500'}/mo
-                  </p>
-                  <p className="caption text-ink/60 mt-2">
-                    Estimated monthly buyers in {data.city}
-                  </p>
-                </div>
+          {/* 3 Clean Market Comparison Tiles */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {/* 1: Entity Status */}
+            <div className="rounded-md border border-hairline bg-surface-soft p-3.5">
+              <span className="eyebrow text-ink/60 block text-[11px]">CITATION STATUS</span>
+              <div className="mt-1.5">
+                {(data.mentionedCount ?? 0) > 0 ? (
+                  <span className="inline-flex items-center gap-1.5 text-ink font-medium">
+                    <span className="size-2 rounded-full bg-[#1ea64a]"></span>
+                    <span className="label text-sm text-ink">Active in AI</span>
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 text-ink font-medium">
+                    <span className="size-2 rounded-full bg-[#b42318]"></span>
+                    <span className="label text-sm text-ink">Displaced</span>
+                  </span>
+                )}
               </div>
             </div>
+
+            {/* 2: Competitor Dominance */}
+            <div className="rounded-md border border-hairline bg-surface-soft p-3.5">
+              <span className="eyebrow text-ink/60 block text-[11px]">COMPETITORS CITED</span>
+              <p className="label text-sm text-ink mt-1.5 line-clamp-1">
+                {data.competitorsFound && data.competitorsFound.length > 0
+                  ? data.competitorsFound.slice(0, 2).join(', ')
+                  : 'Local competitors'}
+              </p>
+            </div>
+
+            {/* 3: Search Demand */}
+            <div className="rounded-md border border-hairline bg-surface-soft p-3.5">
+              <span className="eyebrow text-ink/60 block text-[11px]">LOCAL SEARCHES</span>
+              <p className="label text-sm text-ink mt-1.5">
+                ~{data.recommendedSearchVolume?.toLocaleString() || '2,500'}/mo
+              </p>
+            </div>
           </div>
-        )}
-      </div>
+
+          {/* Action Row */}
+          <div className="pt-2 flex flex-col sm:flex-row gap-3">
+            <button
+              onClick={handleGoToCalculator}
+              className={buttonVariants({ variant: 'primary', size: 'md', className: 'flex-1 text-canvas justify-center' })}
+            >
+              Calculate Lost Revenue →
+            </button>
+            <button
+              onClick={() => setData(null)}
+              className={buttonVariants({ variant: 'secondary', size: 'md', className: 'justify-center' })}
+            >
+              Check another business
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

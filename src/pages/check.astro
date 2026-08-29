@@ -2,7 +2,7 @@
 import Layout from '../layouts/Layout.astro';
 import Eyebrow from '../components/ui/Eyebrow.astro';
 import Section from '../components/ui/Section.astro';
-import AiVisibilityChecker from '../components/AiVisibilityChecker';
+import AiCheckerSection from '../components/AiCheckerSection.astro';
 import CtaBanner from '../components/CtaBanner.astro';
 import { Search, Sparkles, MapPin, ShieldCheck } from '@lucide/astro';
 
@@ -35,23 +35,7 @@ const benefits = [
   description="Check if ChatGPT, Google Gemini, and AI search engines recommend your local business. Instant, free real-time diagnostic for local companies."
   keywords="AI visibility checker, AEO checker, GEO audit, local SEO AI check, ChatGPT local business check, Google Gemini local search test"
 >
-  <div class="border-b border-hairline bg-canvas py-14 md:py-20">
-    <div class="container-page">
-      <div class="mx-auto max-w-2xl text-center" data-reveal-group>
-        <Eyebrow data-reveal>Free Diagnostic Tool</Eyebrow>
-        <h1 class="display-lg mt-4 text-ink" data-reveal>
-          Is AI recommending your business?
-        </h1>
-        <p class="subhead mt-5 text-ink" data-reveal>
-          Find out whether ChatGPT, Gemini, and AI search engines cite you when local customers ask for the best in your city.
-        </p>
-      </div>
-
-      <div class="mt-12" data-reveal data-reveal-delay="0.1">
-        <AiVisibilityChecker client:load />
-      </div>
-    </div>
-  </div>
+  <AiCheckerSection tone="mint" />
 
   <!-- How It Works & Why It Matters -->
   <Section divider>
