@@ -21,6 +21,7 @@ const { calCom } = siteConfig;
   define:vars={{
     namespace: calCom.namespace,
     brand: calCom.brandColor,
+    eventLink: calCom.eventLink,
   }}
 >
   (function (C, A, L) {
@@ -68,8 +69,14 @@ const { calCom } = siteConfig;
       },
     },
     hideEventTypeDetails: false,
-    layout: 'column_view',
+    layout: 'month_view',
   });
+
+  // Warm the booking page on every site visit. CalScript is mounted site-wide
+  // via Layout.astro, so preloading here means the scheduler iframe is already
+  // fetched by the time the visitor reaches /book-a-call. Fire-and-forget; runs
+  // right after the `ui` config, once Cal is initialised for this namespace.
+  Cal.ns[namespace]('preload', { calLink: eventLink });
 
   // Cal fires this from inside the iframe once the booking actually exists.
   // Re-dispatching it as a DOM event keeps the embed API in this one file:

@@ -19,7 +19,8 @@ Cloudflare D1 database that is surfaced through an internal admin dashboard.
   which powers the on-site "Omli" assistant.
 - **Cloudflare KV** — namespace binding `RATE_LIMIT` for request rate limiting.
 - **Resend** — transactional email delivery for lead notifications.
-- **Cal.com** — embedded booking widget for booking a call.
+- **Cal.com** — embedded booking widget for booking a call (`month_view`
+  layout, preloaded on every site visit).
 
 ## How it all connects
 
@@ -34,7 +35,7 @@ Cloudflare D1 database that is surfaced through an internal admin dashboard.
                     v
    +-------------------------------------------+
    |          Client components (islands)      |
-   |   ChatWidget    AuditForm    CalScript    |
+   | ChatWidget  AuditForm  CalScript/CalInline |
    +-------------------------------------------+
           |             |             |
           v             v             v
@@ -54,7 +55,7 @@ Cloudflare D1 database that is surfaced through an internal admin dashboard.
 ## Directory map
 
 - `src/pages` — Astro routes/pages for the public site.
-- `src/components` — UI components, including React islands (ChatWidget, AuditForm, CalScript).
+- `src/components` — UI components, including React islands (ChatWidget, AuditForm) and the Cal.com embed pieces (`CalScript.astro` bootstrap + `CalInline.astro` inline scheduler).
 - `src/layouts` — shared page layouts/shells.
 - `src/lib/visitorClient.ts` — client-side visitor metadata collection (language, referrer, landing page, UTM params) sent to override/enrich server data.
 - `src/data/legal.ts` — legal copy (privacy policy, terms) rendered on the site.
@@ -190,29 +191,41 @@ endpoint is also rate limited.
 
 ### (iii) Cal.com booking capture
 
-The CalScript island listens to the Cal.com embed (the `bookingSuccessfulV2`
+The embed renders with the `month_view` layout (a compact month grid with a
+self-contained scrollable time-slot column), set in both `CalScript.astro`
+(`ui` config) and `CalInline.astro` (inline `config`). CalScript is mounted
+site-wide from `Layout.astro` and calls
+`Cal.ns[namespace]('preload', { calLink: siteConfig.calCom.eventLink })` on
+every page visit so the booking iframe is warm before the visitor reaches
+`/book-a-call`. The inline `#cal-inline` container is constrained
+(`max-height: min(760px, 85vh)` + `overflow-y: auto`) so a tall scheduler
+scrolls inside the container rather than forcing the whole page to scroll (the
+`minHeight`/noscript fallback is preserved). See
+[docs/bookings.md](docs/bookings.md) for the full layout/preload/container
+notes.
+
+The CalScript bootstrap listens to the Cal.com embed (the `bookingSuccessfulV2`
 action, with a legacy `bookingSuccessful` fallback) and, on a successful
 booking, fires a beacon to `/api/booking` carrying the booking `uid` (from
 `e.detail.data.uid`), the `event_type` (`data.eventType.slug`), and the
 visitor/UTM context. `/api/booking` does a best-effort insert into the
 `bookings` table. Because both bookingSuccessful and bookingSuccessfulV2 fire
-for one booking, CalScript coalesces them into a single deduped beacon —
+for one booking, the bootstrap coalesces them into a single deduped beacon —
 merging fields while preferring defined values (so the uid-bearing V2 payload
 wins), debouncing ~600ms, and guarding on the last-sent uid — so each booking
 produces exactly one enriched row.
 
-**Attendee capture (resolved):** the embed payload does not expose the
-attendee's name, email, and timezone reliably, so the server enriches the
-record itself. When a booking `uid` and the `CALCOM_API_KEY` secret are both
-present, `functions/api/booking.ts` fetches
-`GET https://api.cal.com/v2/bookings/{uid}` (headers `Authorization: Bearer
-${CALCOM_API_KEY}` and `cal-api-version: 2024-08-13`) and reads the first
-attendee's `name`, `email`, and `timeZone`, preferring those over the client
-body. The fetch is best-effort and never throws: on a missing key or any
-failure it logs and inserts whatever data exists, and the endpoint always
-returns `{ ok: true }`. Set `CALCOM_API_KEY` locally in `.dev.vars` (see
-`.dev.vars.example`) and remotely as an encrypted Pages Secret. The
-`event_type` is available via `data.eventType.slug` and works.
+**Attendee capture (resolved):** the embed payload does not reliably expose the
+attendee's name, email, and timezone, so the server enriches the record itself.
+When a booking `uid` and the `CALCOM_API_KEY` secret are both present,
+`functions/api/booking.ts` fetches the booking from the Cal.com REST API
+(`GET /v2/bookings/{uid}`, Bearer `CALCOM_API_KEY`,
+`cal-api-version:2024-08-13`) and reads the first attendee's `name`, `email`,
+and `timeZone`, preferring those over the client body. The fetch is best-effort
+and never throws: on a missing key or any failure it logs and inserts whatever
+data exists, and the endpoint always returns `{ ok: true }`. Set `CALCOM_API_KEY`
+locally in `.dev.vars` (see `.dev.vars.example`) and remotely as an encrypted
+Pages Secret. The `event_type` is available via `data.eventType.slug`.
 
 ### (iv) Visitor metadata
 
@@ -248,4 +261,4 @@ renders three sections from D1: **Leads** (from `submissions`),
 
 - [docs/ai-chat.md](docs/ai-chat.md) — AI chat assistant details.
 - [docs/visitor-metadata.md](docs/visitor-metadata.md) — visitor metadata capture.
-- [docs/bookings.md](docs/bookings.md) — Cal.com booking capture and known issues.
+- [docs/bookings.md](docs/bookings.md) — Cal.com booking capture, embed layout/preload/scrollable container, and known issues.

@@ -19,7 +19,10 @@ const { calCom } = siteConfig;
 ---
 
 <div class:list={['w-full', className]}>
-  <div id="cal-inline" style={`min-height:${minHeight}px`}>
+  <div
+    id="cal-inline"
+    style={`min-height:${minHeight}px; max-height: min(760px, 85vh); overflow-y: auto;`}
+  >
     <noscript>
       <p class="body-sm p-6">
         The scheduler needs JavaScript. You can also book directly at
@@ -45,7 +48,7 @@ const { calCom } = siteConfig;
   Cal.ns[namespace]('inline', {
     elementOrSelector: '#cal-inline',
     calLink: link,
-    config: { layout: 'column_view' },
+    config: { layout: 'month_view' },
   });
 
   document.addEventListener(

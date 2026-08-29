@@ -1,7 +1,8 @@
 # Cal.com Booking Capture
 
 This document describes how bookings made through the Cal.com embed are captured
-end to end and surfaced in the admin dashboard.
+end to end and surfaced in the admin dashboard, and how the embed is presented
+(month_view layout, preload-on-visit, and the constrained scrollable container).
 
 ## Flow
 
@@ -9,6 +10,17 @@ end to end and surfaced in the admin dashboard.
    callback for the `bookingSuccessfulV2` action (with a legacy
    `bookingSuccessful` listener kept as a fallback) and re-dispatches it as a DOM
    event.
+
+> **Embed layout & performance.** The scheduler renders with the `month_view`
+> layout (a compact month grid with a self-contained scrollable time-slot
+> column) — configured in both `CalScript.astro` (`ui`) and `CalInline.astro`
+> (inline `config`). `CalScript.astro` is mounted site-wide via `Layout.astro`
+> and calls `Cal('preload', { calLink })` on every page visit, so the booking
+> iframe is warmed before the visitor reaches `/book-a-call`. The inline
+> `#cal-inline` container is constrained (`max-height: min(760px, 85vh)` +
+> `overflow-y: auto`) so a tall widget scrolls inside the container instead of
+> forcing the whole page to scroll; the `minHeight`/noscript fallback is kept.
+
 2. **Listener + payload:** A listener builds a payload combining visitor/UTM
    context with the booking `uid` (from `e.detail.data.uid`) and `event_type`
    (from `e.detail.data.eventType.slug`). The client no longer tries to read the
@@ -53,6 +65,23 @@ booking from the Cal.com REST API and reads the real attendee details from it.
 still stored, but only with the visitor/UTM context and event type.
 
 **Note:** event type extraction via `e.detail.data.eventType.slug` also works.
+
+## Embed layout, preload & scrollable container — IMPLEMENTED
+
+- **Layout (`month_view`):** the embed uses `layout: 'month_view'` in both
+  `CalScript.astro` (`ui`) and `CalInline.astro` (inline `config`) for a compact
+  month grid with a self-contained scrollable time-slot column, instead of the
+  older one-tall-column `column_view`.
+- **Preload on site visit:** `CalScript.astro` is mounted site-wide from
+  `Layout.astro` and, right after the `ui` config, calls
+  `Cal.ns[namespace]('preload', { calLink: siteConfig.calCom.eventLink })`. This
+  fire-and-forget call warms the booking iframe on every page visit so
+  `/book-a-call` loads faster.
+- **Constrained scrollable container:** the inline `#cal-inline` wrapper keeps
+  its `minHeight` (default 560px) but also sets `max-height: min(760px, 85vh)`
+  and `overflow-y: auto`, so a tall scheduler scrolls inside the container
+  rather than forcing the entire page to scroll. `hideEventTypeDetails` remains
+  `false`.
 
 ## Migration requirement
 

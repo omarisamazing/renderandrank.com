@@ -11,9 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Server-side visitor metadata capture and the `bookings` table (migration 0003).
 - Bookings section in the admin dashboard.
+- `Cal('preload')` on every site visit (fired from the site-wide `CalScript.astro`) so the booking page/iframe is warmed before the visitor reaches /book-a-call, speeding up the booking page.
 
 ### Changed
 
+- Switched the Cal.com booking embed from `column_view` to `month_view` for a compact, scrollable booking layout — a month grid with a self-contained scrollable time-slot column (both `CalScript.astro` UI config and `CalInline.astro` inline config).
+- Constrained the inline Cal.com container to prevent full-page scroll: `#cal-inline` now uses `max-height: min(760px, 85vh)` + `overflow-y: auto` so a tall scheduler scrolls inside the container instead of forcing the whole page to scroll; existing `minHeight`/noscript fallback preserved.
 - Admin visitor-metadata line now uses professional text labels (emojis removed).
 - Privacy policy discloses visitor metadata and fixes cookie/location wording (Last updated August 29, 2026).
 
