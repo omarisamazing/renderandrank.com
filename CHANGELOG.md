@@ -15,8 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Switched the Cal.com booking embed from `column_view` to `month_view` for a compact, scrollable booking layout — a month grid with a self-contained scrollable time-slot column (both `CalScript.astro` UI config and `CalInline.astro` inline config).
-- Constrained the inline Cal.com container to prevent full-page scroll: `#cal-inline` now uses `max-height: min(760px, 85vh)` + `overflow-y: auto` so a tall scheduler scrolls inside the container instead of forcing the whole page to scroll; existing `minHeight`/noscript fallback preserved.
+- Redesigned `/book-a-call` with a wide (`max-w-5xl`) container for the Cal.com embed, allowing the `month_view` scheduler to render in full 3-column desktop mode (Host profile/details, Month grid, and side-by-side Time slots), so date clicks immediately display available times next to the calendar without vertical page jumping or hidden slots.
+- Removed the restrictive `max-height` and nested `overflow-y: auto` scroll trap on `#cal-inline`, giving the scheduler clean responsive auto-height.
+- Re-architected `/book-a-call` companion section: structured the 4-step diagnostic agenda ("On the call"), "No pitch" guarantee badge, and founder direct contact methods below the scheduler.
 - Admin visitor-metadata line now uses professional text labels (emojis removed).
 - Privacy policy discloses visitor metadata and fixes cookie/location wording (Last updated August 29, 2026).
 

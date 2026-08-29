@@ -14,14 +14,15 @@ interface Props {
   minHeight?: number;
 }
 
-const { class: className = '', minHeight = 560 } = Astro.props;
+const { class: className = '', minHeight = 620 } = Astro.props;
 const { calCom } = siteConfig;
 ---
 
 <div class:list={['w-full', className]}>
   <div
     id="cal-inline"
-    style={`min-height:${minHeight}px; max-height: min(760px, 85vh); overflow-y: auto;`}
+    class="w-full overflow-hidden"
+    style={`min-height:${minHeight}px;`}
   >
     <noscript>
       <p class="body-sm p-6">

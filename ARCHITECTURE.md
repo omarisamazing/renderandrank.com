@@ -191,18 +191,17 @@ endpoint is also rate limited.
 
 ### (iii) Cal.com booking capture
 
-The embed renders with the `month_view` layout (a compact month grid with a
-self-contained scrollable time-slot column), set in both `CalScript.astro`
-(`ui` config) and `CalInline.astro` (inline `config`). CalScript is mounted
-site-wide from `Layout.astro` and calls
+The embed renders with the `month_view` layout (a 3-column desktop layout
+presenting event details, month calendar, and side-by-side time slots), set in
+both `CalScript.astro` (`ui` config) and `CalInline.astro` (inline `config`).
+CalScript is mounted site-wide from `Layout.astro` and calls
 `Cal.ns[namespace]('preload', { calLink: siteConfig.calCom.eventLink })` on
 every page visit so the booking iframe is warm before the visitor reaches
-`/book-a-call`. The inline `#cal-inline` container is constrained
-(`max-height: min(760px, 85vh)` + `overflow-y: auto`) so a tall scheduler
-scrolls inside the container rather than forcing the whole page to scroll (the
-`minHeight`/noscript fallback is preserved). See
-[docs/bookings.md](docs/bookings.md) for the full layout/preload/container
-notes.
+`/book-a-call`. On `/book-a-call`, the scheduler sits in a wide (`max-w-5xl`)
+card with unconstrained auto-height (`min-height: 620px; width: 100%`) so
+clicking dates immediately reveals time slots side-by-side with zero nested
+scroll traps or page jumping. See [docs/bookings.md](docs/bookings.md) for the
+full layout/preload/container notes.
 
 The CalScript bootstrap listens to the Cal.com embed (the `bookingSuccessfulV2`
 action, with a legacy `bookingSuccessful` fallback) and, on a successful

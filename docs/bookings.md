@@ -66,22 +66,24 @@ still stored, but only with the visitor/UTM context and event type.
 
 **Note:** event type extraction via `e.detail.data.eventType.slug` also works.
 
-## Embed layout, preload & scrollable container — IMPLEMENTED
+## Embed layout, preload & responsive container — IMPLEMENTED
 
 - **Layout (`month_view`):** the embed uses `layout: 'month_view'` in both
-  `CalScript.astro` (`ui`) and `CalInline.astro` (inline `config`) for a compact
-  month grid with a self-contained scrollable time-slot column, instead of the
-  older one-tall-column `column_view`.
+  `CalScript.astro` (`ui`) and `CalInline.astro` (inline `config`) for a 3-column
+  desktop layout (Event details / Month calendar grid / Side-by-side time slots).
 - **Preload on site visit:** `CalScript.astro` is mounted site-wide from
   `Layout.astro` and, right after the `ui` config, calls
   `Cal.ns[namespace]('preload', { calLink: siteConfig.calCom.eventLink })`. This
   fire-and-forget call warms the booking iframe on every page visit so
   `/book-a-call` loads faster.
-- **Constrained scrollable container:** the inline `#cal-inline` wrapper keeps
-  its `minHeight` (default 560px) but also sets `max-height: min(760px, 85vh)`
-  and `overflow-y: auto`, so a tall scheduler scrolls inside the container
-  rather than forcing the entire page to scroll. `hideEventTypeDetails` remains
-  `false`.
+- **Wide responsive container & zero scroll trap:** on `/book-a-call`, the scheduler
+  sits inside a dedicated `max-w-5xl` card, giving the iframe enough horizontal
+  width (>= 900px) to render the 3 columns side-by-side. The inline `#cal-inline`
+  container sets `min-height: 620px; width: 100%;` without any restrictive
+  `max-height` or nested `overflow-y: auto`, preventing scroll traps and allowing
+  instant date-to-timeslot selection without page jumping.
+- **Structured companion section:** the 4-step agenda ("On the call"), "No pitch"
+  guarantee, and founder contact info sit cleanly below the scheduler card.
 
 ## Migration requirement
 
