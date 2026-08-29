@@ -18,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Auto-Calibrated ROI Calculator Bridge & Conversion Copywriting**:
+  - Bridged the AI Visibility Checker directly into the ROI Calculator: scanning a business automatically calibrates the calculator's sliders with realistic industry ticket sizes ($45 for retail/candy, $2,400 for HVAC, $750 for plumbing, $3,500 for legal/dental) and pre-sets the baseline rank based on whether AI cited the business.
+  - Replaced technical AI buzzwords with plain-English business metrics (Calls Lost to Competitors, Monthly Demand, Revenue Gap).
+  - Cleaned up competitor findings and removed unconfigured placeholders for a distraction-free editorial experience.
 - **Overhauled AI Visibility Checker UI/UX (`DESIGN.md` conformance)**:
   - Fixed button contrast across the entire checker island using `buttonVariants({ variant: 'primary' })` (`bg-ink text-canvas hover:bg-[#1f1f1f]`) and `buttonVariants({ variant: 'secondary' })` with crisp typography.
   - Eliminated monospace overuse: form labels, headings, quotes, and body copy now use clean `figmaSans` (Inter), reserving `font-mono` exclusively for category taxonomy eyebrows per `DESIGN.md`.

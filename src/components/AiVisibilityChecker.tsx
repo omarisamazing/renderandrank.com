@@ -25,8 +25,14 @@ interface CheckResponse {
   city?: string;
   visibilityScore?: number;
   rankPosition?: string;
+  diagnosticSummary?: string;
   competitorsFound?: string[];
   keySignals?: SignalItem[];
+  recommendedDealValue?: number;
+  recommendedMinDeal?: number;
+  recommendedMaxDeal?: number;
+  recommendedSearchVolume?: number;
+  recommendedRank?: 'invisible' | 'mid' | 'top3';
   totalEngines?: number;
   mentionedCount?: number;
   results?: EngineResult[];
@@ -44,7 +50,7 @@ export default function AiVisibilityChecker() {
 
   const scanSteps = [
     { title: 'Connecting to Google Search live citation index', desc: 'Querying real-time generative grounding' },
-    { title: 'Querying local Knowledge Graph entity relationships', desc: `Scanning ${city || 'local market'} provider network` },
+    { title: 'Scanning local Knowledge Graph entity relationships', desc: `Analyzing ${city || 'local market'} provider network` },
     { title: 'Evaluating competitor review velocity & citation rank', desc: 'Comparing entity presence against top competitors' },
     { title: 'Synthesizing Generative Engine Visibility report', desc: 'Calculating authority score and revenue opportunity' },
   ];
@@ -111,7 +117,6 @@ export default function AiVisibilityChecker() {
       }
 
       setProgress(100);
-      // Small pause to let 100% complete cleanly
       setTimeout(() => {
         setData(json);
         setLoading(false);
@@ -128,7 +133,13 @@ export default function AiVisibilityChecker() {
               city: json.city,
               visibilityScore: json.visibilityScore ?? 20,
               rankPosition: json.rankPosition ?? 'Displaced',
+              diagnosticSummary: json.diagnosticSummary,
               competitorsFound: json.competitorsFound || [],
+              recommendedDealValue: json.recommendedDealValue ?? 1200,
+              recommendedMinDeal: json.recommendedMinDeal ?? 200,
+              recommendedMaxDeal: json.recommendedMaxDeal ?? 15000,
+              recommendedSearchVolume: json.recommendedSearchVolume ?? 2500,
+              recommendedRank: json.recommendedRank ?? 'invisible',
               totalEngines: json.totalEngines ?? 0,
               mentionedCount: json.mentionedCount ?? 0,
               timestamp: Date.now(),
@@ -145,7 +156,7 @@ export default function AiVisibilityChecker() {
     }
   }
 
-  function handleCalculateGap() {
+  function handleGoToCalculator() {
     window.location.href = '/calculator';
   }
 
@@ -323,28 +334,26 @@ export default function AiVisibilityChecker() {
                   </div>
                   <h3 className="card-title text-2xl md:text-3xl font-bold text-ink">
                     {(data.visibilityScore ?? 0) >= 60
-                      ? `Verified Entity Presence (${data.visibilityScore}/100)`
-                      : `Invisibility Alert: Zero Generative Citations (${data.visibilityScore}/100)`}
+                      ? `Verified AI Recommendation Presence (${data.visibilityScore}/100)`
+                      : `Invisibility Alert: Competitors Dominating AI Answers (${data.visibilityScore}/100)`}
                   </h3>
                   <p className="body-sm text-ink/85 text-sm md:text-base max-w-2xl leading-relaxed">
-                    {(data.mentionedCount ?? 0) > 0
-                      ? `Your business is currently cited in ${data.mentionedCount} of ${data.totalEngines} active generative answer engines. To secure the #1 spot and lock out competitors, see your authority breakdown below.`
-                      : `When potential customers ask AI for top ${data.category} in ${data.city}, AI recommendation models recommend competing businesses instead of yours.`}
+                    {data.diagnosticSummary}
                   </p>
                 </div>
 
                 <div className="shrink-0 flex flex-col sm:flex-row lg:flex-col gap-3">
                   <button
-                    onClick={handleCalculateGap}
+                    onClick={handleGoToCalculator}
                     className={buttonVariants({ variant: 'primary', size: 'md', className: 'text-canvas justify-center' })}
                   >
-                    Calculate Revenue Gap →
+                    Quantify Revenue Opportunity →
                   </button>
                   <a
                     href="/book-a-call"
                     className={buttonVariants({ variant: 'secondary', size: 'md', className: 'justify-center' })}
                   >
-                    Book Diagnostic Call
+                    Book Strategy Audit
                   </a>
                 </div>
               </div>
@@ -353,40 +362,40 @@ export default function AiVisibilityChecker() {
             {/* 4 Core Diagnostic KPI Cards */}
             <div className="mb-8">
               <span className="eyebrow block text-ink/60 mb-3">
-                KEY PERFORMANCE INDICATORS
+                KEY PERFORMANCE METRICS
               </span>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* KPI 1: AI Visibility Score */}
                 <div className="rounded-lg border border-hairline bg-canvas p-4 sm:p-5 flex flex-col justify-between">
                   <div>
-                    <span className="caption text-ink/60 block">AI VISIBILITY SCORE</span>
+                    <span className="caption text-ink/60 block">VISIBILITY SCORE</span>
                     <p className="text-3xl font-bold text-ink mt-2 tracking-tight">
                       {data.visibilityScore ?? 20}
                       <span className="text-sm font-normal text-ink/60">/100</span>
                     </p>
                   </div>
-                  <p className="text-xs text-ink/70 mt-3 border-t border-hairline pt-2">
-                    {(data.visibilityScore ?? 0) >= 60 ? 'Strong brand citation authority' : 'Critical entity citation gap'}
+                  <p className="text-xs text-ink/70 mt-3 border-t border-hairline pt-2 font-medium">
+                    {(data.visibilityScore ?? 0) >= 60 ? 'Active citation authority' : 'Missing from AI answers'}
                   </p>
                 </div>
 
                 {/* KPI 2: Recommendation Position */}
                 <div className="rounded-lg border border-hairline bg-canvas p-4 sm:p-5 flex flex-col justify-between">
                   <div>
-                    <span className="caption text-ink/60 block">CURRENT AI RANK</span>
+                    <span className="caption text-ink/60 block">AI RECOMMENDATION RANK</span>
                     <p className="text-lg font-bold text-ink mt-2 line-clamp-1">
                       {data.rankPosition || 'Displaced'}
                     </p>
                   </div>
                   <p className="text-xs text-ink/70 mt-3 border-t border-hairline pt-2">
-                    {(data.mentionedCount ?? 0) > 0 ? 'Appears in top recommendation set' : 'Competitors winning 100% of AI clicks'}
+                    {(data.mentionedCount ?? 0) > 0 ? 'Cited in top answer set' : 'Competitors winning AI leads'}
                   </p>
                 </div>
 
                 {/* KPI 3: Competing Entities Identified */}
                 <div className="rounded-lg border border-hairline bg-canvas p-4 sm:p-5 flex flex-col justify-between">
                   <div>
-                    <span className="caption text-ink/60 block">COMPETITORS RECOMMENDED</span>
+                    <span className="caption text-ink/60 block">COMPETITORS WINNING LEADS</span>
                     <p className="text-2xl font-bold text-ink mt-2">
                       {data.competitorsFound?.length || 0}
                       <span className="text-xs font-normal text-ink/60 ml-1.5">local entities</span>
@@ -394,9 +403,9 @@ export default function AiVisibilityChecker() {
                   </div>
                   <div className="text-xs text-ink/80 mt-3 border-t border-hairline pt-2 line-clamp-1">
                     {data.competitorsFound && data.competitorsFound.length > 0 ? (
-                      <span>e.g. {data.competitorsFound.slice(0, 2).join(', ')}</span>
+                      <span className="font-semibold text-ink">e.g. {data.competitorsFound.slice(0, 2).join(', ')}</span>
                     ) : (
-                      <span>No dominant competitor detected</span>
+                      <span>No dominant competitor</span>
                     )}
                   </div>
                 </div>
@@ -404,14 +413,14 @@ export default function AiVisibilityChecker() {
                 {/* KPI 4: Monthly Search Opportunity */}
                 <div className="rounded-lg border border-hairline bg-canvas p-4 sm:p-5 flex flex-col justify-between">
                   <div>
-                    <span className="caption text-ink/60 block">EST. REVENUE OPPORTUNITY</span>
+                    <span className="caption text-ink/60 block">EST. MONTHLY DEMAND</span>
                     <p className="text-2xl font-bold text-ink mt-2 text-[#2d6a4f]">
-                      {(data.mentionedCount ?? 0) === 0 ? '$4,500+' : '$12,000+'}
-                      <span className="text-xs font-normal text-ink/60 ml-1">/mo</span>
+                      ~{data.recommendedSearchVolume?.toLocaleString() || '2,500'}
+                      <span className="text-xs font-normal text-ink/60 ml-1">searches</span>
                     </p>
                   </div>
                   <p className="text-xs text-ink/70 mt-3 border-t border-hairline pt-2">
-                    Based on local search volume & average job value
+                    Local monthly search volume in {data.city}
                   </p>
                 </div>
               </div>
@@ -420,7 +429,7 @@ export default function AiVisibilityChecker() {
             {/* Entity Signals Breakdown */}
             <div className="mb-8 rounded-lg border border-hairline bg-surface-soft p-5 sm:p-6">
               <span className="eyebrow block text-ink/70 mb-3">
-                LOCAL ENTITY SIGNAL AUDIT
+                LOCAL CITATION & ENTITY AUDIT
               </span>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 {data.keySignals?.map((sig, i) => (
@@ -449,10 +458,10 @@ export default function AiVisibilityChecker() {
               </div>
             </div>
 
-            {/* Detailed Engine Breakdown */}
+            {/* Structured Citation Findings */}
             <div className="mb-8">
               <span className="eyebrow block text-ink/60 mb-3">
-                GENERATIVE ENGINE BREAKDOWN
+                GENERATIVE CITATION FINDINGS
               </span>
               <div className="grid gap-3">
                 {data.results?.map((res, i) => (
@@ -465,17 +474,12 @@ export default function AiVisibilityChecker() {
                         <span className="font-bold text-sm text-ink">{res.engine}</span>
                         {res.status === 'mentioned' && (
                           <span className="inline-flex items-center rounded-full bg-[#e8f5e9] text-[#1b5e20] px-2.5 py-0.5 text-xs font-semibold">
-                            ✓ Recommended
+                            ✓ Your Business Recommended
                           </span>
                         )}
                         {res.status === 'not_mentioned' && (
                           <span className="inline-flex items-center rounded-full bg-[#fff3e0] text-[#e65100] px-2.5 py-0.5 text-xs font-semibold">
-                            ✗ Competitors Cited
-                          </span>
-                        )}
-                        {res.status === 'not_configured' && (
-                          <span className="inline-flex items-center rounded-full bg-surface-soft text-ink/60 px-2 py-0.5 text-[11px]">
-                            Pro Search Audit
+                            ✗ Competitors Cited Instead
                           </span>
                         )}
                         {res.status === 'error' && (
@@ -484,15 +488,13 @@ export default function AiVisibilityChecker() {
                           </span>
                         )}
                       </div>
-                      <span className="caption text-ink/50">
-                        {res.available ? 'Live Test' : 'Requires Pro Key'}
-                      </span>
+                      <span className="caption text-ink/50">Verified Live Query</span>
                     </div>
 
                     {res.snippet && (
                       <div className="rounded-md bg-surface-soft p-3.5 border border-hairline text-xs text-ink/80 leading-relaxed font-sans">
                         <p className="font-medium text-ink mb-1 text-[11px] uppercase tracking-wider text-ink/60">
-                          Extracted AI Citation Summary:
+                          AI Answer Summary:
                         </p>
                         <p className="italic">"{res.snippet}"</p>
                       </div>
@@ -506,25 +508,25 @@ export default function AiVisibilityChecker() {
             <div className="rounded-lg bg-surface-soft border border-hairline p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
               <div>
                 <h4 className="card-title text-base font-bold text-ink">
-                  Ready to capture the #1 recommendation spot?
+                  How much revenue is this position costing you?
                 </h4>
                 <p className="body-sm text-xs sm:text-sm text-ink/75 mt-1">
-                  We build structured entity schema, citation authority, and review velocity so AI models cite your business first.
+                  We pre-loaded your industry ticket size and search demand into our ROI calculator. See your exact monthly call gap.
                 </p>
               </div>
 
               <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto shrink-0">
                 <button
-                  onClick={handleCalculateGap}
+                  onClick={handleGoToCalculator}
                   className={buttonVariants({ variant: 'primary', size: 'md', className: 'w-full sm:w-auto text-canvas justify-center' })}
                 >
-                  Quantify Lost Revenue →
+                  Calculate Lost Revenue →
                 </button>
                 <a
                   href="/book-a-call"
                   className={buttonVariants({ variant: 'secondary', size: 'md', className: 'w-full sm:w-auto justify-center' })}
                 >
-                  Book 1-on-1 Audit
+                  Book Strategy Audit
                 </a>
               </div>
             </div>

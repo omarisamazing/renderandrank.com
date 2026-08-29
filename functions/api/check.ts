@@ -374,6 +374,66 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     });
   }
 
+/** Estimate realistic transaction values and search volume by industry. */
+function estimateIndustryMetrics(category: string, city: string): {
+  dealValue: number;
+  minDeal: number;
+  maxDeal: number;
+  searchVolume: number;
+} {
+  const cat = (category || '').toLowerCase();
+  const c = (city || '').toLowerCase();
+  let volumeMultiplier = 1.0;
+  if (/new york|nyc|los angeles|chicago|houston|dallas|miami/i.test(c)) {
+    volumeMultiplier = 1.6;
+  }
+
+  // Retail / Food / Candy / Hospitality
+  if (/candy|sweet|chocolat|baker|cafe|coffee|ice cream|retail|shop|boutique|store|restaurant|food/i.test(cat)) {
+    return {
+      dealValue: 45,
+      minDeal: 10,
+      maxDeal: 500,
+      searchVolume: Math.round(3800 * volumeMultiplier),
+    };
+  }
+  // High Ticket Trades: HVAC, Roofing, Solar, Remodeling
+  if (/hvac|heat|air condition|ac repair|roof|solar|remodel|contractor|construct/i.test(cat)) {
+    return {
+      dealValue: 2400,
+      minDeal: 300,
+      maxDeal: 15000,
+      searchVolume: Math.round(2600 * volumeMultiplier),
+    };
+  }
+  // Standard Trades: Plumbing, Electrician, Locksmith, Pest, Auto
+  if (/plumb|electric|locksmith|pest|drain|handyman|clean|auto|mechanic|towing/i.test(cat)) {
+    return {
+      dealValue: 750,
+      minDeal: 150,
+      maxDeal: 6000,
+      searchVolume: Math.round(3200 * volumeMultiplier),
+    };
+  }
+  // Professional Services: Legal, Dental, Medical, Accounting, Real Estate
+  if (/law|attorney|legal|dent|doctor|med|account|cpa|chiropract|realt|estate/i.test(cat)) {
+    return {
+      dealValue: 3500,
+      minDeal: 500,
+      maxDeal: 25000,
+      searchVolume: Math.round(2100 * volumeMultiplier),
+    };
+  }
+
+  // Default local service
+  return {
+    dealValue: 1200,
+    minDeal: 200,
+    maxDeal: 15000,
+    searchVolume: Math.round(2500 * volumeMultiplier),
+  };
+}
+
 /** Extract competitor names and cleaned items from response text. */
 function extractCompetitors(text: string, businessName: string): string[] {
   if (!text) return [];
@@ -389,7 +449,7 @@ function extractCompetitors(text: string, businessName: string): string[] {
       raw.length > 2 &&
       raw.length < 45 &&
       !raw.toLowerCase().includes(lowerName) &&
-      !/^(here|top|based|recommendations|summary|note|best|first|second)/i.test(raw)
+      !/^(here|top|based|recommendations|summary|note|best|first|second|ranked)/i.test(raw)
     ) {
       if (!competitors.includes(raw)) {
         competitors.push(raw);
@@ -397,7 +457,7 @@ function extractCompetitors(text: string, businessName: string): string[] {
     }
   }
 
-  return competitors.slice(0, 4);
+  return competitors.slice(0, 3);
 }
 
   // Calculate summary metrics
@@ -408,6 +468,17 @@ function extractCompetitors(text: string, businessName: string): string[] {
   const allText = results.map((r) => r.snippet || '').join(' ');
   const competitorsFound = extractCompetitors(allText, businessName);
 
+  // Auto-calibrate Industry Metrics for ROI Calculator
+  const industryMetrics = estimateIndustryMetrics(category, city);
+
+  // Determine recommended initial rank state
+  let recommendedRank: 'invisible' | 'mid' | 'top3' = 'invisible';
+  if (mentionedCount >= 2) {
+    recommendedRank = 'top3';
+  } else if (mentionedCount === 1) {
+    recommendedRank = 'mid';
+  }
+
   // Compute Visibility Score (0-100)
   let visibilityScore = 18;
   if (mentionedCount === 2) {
@@ -415,7 +486,6 @@ function extractCompetitors(text: string, businessName: string): string[] {
   } else if (mentionedCount === 1) {
     visibilityScore = 64;
   } else if (activeEngines.length > 0) {
-    // If not cited, base score reflects partial local presence
     visibilityScore = competitorsFound.length > 0 ? 22 : 15;
   }
 
@@ -427,6 +497,20 @@ function extractCompetitors(text: string, businessName: string): string[] {
     rankPosition = 'Top 3 Cited Entity';
   } else if (competitorsFound.length > 0) {
     rankPosition = `Displaced by ${competitorsFound[0]}`;
+  }
+
+  // Plain-English diagnostic summary
+  let diagnosticSummary = '';
+  if (mentionedCount >= 2) {
+    diagnosticSummary = `Dominant AI Citation Authority. Your business is recommended across all tested generative answer engines.`;
+  } else if (mentionedCount === 1) {
+    diagnosticSummary = competitorsFound.length > 0
+      ? `Partial AI Citation Presence. Cited in Google Search, but open assistant queries are directed to ${competitorsFound[0]}.`
+      : `Partial AI Citation Presence. Cited in Google Search recommendations.`;
+  } else {
+    diagnosticSummary = competitorsFound.length > 0
+      ? `Zero AI Recommendations. AI assistants are sending local ${category} customers to ${competitorsFound.slice(0, 2).join(' and ')} instead.`
+      : `Zero AI Recommendations. When local buyers ask for ${category} in ${city}, AI models do not cite your business.`;
   }
 
   // Entity Authority Signals
@@ -444,8 +528,8 @@ function extractCompetitors(text: string, businessName: string): string[] {
       status: results.find((r) => r.engine.includes('Llama'))?.status === 'mentioned' ? 'good' : 'missing',
       label:
         results.find((r) => r.engine.includes('Llama'))?.status === 'mentioned'
-          ? 'Strong associative authority in open LLM weights'
-          : 'LLMs currently cite established competitors in this zip code',
+          ? 'Strong citation presence in open assistant knowledge'
+          : 'Local queries diverted to competing providers',
     },
     {
       name: 'Competitor Citation Density',
@@ -457,6 +541,9 @@ function extractCompetitors(text: string, businessName: string): string[] {
     },
   ];
 
+  // Filter results for client: only return active engines with real data
+  const clientResults = results.filter((r) => r.available && r.status !== 'not_configured');
+
   // Persist to D1 funnel_events
   if (env.DB) {
     try {
@@ -466,8 +553,12 @@ function extractCompetitors(text: string, businessName: string): string[] {
         city,
         visibilityScore,
         rankPosition,
+        diagnosticSummary,
         competitorsFound,
-        results,
+        recommendedDealValue: industryMetrics.dealValue,
+        recommendedSearchVolume: industryMetrics.searchVolume,
+        recommendedRank,
+        results: clientResults,
         totalActiveEngines: activeEngines.length,
         mentionedCount,
       });
@@ -490,11 +581,17 @@ function extractCompetitors(text: string, businessName: string): string[] {
     visitorId,
     visibilityScore,
     rankPosition,
+    diagnosticSummary,
     competitorsFound,
     keySignals,
+    recommendedDealValue: industryMetrics.dealValue,
+    recommendedMinDeal: industryMetrics.minDeal,
+    recommendedMaxDeal: industryMetrics.maxDeal,
+    recommendedSearchVolume: industryMetrics.searchVolume,
+    recommendedRank,
     totalEngines: activeEngines.length,
     mentionedCount,
-    results,
+    results: clientResults,
   });
 };
 

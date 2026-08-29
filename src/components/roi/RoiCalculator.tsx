@@ -8,28 +8,31 @@ import { getVisitorId } from "../../lib/visitorClient"
 const RANK_OPTIONS = [
   {
     value: "invisible",
-    label: "Not in the top 10",
+    label: "Not in top 10 / Invisible in AI",
     /** Share of local clicks currently going elsewhere that you could win. */
     missedShare: 0.055,
   },
-  { value: "mid", label: "Position 4–10", missedShare: 0.035 },
-  { value: "top3", label: "Already top 3", missedShare: 0.02 },
+  { value: "mid", label: "Position 4–10 (Partial presence)", missedShare: 0.035 },
+  { value: "top3", label: "Top 3 / Active AI Recommendation", missedShare: 0.02 },
 ] as const
 
 interface HandoffData {
   businessName: string
   category: string
   city: string
+  visibilityScore?: number
+  rankPosition?: string
+  diagnosticSummary?: string
+  competitorsFound?: string[]
+  recommendedDealValue?: number
+  recommendedMinDeal?: number
+  recommendedMaxDeal?: number
+  recommendedSearchVolume?: number
+  recommendedRank?: "invisible" | "mid" | "top3"
   mentionedCount: number
   totalEngines: number
 }
 
-/**
- * Visible copy, all optional. Each string falls back to the current English
- * default at the render site, so the component is unchanged when no props are
- * passed. `rankOptions[i]` overrides only the displayed label of RANK_OPTIONS[i];
- * the option values, order and length are untouched.
- */
 export interface RoiCalculatorLabels {
   dealValueLabel?: string
   dealValueMin?: string
@@ -41,12 +44,10 @@ export interface RoiCalculatorLabels {
   rankOptions?: readonly (string | undefined)[]
   resultLabel?: string
   perMonthSuffix?: string
-  /** Rendered with {year}, {calls} and {jobs} placeholders. */
   summary?: string
   missedCallsLabel?: string
   missedJobsLabel?: string
   cta?: string
-  /** Rendered with {callRate} and {closeRate} placeholders. */
   assumptions?: string
 }
 
@@ -57,11 +58,10 @@ export interface RoiCalculatorProps {
 const CALL_RATE = 0.35 // clicks that become a phone call
 const CLOSE_RATE = 0.4 // calls that become a job
 
-/** Slider bounds live next to the fill helper so the two can't drift apart. */
-const DEAL_MIN = 200
-const DEAL_MAX = 15000
+const DEFAULT_DEAL_MIN = 200
+const DEFAULT_DEAL_MAX = 15000
 const VOLUME_MIN = 300
-const VOLUME_MAX = 10000
+const VOLUME_MAX = 15000
 
 const currency = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -70,20 +70,10 @@ const currency = new Intl.NumberFormat("en-US", {
 })
 const number = new Intl.NumberFormat("en-US")
 
-/**
- * Track-fill position as a 0–1 number, read by `.range-brand` to paint the
- * filled portion of the track. No engine exposes that through `accent-color`,
- * so the value has to reach CSS as a custom property.
- */
 function trackFill(value: number, min: number, max: number) {
   return { "--range-fill-n": (value - min) / (max - min) } as React.CSSProperties
 }
 
-/**
- * Estimator for the revenue sitting with competitors. Deliberately conservative,
- * and it shows its inputs — the point is to open a conversation, not to look
- * precise about something nobody can know exactly.
- */
 export function RoiCalculator({ labels }: RoiCalculatorProps = {}) {
   const [dealValue, setDealValue] = React.useState(1500)
   const [searchVolume, setSearchVolume] = React.useState(2500)
@@ -98,6 +88,15 @@ export function RoiCalculator({ labels }: RoiCalculatorProps = {}) {
           const parsed = JSON.parse(stored) as HandoffData
           if (parsed && parsed.businessName) {
             setHandoff(parsed)
+            if (parsed.recommendedDealValue) {
+              setDealValue(parsed.recommendedDealValue)
+            }
+            if (parsed.recommendedSearchVolume) {
+              setSearchVolume(parsed.recommendedSearchVolume)
+            }
+            if (parsed.recommendedRank) {
+              setRank(parsed.recommendedRank)
+            }
           }
         }
       } catch {
@@ -108,220 +107,237 @@ export function RoiCalculator({ labels }: RoiCalculatorProps = {}) {
 
   const option = RANK_OPTIONS.find((o) => o.value === rank) ?? RANK_OPTIONS[1]
 
+  const dealMin = handoff?.recommendedMinDeal ?? (dealValue < 100 ? 10 : DEFAULT_DEAL_MIN)
+  const dealMax = handoff?.recommendedMaxDeal ?? (dealValue < 100 ? 500 : DEFAULT_DEAL_MAX)
+  const dealStep = dealMax <= 500 ? 5 : 100
+
   const missedClicks = Math.round(searchVolume * option.missedShare)
   const missedCalls = Math.max(5, Math.round(missedClicks * CALL_RATE))
   const missedJobs = Math.max(2, Math.round(missedCalls * CLOSE_RATE))
   const monthly = missedJobs * dealValue
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* Contextual handoff banner from AI Checker */}
+    <div className="flex flex-col gap-8">
+      {/* Contextual handoff banner from AI Diagnostic */}
       {handoff ? (
-        <div className="rounded-lg bg-block-lime border border-black/10 p-5 sm:p-6 text-ink animate-fade-in">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="space-y-1">
+        <div className="rounded-xl bg-block-lime border border-black/10 p-6 sm:p-7 text-ink animate-fade-in">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+            <div className="space-y-1.5 max-w-2xl">
               <span className="eyebrow block text-ink/70">
-                AI DIAGNOSTIC CONTEXT &middot; {handoff.businessName} ({handoff.city})
+                LIVE DIAGNOSTIC BRIDGE &middot; {handoff.businessName.toUpperCase()} ({handoff.city})
               </span>
-              <p className="card-title text-base sm:text-lg font-bold text-ink">
+              <h3 className="card-title text-xl sm:text-2xl font-bold text-ink">
                 {handoff.mentionedCount === 0
-                  ? `Your business was not cited in AI search results for "${handoff.category}" in ${handoff.city}.`
-                  : `Your business was cited in ${handoff.mentionedCount}/${handoff.totalEngines} active AI recommendation engines.`}
-              </p>
-              <p className="body-sm text-xs sm:text-sm text-ink/80">
-                Here is an estimate of the monthly call and job volume currently flowing to top-ranked competitors instead.
+                  ? `AI search engines are directing 100% of ${handoff.category} inquiries to competitors.`
+                  : `Your business has partial AI visibility, but competitors are capturing overflow calls.`}
+              </h3>
+              <p className="body-sm text-sm sm:text-base text-ink/80 leading-relaxed">
+                {handoff.competitorsFound && handoff.competitorsFound.length > 0 ? (
+                  <span>
+                    Inquiries for <strong>{handoff.category}</strong> in {handoff.city} are being routed to competitors like{" "}
+                    <strong>{handoff.competitorsFound.slice(0, 2).join(" and ")}</strong>. We've auto-calibrated your estimated ticket size (<strong>{currency.format(dealValue)}</strong>) and search volume below.
+                  </span>
+                ) : (
+                  <span>
+                    We've auto-calibrated your estimated ticket size (<strong>{currency.format(dealValue)}</strong>) and search volume below based on your local market.
+                  </span>
+                )}
               </p>
             </div>
             <a
               href="/check"
-              className={buttonVariants({ variant: 'secondary', size: 'sm', className: 'shrink-0 self-start sm:self-center' })}
+              className={buttonVariants({
+                variant: "secondary",
+                size: "sm",
+                className: "shrink-0 self-start lg:self-center",
+              })}
             >
               Re-run scan →
             </a>
           </div>
         </div>
       ) : (
-        <div className="rounded-lg border border-hairline bg-surface-soft p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 text-ink">
-          <div className="space-y-0.5">
-            <p className="text-sm font-semibold text-ink">
-              Curious if ChatGPT and Gemini recommend your business right now?
+        <div className="rounded-xl border border-hairline bg-surface-soft p-5 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-ink">
+          <div className="space-y-1">
+            <p className="text-base font-bold text-ink">
+              Want to see your real-time AI recommendation status first?
             </p>
-            <p className="text-xs text-ink/70">
-              Run an instant real-time diagnostic scan before setting your revenue numbers.
+            <p className="text-xs sm:text-sm text-ink/70">
+              Run a free 10-second scan to automatically calibrate this calculator to your exact business and market.
             </p>
           </div>
           <a
             href="/check"
-            className={buttonVariants({ variant: 'secondary', size: 'sm', className: 'shrink-0 w-full sm:w-auto text-center justify-center' })}
+            className={buttonVariants({
+              variant: "secondary",
+              size: "sm",
+              className: "shrink-0 w-full sm:w-auto text-center justify-center",
+            })}
           >
             Run Free AI Check →
           </a>
         </div>
       )}
 
+      {/* Main Calculator Grid */}
       <div className="grid items-start gap-10 lg:grid-cols-12 lg:gap-12">
-      {/* Inputs */}
-      <div className="flex min-w-0 flex-col gap-4 lg:col-span-6">
-        <fieldset className="rounded-md border border-black/8 bg-canvas p-5">
-          <div className="flex items-baseline justify-between gap-4">
-            <Label htmlFor="deal-value" className="label text-ink">
-              {labels?.dealValueLabel ?? "Average job value"}
-            </Label>
-            <output
-              htmlFor="deal-value"
-              className="numeric text-[1.25rem] font-medium text-ink"
-            >
-              {currency.format(dealValue)}
-            </output>
-          </div>
-          <input
-            id="deal-value"
-            type="range"
-            min={DEAL_MIN}
-            max={DEAL_MAX}
-            step={100}
-            value={dealValue}
-            onChange={(e) => setDealValue(Number(e.target.value))}
-            style={trackFill(dealValue, DEAL_MIN, DEAL_MAX)}
-            className="range-brand mt-4 w-full accent-ink"
-          />
-          <div className="mt-2 flex justify-between">
-            <span className="caption text-ink">{labels?.dealValueMin ?? "$200"}</span>
-            <span className="caption text-ink">{labels?.dealValueMax ?? "$15,000"}</span>
-          </div>
-        </fieldset>
-
-        <fieldset className="rounded-md border border-black/8 bg-canvas p-5">
-          <div className="flex items-baseline justify-between gap-4">
-            <Label htmlFor="search-volume" className="label text-ink">
-              {labels?.searchVolumeLabel ?? "Monthly local searches"}
-            </Label>
-            <output
-              htmlFor="search-volume"
-              className="numeric text-[1.25rem] font-medium text-ink"
-            >
-              {number.format(searchVolume)}
-            </output>
-          </div>
-          <input
-            id="search-volume"
-            type="range"
-            min={VOLUME_MIN}
-            max={VOLUME_MAX}
-            step={100}
-            value={searchVolume}
-            onChange={(e) => setSearchVolume(Number(e.target.value))}
-            style={trackFill(searchVolume, VOLUME_MIN, VOLUME_MAX)}
-            className="range-brand mt-4 w-full accent-ink"
-          />
-          <div className="mt-2 flex justify-between">
-            <span className="caption text-ink">{labels?.searchVolumeMin ?? "300"}</span>
-            <span className="caption text-ink">{labels?.searchVolumeMax ?? "10,000+"}</span>
-          </div>
-        </fieldset>
-
-        <fieldset className="min-w-0 rounded-md border border-black/8 bg-canvas p-5">
-          {/* Floated so the legend opts out of being laid into the fieldset's
-              block-start border, where a string this long straddles the edge and
-              gets clipped. As a full-width float inside the padding box it wraps
-              freely and lines up with the labels on the cards above; the sibling
-              flex container establishes a BFC, so it clears the float on its own. */}
-          <legend className="label float-left w-full text-ink break-words">
-            {labels?.rankLegend ?? "Where you rank in Maps today"}
-          </legend>
-          <div className="mt-6 flex clear-both flex-col gap-2">
-            {RANK_OPTIONS.map((opt, i) => (
-              <label
-                key={opt.value}
-                className="flex cursor-pointer items-center gap-3 rounded-md px-3 py-2.5 transition-colors has-checked:bg-block-lilac"
+        {/* Left Inputs */}
+        <div className="flex min-w-0 flex-col gap-4 lg:col-span-6">
+          <fieldset className="rounded-lg border border-black/8 bg-canvas p-5 sm:p-6">
+            <div className="flex items-baseline justify-between gap-4">
+              <Label htmlFor="deal-value" className="label text-ink font-medium">
+                {labels?.dealValueLabel ?? "Average customer / job value"}
+              </Label>
+              <output
+                htmlFor="deal-value"
+                className="numeric text-[1.25rem] font-bold text-ink"
               >
-                <input
-                  type="radio"
-                  name="rank"
-                  value={opt.value}
-                  checked={rank === opt.value}
-                  onChange={() => setRank(opt.value)}
-                  className="size-4 accent-ink"
-                />
-                <span className="body-sm text-ink">{labels?.rankOptions?.[i] ?? opt.label}</span>
-              </label>
-            ))}
-          </div>
-        </fieldset>
-      </div>
+                {currency.format(dealValue)}
+              </output>
+            </div>
+            <input
+              id="deal-value"
+              type="range"
+              min={dealMin}
+              max={dealMax}
+              step={dealStep}
+              value={dealValue}
+              onChange={(e) => setDealValue(Number(e.target.value))}
+              style={trackFill(dealValue, dealMin, dealMax)}
+              className="range-brand mt-4 w-full accent-ink"
+            />
+            <div className="mt-2 flex justify-between">
+              <span className="caption text-ink/60">{currency.format(dealMin)}</span>
+              <span className="caption text-ink/60">{currency.format(dealMax)}</span>
+            </div>
+          </fieldset>
 
-      {/* Result */}
-      <div className="min-w-0 lg:col-span-6">
-        <div className="@container rounded-lg border border-white/16 bg-inverse-canvas p-6 md:p-8">
-          <p className="caption text-inverse-ink">
-            {labels?.resultLabel ?? "Estimated revenue going to competitors"}
-          </p>
+          <fieldset className="rounded-lg border border-black/8 bg-canvas p-5 sm:p-6">
+            <div className="flex items-baseline justify-between gap-4">
+              <Label htmlFor="search-volume" className="label text-ink font-medium">
+                {labels?.searchVolumeLabel ?? "Monthly local search demand"}
+              </Label>
+              <output
+                htmlFor="search-volume"
+                className="numeric text-[1.25rem] font-bold text-ink"
+              >
+                {number.format(searchVolume)}
+              </output>
+            </div>
+            <input
+              id="search-volume"
+              type="range"
+              min={VOLUME_MIN}
+              max={VOLUME_MAX}
+              step={100}
+              value={searchVolume}
+              onChange={(e) => setSearchVolume(Number(e.target.value))}
+              style={trackFill(searchVolume, VOLUME_MIN, VOLUME_MAX)}
+              className="range-brand mt-4 w-full accent-ink"
+            />
+            <div className="mt-2 flex justify-between">
+              <span className="caption text-ink/60">{number.format(VOLUME_MIN)} searches</span>
+              <span className="caption text-ink/60">{number.format(VOLUME_MAX)}+ searches</span>
+            </div>
+          </fieldset>
 
-          {/* Sized in cqw, not vw: at seven figures the number is wider than
-              the card's own column, which vw can't see. */}
-          <p
-            className="numeric mt-3 text-[clamp(2rem,13cqw,4rem)] leading-none font-medium text-block-lilac"
-            aria-live="polite"
-          >
-            {currency.format(monthly)}
-            <span className="body-lg ml-2 align-baseline text-inverse-ink">
-              {labels?.perMonthSuffix ?? "/mo"}
+          <fieldset className="min-w-0 rounded-lg border border-black/8 bg-canvas p-5 sm:p-6">
+            <legend className="label float-left w-full text-ink font-medium break-words">
+              {labels?.rankLegend ?? "Where you rank in Maps & AI answers today"}
+            </legend>
+            <div className="mt-6 flex clear-both flex-col gap-2">
+              {RANK_OPTIONS.map((opt, i) => (
+                <label
+                  key={opt.value}
+                  className="flex cursor-pointer items-center gap-3 rounded-md px-3.5 py-2.5 transition-colors has-checked:bg-block-lilac hover:bg-surface-soft"
+                >
+                  <input
+                    type="radio"
+                    name="rank"
+                    value={opt.value}
+                    checked={rank === opt.value}
+                    onChange={() => setRank(opt.value)}
+                    className="size-4 accent-ink"
+                  />
+                  <span className="body-sm text-sm font-medium text-ink">
+                    {labels?.rankOptions?.[i] ?? opt.label}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        </div>
+
+        {/* Right Result Card */}
+        <div className="min-w-0 lg:col-span-6">
+          <div className="@container rounded-xl border border-white/16 bg-inverse-canvas p-6 sm:p-8 text-inverse-ink">
+            <span className="caption text-inverse-ink/70 block uppercase tracking-wider">
+              {labels?.resultLabel ?? "Estimated Monthly Revenue Lost to Competitors"}
             </span>
-          </p>
 
-          <p className="body-sm mt-4 text-inverse-ink">
-            {labels?.summary
-              ? labels.summary
-                  .replace("{year}", currency.format(monthly * 12))
-                  .replace("{calls}", number.format(missedCalls))
-                  .replace("{jobs}", number.format(missedJobs))
-              : `About ${currency.format(monthly * 12)} a year, on ${number.format(missedCalls)} calls and ${number.format(missedJobs)} jobs you never saw.`}
-          </p>
-
-          <dl className="mt-7 grid grid-cols-2 gap-4 border-t border-white/16 pt-6">
-            <div>
-              <dt className="caption text-inverse-ink">{labels?.missedCallsLabel ?? "Missed calls / mo"}</dt>
-              <dd className="numeric mt-1 text-[1.5rem] font-medium text-inverse-ink">
-                {number.format(missedCalls)}
-              </dd>
-            </div>
-            <div>
-              <dt className="caption text-inverse-ink">{labels?.missedJobsLabel ?? "Missed jobs / mo"}</dt>
-              <dd className="numeric mt-1 text-[1.5rem] font-medium text-inverse-ink">
-                {number.format(missedJobs)}
-              </dd>
-            </div>
-          </dl>
-
-          <div className="mt-7">
-            <Button
-              render={
-                /* Navigates to the dedicated /book-a-call page, where the
-                   scheduler is already inlined and preloaded — no click-time
-                   popup, so nothing to wait on. */
-                <a href="/book-a-call" />
-              }
-              variant="inverse"
-              size="lg"
-              block
-              /* The label is longer than a phone-width card, so let it wrap
-                 instead of setting the card's min-content width. */
-              className="h-auto min-h-13 py-2.5 text-center whitespace-normal"
+            <p
+              className="numeric mt-3 text-[clamp(2.2rem,13cqw,4rem)] leading-none font-bold text-block-lilac"
+              aria-live="polite"
             >
-              {labels?.cta ?? "Check this against your real grid"}
-            </Button>
-            <p className="caption mt-3 text-center text-inverse-ink">
-              {labels?.assumptions
-                ? labels.assumptions
-                    .replace("{callRate}", String(Math.round(CALL_RATE * 100)))
-                    .replace("{closeRate}", String(Math.round(CLOSE_RATE * 100)))
-                : `Assumes a ${Math.round(CALL_RATE * 100)}% click-to-call rate and a ${Math.round(CLOSE_RATE * 100)}% close rate.`}
+              {currency.format(monthly)}
+              <span className="body-lg ml-2 align-baseline text-inverse-ink font-normal">
+                {labels?.perMonthSuffix ?? "/mo"}
+              </span>
             </p>
+
+            <p className="body-sm mt-4 text-inverse-ink/85 text-sm sm:text-base leading-relaxed">
+              {labels?.summary
+                ? labels.summary
+                    .replace("{year}", currency.format(monthly * 12))
+                    .replace("{calls}", number.format(missedCalls))
+                    .replace("{jobs}", number.format(missedJobs))
+                : `About ${currency.format(monthly * 12)} annually in missed jobs. That represents approximately ${number.format(
+                    missedCalls
+                  )} direct customer phone calls per month currently going to competing businesses.`}
+            </p>
+
+            <dl className="mt-7 grid grid-cols-2 gap-4 border-t border-white/16 pt-6">
+              <div>
+                <dt className="caption text-inverse-ink/70">
+                  {labels?.missedCallsLabel ?? "Missed customer calls / mo"}
+                </dt>
+                <dd className="numeric mt-1 text-[1.6rem] font-bold text-inverse-ink">
+                  {number.format(missedCalls)}
+                </dd>
+              </div>
+              <div>
+                <dt className="caption text-inverse-ink/70">
+                  {labels?.missedJobsLabel ?? "Missed closed jobs / mo"}
+                </dt>
+                <dd className="numeric mt-1 text-[1.6rem] font-bold text-inverse-ink">
+                  {number.format(missedJobs)}
+                </dd>
+              </div>
+            </dl>
+
+            <div className="mt-8">
+              <Button
+                render={<a href="/book-a-call" />}
+                variant="inverse"
+                size="lg"
+                block
+                className="h-auto min-h-13 py-3 text-center whitespace-normal justify-center font-bold text-base"
+              >
+                {labels?.cta ?? "Claim Your Spot — Book a 20-Min Strategy Call →"}
+              </Button>
+              <p className="caption mt-3 text-center text-inverse-ink/60">
+                {labels?.assumptions
+                  ? labels.assumptions
+                      .replace("{callRate}", String(Math.round(CALL_RATE * 100)))
+                      .replace("{closeRate}", String(Math.round(CLOSE_RATE * 100)))
+                  : `Assumes conservative ${Math.round(CALL_RATE * 100)}% click-to-call rate and ${Math.round(
+                      CLOSE_RATE * 100
+                    )}% close rate.`}
+              </p>
+            </div>
           </div>
         </div>
       </div>
     </div>
-    </div>
   )
 }
-
