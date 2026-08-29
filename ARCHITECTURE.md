@@ -33,23 +33,23 @@ Cloudflare D1 database that is surfaced through an internal admin dashboard.
             +----------------+
                     |
                     v
-   +-------------------------------------------+
-   |          Client components (islands)      |
-   | ChatWidget  AuditForm  CalScript/CalInline |
-   +-------------------------------------------+
-          |             |             |
-          v             v             v
-     /api/chat     /api/contact   /api/booking      (Pages Functions)
-          |             |             |
-          v             v             v
-   +-------------------------------------------+
-   |            Cloudflare D1 tables           |
-   |  conversations   submissions   bookings   |
-   |  messages                                 |
-   +-------------------------------------------+
+   +-------------------------------------------------------------+
+   |                  Client components (islands)                |
+   | ChatWidget  AuditForm  AiVisibilityChecker  CalInline  ROI  |
+   +-------------------------------------------------------------+
+          |             |             |             |
+          v             v             v             v
+     /api/chat     /api/contact   /api/check   /api/booking  (Pages Functions)
+          |             |             |             |
+          v             v             v             v
+   +-------------------------------------------------------------+
+   |                     Cloudflare D1 tables                    |
+   |  conversations   submissions   bookings   funnel_events     |
+   |  messages                                                   |
+   +-------------------------------------------------------------+
                     ^
                     |
-                 /admin  (reads Leads / Conversations / Bookings from D1)
+                 /admin  (reads Leads / Conversations / Bookings / Funnel from D1)
 ```
 
 ## Directory map

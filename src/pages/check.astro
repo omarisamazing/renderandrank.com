@@ -1,0 +1,84 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Eyebrow from '../components/ui/Eyebrow.astro';
+import Section from '../components/ui/Section.astro';
+import AiVisibilityChecker from '../components/AiVisibilityChecker';
+import CtaBanner from '../components/CtaBanner.astro';
+import { Search, Sparkles, MapPin, ShieldCheck } from '@lucide/astro';
+
+const benefits = [
+  {
+    icon: Sparkles,
+    title: 'ChatGPT & Gemini Answer Engines',
+    body: 'AI assistants do not show 10 blue links. They recommend 1 to 3 vetted providers directly to high-intent buyers.',
+  },
+  {
+    icon: MapPin,
+    title: 'Google Maps 3-Pack & AI Overviews',
+    body: 'Google AI Overviews pull entity data directly from Google Business Profiles and local citation consistency.',
+  },
+  {
+    icon: Search,
+    title: 'Zero-Click Local Search',
+    body: 'Over 60% of searches now end without a traditional click. If you are not in the AI answer, you are invisible.',
+  },
+  {
+    icon: ShieldCheck,
+    title: 'Pre-Sold Inbound Calls',
+    body: 'Leads from AI recommendations skip the comparison-shopping phase because the assistant already validated your business.',
+  },
+];
+---
+
+<Layout
+  title="Free AI Visibility Checker | Render and Rank"
+  description="Check if ChatGPT, Google Gemini, and AI search engines recommend your local business. Instant, free real-time diagnostic for local companies."
+  keywords="AI visibility checker, AEO checker, GEO audit, local SEO AI check, ChatGPT local business check, Google Gemini local search test"
+>
+  <div class="border-b border-hairline bg-canvas py-14 md:py-20">
+    <div class="container-page">
+      <div class="mx-auto max-w-2xl text-center" data-reveal-group>
+        <Eyebrow data-reveal>Free Diagnostic Tool</Eyebrow>
+        <h1 class="display-lg mt-4 text-ink" data-reveal>
+          Is AI recommending your business?
+        </h1>
+        <p class="subhead mt-5 text-ink" data-reveal>
+          Find out whether ChatGPT, Gemini, and AI search engines cite you when local customers ask for the best in your city.
+        </p>
+      </div>
+
+      <div class="mt-12" data-reveal data-reveal-delay="0.1">
+        <AiVisibilityChecker client:load />
+      </div>
+    </div>
+  </div>
+
+  <!-- How It Works & Why It Matters -->
+  <Section divider>
+    <div class="mx-auto max-w-2xl text-center" data-reveal-group>
+      <Eyebrow data-reveal>Generative Engine Optimization</Eyebrow>
+      <h2 class="display-md mt-4 text-ink" data-reveal>
+        Why AI answer engines change local search
+      </h2>
+      <p class="subhead mt-4 text-ink" data-reveal>
+        Traditional SEO fought for website clicks. Modern search engineering establishes your business as the authoritative entity AI assistants cite.
+      </p>
+    </div>
+
+    <div class="mx-auto mt-14 grid max-w-5xl gap-6 sm:grid-cols-2 lg:grid-cols-4" data-reveal-group>
+      {
+        benefits.map((item) => (
+          <div class="rounded-lg border border-hairline bg-surface-soft p-6 flex flex-col justify-between" data-reveal>
+            <div>
+              <item.icon class="size-6 text-ink mb-4" aria-hidden="true" />
+              <h3 class="card-title text-base font-bold text-ink">{item.title}</h3>
+              <p class="body-sm mt-2 text-ink/80 text-sm">{item.body}</p>
+            </div>
+          </div>
+        ))
+      }
+    </div>
+  </Section>
+
+  <CtaBanner />
+</Layout>

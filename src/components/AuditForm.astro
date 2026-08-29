@@ -194,6 +194,21 @@ const endpoint = siteConfig.forms.contactEndpoint ?? '/api/contact';
     };
   }
 
+  function getVisitorId() {
+    try {
+      let id = localStorage.getItem('rr_visitor_id');
+      if (!id) {
+        id = typeof crypto !== 'undefined' && crypto.randomUUID
+          ? crypto.randomUUID()
+          : 'v_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+        localStorage.setItem('rr_visitor_id', id);
+      }
+      return id;
+    } catch {
+      return '';
+    }
+  }
+
   const form = document.querySelector('#audit-form');
   const success = document.querySelector('#audit-success');
 
@@ -293,6 +308,8 @@ const endpoint = siteConfig.forms.contactEndpoint ?? '/api/contact';
       for (const [key, value] of Object.entries(visitor)) {
         if (value != null) data.set(key, value);
       }
+      const vid = getVisitorId();
+      if (vid) data.set('visitorId', vid);
       const action = form.getAttribute('action');
       const submitBtn = form.querySelector('button[type="submit"], [type="submit"]');
 

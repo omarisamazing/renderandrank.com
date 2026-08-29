@@ -2,6 +2,8 @@ import * as React from "react"
 
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
+import { getVisitorId } from "../../lib/visitorClient"
+
 const RANK_OPTIONS = [
   {
     value: "invisible",
@@ -12,6 +14,14 @@ const RANK_OPTIONS = [
   { value: "mid", label: "Position 4–10", missedShare: 0.035 },
   { value: "top3", label: "Already top 3", missedShare: 0.02 },
 ] as const
+
+interface HandoffData {
+  businessName: string
+  category: string
+  city: string
+  mentionedCount: number
+  totalEngines: number
+}
 
 /**
  * Visible copy, all optional. Each string falls back to the current English
@@ -77,6 +87,23 @@ export function RoiCalculator({ labels }: RoiCalculatorProps = {}) {
   const [dealValue, setDealValue] = React.useState(1500)
   const [searchVolume, setSearchVolume] = React.useState(2500)
   const [rank, setRank] = React.useState<string>("mid")
+  const [handoff, setHandoff] = React.useState<HandoffData | null>(null)
+
+  React.useEffect(() => {
+    if (typeof window !== "undefined" && window.sessionStorage) {
+      try {
+        const stored = window.sessionStorage.getItem("rr_handoff")
+        if (stored) {
+          const parsed = JSON.parse(stored) as HandoffData
+          if (parsed && parsed.businessName) {
+            setHandoff(parsed)
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }
+  }, [])
 
   const option = RANK_OPTIONS.find((o) => o.value === rank) ?? RANK_OPTIONS[1]
 
@@ -86,7 +113,45 @@ export function RoiCalculator({ labels }: RoiCalculatorProps = {}) {
   const monthly = missedJobs * dealValue
 
   return (
-    <div className="grid items-start gap-10 lg:grid-cols-12 lg:gap-12">
+    <div className="flex flex-col gap-6">
+      {/* Contextual handoff banner from AI Checker */}
+      {handoff ? (
+        <div className="rounded-lg bg-block-lime border border-emerald-300 p-5 text-ink animate-fade-in">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <span className="eyebrow block text-xs font-mono font-bold uppercase tracking-wider text-ink/70">
+                AI Diagnostic Result &middot; {handoff.businessName} ({handoff.city})
+              </span>
+              <p className="body-sm mt-1 font-semibold text-ink">
+                {handoff.mentionedCount === 0
+                  ? `Your business wasn't cited in AI search results for "${handoff.category}" in ${handoff.city}.`
+                  : `Your business was cited in ${handoff.mentionedCount}/${handoff.totalEngines} tested AI answer engines.`}
+              </p>
+              <p className="text-xs text-ink/80 mt-0.5">
+                Here is an estimate of the monthly call and job volume currently flowing to top-ranked competitors instead.
+              </p>
+            </div>
+            <a
+              href="/check"
+              className="shrink-0 text-xs font-mono font-medium underline underline-offset-4 text-ink hover:opacity-75"
+            >
+              Re-run scan &rarr;
+            </a>
+          </div>
+        </div>
+      ) : (
+        <div className="rounded-md border border-black/8 bg-canvas/80 px-4 py-2.5 flex items-center justify-between gap-3 text-xs text-ink">
+          <span>Curious if ChatGPT and Gemini recommend you right now?</span>
+          <a
+            href="/check"
+            className="font-mono font-semibold underline underline-offset-4 text-ink hover:opacity-75 shrink-0"
+          >
+            Run free AI Visibility Check &rarr;
+          </a>
+        </div>
+      )}
+
+      <div className="grid items-start gap-10 lg:grid-cols-12 lg:gap-12">
       {/* Inputs */}
       <div className="flex min-w-0 flex-col gap-4 lg:col-span-6">
         <fieldset className="rounded-md border border-black/8 bg-canvas p-5">
@@ -248,5 +313,7 @@ export function RoiCalculator({ labels }: RoiCalculatorProps = {}) {
         </div>
       </div>
     </div>
+    </div>
   )
 }
+

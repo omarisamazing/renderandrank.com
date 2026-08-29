@@ -143,6 +143,7 @@ export const navLinks = [
       },
     ],
   },
+  { name: "AI Checker", href: "/check" },
   { name: "Portfolio", href: "/portfolio" },
   { name: "Pricing", href: "/pricing" },
   { name: "ROI Calculator", href: "/calculator" },

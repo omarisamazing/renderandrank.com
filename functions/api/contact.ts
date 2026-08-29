@@ -298,6 +298,50 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   const to = env.CONTACT_TO || 'hello@renderandrank.com';
   const from = env.CONTACT_FROM || 'Render and Rank <onboarding@resend.dev>';
 
+  // Check for prior funnel events (AI Visibility Check, ROI calculations)
+  let funnelSummaryText = '';
+  let funnelSummaryHtml = '';
+  const visitorId = typeof (raw as any).visitorId === 'string' ? (raw as any).visitorId : null;
+
+  if (env.DB && visitorId) {
+    try {
+      const fRes = await env.DB.prepare(
+        'SELECT event_type, payload, created_at FROM funnel_events WHERE visitor_id = ? ORDER BY created_at ASC LIMIT 10'
+      )
+        .bind(visitorId)
+        .all<{ event_type: string; payload: string; created_at: string }>();
+
+      const events = fRes.results || [];
+      if (events.length > 0) {
+        funnelSummaryText = '\n--- Prior Funnel Activity ---\n';
+        funnelSummaryHtml = '<h3 style="margin-top:20px;font-family:sans-serif">Prior Funnel Journey</h3><ul style="font-family:sans-serif">';
+
+        for (const ev of events) {
+          try {
+            const p = JSON.parse(ev.payload);
+            if (ev.event_type === 'ai_check') {
+              const summary = `AI Check: ${p.businessName || 'Business'} in ${p.city || ''} (Result: ${p.mentionedCount || 0}/${p.totalActiveEngines || 0} cited)`;
+              funnelSummaryText += `• ${summary} [${ev.created_at}]\n`;
+              funnelSummaryHtml += `<li><strong>AI Check:</strong> ${esc(p.businessName || '')} in ${esc(p.city || '')} — <em>${p.mentionedCount || 0}/${p.totalActiveEngines || 0} cited</em> (${esc(ev.created_at)})</li>`;
+            } else if (ev.event_type === 'calculator') {
+              const summary = `ROI Calculator: Deal $${p.dealValue || 0}, Volume ${p.searchVolume || 0}, Est. Gap $${p.monthlyGap || 0}/mo`;
+              funnelSummaryText += `• ${summary} [${ev.created_at}]\n`;
+              funnelSummaryHtml += `<li><strong>ROI Calculator:</strong> Job $${p.dealValue || 0}, Searches ${p.searchVolume || 0}, Gap $${p.monthlyGap || 0}/mo (${esc(ev.created_at)})</li>`;
+            } else {
+              funnelSummaryText += `• Event: ${ev.event_type} [${ev.created_at}]\n`;
+              funnelSummaryHtml += `<li><strong>${esc(ev.event_type)}:</strong> (${esc(ev.created_at)})</li>`;
+            }
+          } catch {
+            // ignore JSON parse error
+          }
+        }
+        funnelSummaryHtml += '</ul>';
+      }
+    } catch (err) {
+      console.error('Funnel query error in contact handler:', err);
+    }
+  }
+
   const lines = [
     `Name: ${data.name}`,
     `Email: ${data.email}`,
@@ -307,6 +351,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     `Interested in: ${data.service || '—'}`,
     '',
     data.message,
+    funnelSummaryText,
   ];
 
   const html = `
@@ -320,6 +365,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       <tr><td><strong>Interested in</strong></td><td>${esc(data.service || '—')}</td></tr>
     </table>
     <p style="white-space:pre-wrap;font-family:sans-serif">${esc(data.message)}</p>
+    ${funnelSummaryHtml}
   `;
 
   try {

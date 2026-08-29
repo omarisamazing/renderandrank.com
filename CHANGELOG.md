@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **AI Visibility Checker (`/check`) & Funnel**: Real-time AI search diagnostic checking whether local businesses are recommended by Google Gemini (free-tier with live Google Search grounding) and Cloudflare Workers AI, with progressive support for OpenAI / Anthropic.
+- **Connected Conversion Funnel**: Seamless `sessionStorage` (`rr_handoff`) context banner in the ROI Calculator showing the lost revenue gap, `POST /api/track-funnel` endpoint, and D1 `funnel_events` table (migration 0004).
+- **Contact Lead Enrichment**: Contact/audit form submissions now automatically append prior visitor funnel events (AI search results, calculator inputs) into lead emails and D1 storage.
 - Server-side visitor metadata capture and the `bookings` table (migration 0003).
 - Bookings section in the admin dashboard.
 - `Cal('preload')` on every site visit (fired from the site-wide `CalScript.astro`) so the booking page/iframe is warmed before the visitor reaches /book-a-call, speeding up the booking page.

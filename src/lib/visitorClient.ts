@@ -49,3 +49,24 @@ export function getClientVisitorData(): ClientVisitorData {
     utm_content: utm('utm_content'),
   };
 }
+
+/**
+ * Get or generate a persistent visitor ID stored in localStorage.
+ */
+export function getVisitorId(): string {
+  if (typeof window === 'undefined') return '';
+  try {
+    let id = localStorage.getItem('rr_visitor_id');
+    if (!id) {
+      id =
+        typeof crypto !== 'undefined' && crypto.randomUUID
+          ? crypto.randomUUID()
+          : 'v_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+      localStorage.setItem('rr_visitor_id', id);
+    }
+    return id;
+  } catch {
+    return 'v_ephemeral_' + Math.random().toString(36).slice(2);
+  }
+}
+
