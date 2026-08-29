@@ -120,18 +120,18 @@ export function RoiCalculator({ labels }: RoiCalculatorProps = {}) {
     <div className="flex flex-col gap-8">
       {/* Contextual handoff banner from AI Diagnostic */}
       {handoff ? (
-        <div className="rounded-xl bg-block-lime border border-black/10 p-6 sm:p-7 text-ink animate-fade-in">
+        <div className="rounded-lg bg-surface-soft border border-hairline p-6 sm:p-7 text-ink animate-fade-in">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
             <div className="space-y-1.5 max-w-2xl">
               <span className="eyebrow block text-ink/70">
-                LIVE DIAGNOSTIC BRIDGE &middot; {handoff.businessName.toUpperCase()} ({handoff.city})
+                DIAGNOSTIC CONTEXT &middot; {handoff.businessName.toUpperCase()} ({handoff.city})
               </span>
-              <h3 className="card-title text-xl sm:text-2xl font-bold text-ink">
+              <h3 className="headline text-ink">
                 {handoff.mentionedCount === 0
                   ? `AI search engines are directing 100% of ${handoff.category} inquiries to competitors.`
                   : `Your business has partial AI visibility, but competitors are capturing overflow calls.`}
               </h3>
-              <p className="body-sm text-sm sm:text-base text-ink/80 leading-relaxed">
+              <p className="body-sm text-ink/80">
                 {handoff.competitorsFound && handoff.competitorsFound.length > 0 ? (
                   <span>
                     Inquiries for <strong>{handoff.category}</strong> in {handoff.city} are being routed to competitors like{" "}
@@ -157,12 +157,12 @@ export function RoiCalculator({ labels }: RoiCalculatorProps = {}) {
           </div>
         </div>
       ) : (
-        <div className="rounded-xl border border-hairline bg-surface-soft p-5 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-ink">
+        <div className="rounded-lg border border-hairline bg-surface-soft p-5 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-ink">
           <div className="space-y-1">
-            <p className="text-base font-bold text-ink">
+            <p className="label text-ink">
               Want to see your real-time AI recommendation status first?
             </p>
-            <p className="text-xs sm:text-sm text-ink/70">
+            <p className="caption text-ink/70">
               Run a free 10-second scan to automatically calibrate this calculator to your exact business and market.
             </p>
           </div>
@@ -249,7 +249,7 @@ export function RoiCalculator({ labels }: RoiCalculatorProps = {}) {
               {RANK_OPTIONS.map((opt, i) => (
                 <label
                   key={opt.value}
-                  className="flex cursor-pointer items-center gap-3 rounded-md px-3.5 py-2.5 transition-colors has-checked:bg-block-lilac hover:bg-surface-soft"
+                  className="flex cursor-pointer items-center gap-3 rounded-md px-3.5 py-2.5 transition-colors has-checked:bg-surface-soft hover:bg-surface-soft"
                 >
                   <input
                     type="radio"
@@ -259,7 +259,7 @@ export function RoiCalculator({ labels }: RoiCalculatorProps = {}) {
                     onChange={() => setRank(opt.value)}
                     className="size-4 accent-ink"
                   />
-                  <span className="body-sm text-sm font-medium text-ink">
+                  <span className="body-sm text-sm text-ink">
                     {labels?.rankOptions?.[i] ?? opt.label}
                   </span>
                 </label>
@@ -270,22 +270,22 @@ export function RoiCalculator({ labels }: RoiCalculatorProps = {}) {
 
         {/* Right Result Card */}
         <div className="min-w-0 lg:col-span-6">
-          <div className="@container rounded-xl border border-white/16 bg-inverse-canvas p-6 sm:p-8 text-inverse-ink">
+          <div className="@container rounded-lg border border-hairline bg-inverse-canvas p-6 sm:p-8 text-inverse-ink">
             <span className="caption text-inverse-ink/70 block uppercase tracking-wider">
               {labels?.resultLabel ?? "Estimated Monthly Revenue Lost to Competitors"}
             </span>
 
             <p
-              className="numeric mt-3 text-[clamp(2.2rem,13cqw,4rem)] leading-none font-bold text-block-lilac"
+              className="stat mt-3 text-inverse-ink"
               aria-live="polite"
             >
               {currency.format(monthly)}
-              <span className="body-lg ml-2 align-baseline text-inverse-ink font-normal">
+              <span className="body-sm ml-2 align-baseline text-inverse-ink/70 font-normal">
                 {labels?.perMonthSuffix ?? "/mo"}
               </span>
             </p>
 
-            <p className="body-sm mt-4 text-inverse-ink/85 text-sm sm:text-base leading-relaxed">
+            <p className="body-sm mt-4 text-inverse-ink/85 leading-relaxed">
               {labels?.summary
                 ? labels.summary
                     .replace("{year}", currency.format(monthly * 12))
@@ -301,7 +301,7 @@ export function RoiCalculator({ labels }: RoiCalculatorProps = {}) {
                 <dt className="caption text-inverse-ink/70">
                   {labels?.missedCallsLabel ?? "Missed customer calls / mo"}
                 </dt>
-                <dd className="numeric mt-1 text-[1.6rem] font-bold text-inverse-ink">
+                <dd className="stat mt-1 text-inverse-ink">
                   {number.format(missedCalls)}
                 </dd>
               </div>
@@ -309,7 +309,7 @@ export function RoiCalculator({ labels }: RoiCalculatorProps = {}) {
                 <dt className="caption text-inverse-ink/70">
                   {labels?.missedJobsLabel ?? "Missed closed jobs / mo"}
                 </dt>
-                <dd className="numeric mt-1 text-[1.6rem] font-bold text-inverse-ink">
+                <dd className="stat mt-1 text-inverse-ink">
                   {number.format(missedJobs)}
                 </dd>
               </div>
@@ -321,7 +321,7 @@ export function RoiCalculator({ labels }: RoiCalculatorProps = {}) {
                 variant="inverse"
                 size="lg"
                 block
-                className="h-auto min-h-13 py-3 text-center whitespace-normal justify-center font-bold text-base"
+                className="h-auto min-h-13 py-3 text-center whitespace-normal justify-center font-medium text-base"
               >
                 {labels?.cta ?? "Claim Your Spot — Book a 20-Min Strategy Call →"}
               </Button>
