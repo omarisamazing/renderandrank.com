@@ -155,20 +155,7 @@ export default function AiVisibilityChecker() {
 
   return (
     <div className="w-full max-w-5xl mx-auto">
-      <div className="rounded-2xl border border-hairline bg-canvas p-6 sm:p-10 md:p-12 shadow-xs">
-        {/* Header inside card */}
-        <div className="text-center max-w-2xl mx-auto mb-10">
-          <span className="eyebrow block text-ink">
-            Instant AEO / GEO Diagnostic
-          </span>
-          <h2 className="display-md text-ink mt-3">
-            Is AI recommending your business?
-          </h2>
-          <p className="body mt-3 max-w-xl mx-auto text-ink/80">
-            We query live search-grounded AI engines for top local recommendations in your market. See if ChatGPT, Gemini, and AI assistants cite you or send high-intent customers to competitors.
-          </p>
-        </div>
-
+      <div className="rounded-lg border border-hairline bg-canvas p-6 sm:p-8 md:p-10">
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -253,8 +240,8 @@ export default function AiVisibilityChecker() {
 
         {/* Live Multi-Step Scanning Experience */}
         {loading && (
-          <div className="mt-10 pt-10 border-t border-hairline animate-fade-in" aria-live="polite">
-            <div className="rounded-xl border border-hairline bg-surface-soft p-6 sm:p-8">
+          <div className="mt-8 pt-8 border-t border-hairline animate-fade-in" aria-live="polite">
+            <div className="rounded-lg border border-hairline bg-surface-soft p-6 sm:p-8">
               <div className="flex items-center justify-between mb-4">
                 <span className="eyebrow text-ink">
                   LIVE DIAGNOSTIC SCAN IN PROGRESS
@@ -271,7 +258,7 @@ export default function AiVisibilityChecker() {
               </div>
 
               {/* Step Checklist */}
-              <div className="space-y-3.5">
+              <div className="space-y-3">
                 {scanSteps.map((step, idx) => {
                   const isDone = idx < scanStep;
                   const isActive = idx === scanStep;
@@ -307,22 +294,21 @@ export default function AiVisibilityChecker() {
           </div>
         )}
 
-        {/* High-Impact Diagnostic Result Poster */}
+        {/* High-Impact Diagnostic Result */}
         {data && (
-          <div className="mt-10 pt-10 border-t border-hairline animate-fade-in" aria-live="polite">
-            {/* Outcome Card using Soft Warm Cream */}
-            <div className="rounded-xl border border-black/10 bg-block-cream p-7 sm:p-9 md:p-10 text-ink">
+          <div className="mt-8 pt-8 border-t border-hairline animate-fade-in" aria-live="polite">
+            <div className="rounded-lg border border-hairline bg-surface-soft p-6 sm:p-8 md:p-9 text-ink">
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                <div className="space-y-2.5 max-w-2xl">
+                <div className="space-y-2 max-w-2xl">
                   <span className="eyebrow block text-ink/70">
                     DIAGNOSTIC OUTCOME &middot; {data.businessName?.toUpperCase()} ({data.city})
                   </span>
                   <h3 className="display-md text-ink">
                     {(data.mentionedCount ?? 0) > 0
-                      ? 'Recommended in AI Search Answers'
-                      : 'Not Cited in Top AI Recommendations'}
+                      ? 'Recommended in AI search answers'
+                      : 'Not cited in top AI recommendations'}
                   </h3>
-                  <p className="body text-ink/85 max-w-xl leading-relaxed">
+                  <p className="body-sm text-ink/85 max-w-xl">
                     {data.diagnosticSummary}
                   </p>
                 </div>
@@ -343,48 +329,50 @@ export default function AiVisibilityChecker() {
                 </div>
               </div>
 
-              {/* Market Comparison Strip in Crisp Canvas Tiles */}
-              <div className="mt-8 pt-8 border-t border-black/10 grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Market Comparison Strip in Clean Cards */}
+              <div className="mt-8 pt-6 border-t border-hairline grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* 1: Entity Status */}
-                <div className="rounded-lg border border-black/8 bg-canvas p-5">
-                  <span className="caption text-ink/60 block uppercase tracking-wider">YOUR CITATION STATUS</span>
-                  <p className="headline text-ink mt-2">
+                <div className="rounded-lg border border-hairline bg-canvas p-5">
+                  <span className="eyebrow text-ink/60 block text-xs">YOUR CITATION STATUS</span>
+                  <div className="mt-2.5">
                     {(data.mentionedCount ?? 0) > 0 ? (
-                      <span className="inline-flex items-center gap-1.5 text-success">
-                        <span>✓</span> Active in AI
+                      <span className="inline-flex items-center gap-2 text-ink font-medium">
+                        <span className="size-2 rounded-full bg-[#1ea64a]"></span>
+                        <span className="card-title text-base text-ink">Active in AI</span>
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1.5 text-[#b42318]">
-                        <span>✗</span> Displaced
+                      <span className="inline-flex items-center gap-2 text-ink font-medium">
+                        <span className="size-2 rounded-full bg-[#b42318]"></span>
+                        <span className="card-title text-base text-ink">Displaced</span>
                       </span>
                     )}
-                  </p>
-                  <p className="caption text-ink/60 mt-1.5">
+                  </div>
+                  <p className="caption text-ink/60 mt-2">
                     Tested across live generative search models
                   </p>
                 </div>
 
                 {/* 2: Competitor Dominance */}
-                <div className="rounded-lg border border-black/8 bg-canvas p-5">
-                  <span className="caption text-ink/60 block uppercase tracking-wider">COMPETITORS WINNING</span>
-                  <p className="headline text-ink mt-2 line-clamp-1">
+                <div className="rounded-lg border border-hairline bg-canvas p-5">
+                  <span className="eyebrow text-ink/60 block text-xs">COMPETITORS WINNING</span>
+                  <p className="card-title text-base text-ink mt-2.5 line-clamp-1">
                     {data.competitorsFound && data.competitorsFound.length > 0
                       ? data.competitorsFound.slice(0, 2).join(', ')
                       : 'Local competitors'}
                   </p>
-                  <p className="caption text-ink/60 mt-1.5">
+                  <p className="caption text-ink/60 mt-2">
                     Currently capturing direct customer inquiries
                   </p>
                 </div>
 
                 {/* 3: Search Demand */}
-                <div className="rounded-lg border border-black/8 bg-canvas p-5">
-                  <span className="caption text-ink/60 block uppercase tracking-wider">LOCAL SEARCH DEMAND</span>
-                  <p className="headline text-ink mt-2">
+                <div className="rounded-lg border border-hairline bg-canvas p-5">
+                  <span className="eyebrow text-ink/60 block text-xs">LOCAL SEARCH DEMAND</span>
+                  <p className="card-title text-base text-ink mt-2.5">
                     ~{data.recommendedSearchVolume?.toLocaleString() || '2,500'}/mo
                   </p>
-                  <p className="caption text-ink/60 mt-1.5">
-                    Estimated monthly searchers in {data.city}
+                  <p className="caption text-ink/60 mt-2">
+                    Estimated monthly buyers in {data.city}
                   </p>
                 </div>
               </div>

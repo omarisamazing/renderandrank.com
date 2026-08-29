@@ -137,7 +137,7 @@ export function RoiCalculator({ labels }: RoiCalculatorProps = {}) {
     <div className="flex flex-col gap-8">
       {/* Contextual handoff banner from AI Diagnostic */}
       {handoff ? (
-        <div className="rounded-xl bg-block-cream border border-black/10 p-6 sm:p-7 text-ink animate-fade-in">
+        <div className="rounded-lg bg-canvas border border-black/8 p-6 sm:p-7 text-ink animate-fade-in shadow-xs">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
             <div className="space-y-1.5 max-w-2xl">
               <div className="flex items-center gap-2">
@@ -167,7 +167,7 @@ export function RoiCalculator({ labels }: RoiCalculatorProps = {}) {
               <button
                 type="button"
                 onClick={handleClearHandoff}
-                className="text-xs body-sm text-ink/60 hover:text-ink transition-colors cursor-pointer px-2 py-1"
+                className="caption text-ink/60 hover:text-ink transition-colors cursor-pointer px-2 py-1"
                 title="Reset to default calculator values"
               >
                 Reset to default &times;
