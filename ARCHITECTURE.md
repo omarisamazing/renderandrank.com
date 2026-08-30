@@ -61,7 +61,9 @@ Cloudflare D1 database that is surfaced through an internal admin dashboard.
 - `src/data/legal.ts` — legal copy (privacy policy, terms) rendered on the site.
 - `functions/api/*` — Pages Functions API endpoints (`chat`, `contact`, `booking`).
 - `functions/lib/visitor.ts` — `getVisitorMetadata` server-side visitor enrichment helper.
-- `functions/admin/index.ts` — signed-cookie admin dashboard rendering leads, conversations, and bookings.
+- `functions/admin/index.ts` — signed-cookie admin dashboard rendering leads, conversations, bookings, and the AI-check summary (KPI stat cards, ranked panels, searchable table).
+- `public/admin-ai-filter.js` — dependency-free client script that powers the AI-check table search/filter (loaded same-origin by the admin page shell).
+- `public/admin-filters.js` — dependency-free client script providing shared client-side table filters (search box + categorical filter) for the Leads/Conversations/Bookings admin tables (loaded same-origin by the admin page shell).
 - `migrations/` — D1 SQL migrations (schema history).
 - `public/` — static assets served as-is.
 
@@ -251,10 +253,45 @@ Unapplied migrations cause runtime errors.
 ## Admin dashboard
 
 `/admin` (`functions/admin/index.ts`) is protected by signed-cookie auth and
-renders three sections from D1: **Leads** (from `submissions`),
-**Conversations** (the AI chat, `conversations` + `messages`), and
-**Bookings** (from `bookings`). Visitor metadata lines use plain text labels
-(`Location:`, `Device:`, `Language:`, `Source:`) — no emojis.
+renders four sections from D1: **Leads** (from `submissions`),
+**Conversations** (the AI chat, `conversations` + `messages`),
+**Bookings** (from `bookings`), and the **AI Visibility Checks** summary (from
+`funnel_events` rows of `event_type='ai_check'`). Visitor metadata lines use
+plain text labels (`Location:`, `Device:`, `Language:`, `Source:`) — no emojis.
+
+### AI-check summary UI
+
+The AI-check section (`#ai-checker`) summarises logged runs of the AI
+Visibility Checker and presents them three ways:
+
+- **KPI stat-card grid** — headline metrics computed over the checks (total
+  checks, average visibility score, and how many businesses are invisible /
+  unmentioned).
+- **Ranked-list panels** — ranked breakdowns (e.g. by category and by
+  competitor) rendered with count/score badges; long competitor/entity lists
+  are truncated to the first few names with the full list shown on hover
+  (`title`).
+- **Searchable data table** — one row per check (time, business, category,
+  city, visibility, rank, competitors, visitor location, device). A search box
+  (`id="ai-check-search"`) sits directly above the table
+  (`id="ai-check-table"`), and `public/admin-ai-filter.js` filters it.
+
+`public/admin-ai-filter.js` is a dependency-free, same-origin script loaded via
+`<script src="/admin-ai-filter.js" defer>` (CSP-safe under `script-src 'self'`).
+On each `input` event it reads `#ai-check-search`, case-insensitively compares
+the query against each `#ai-check-table tbody tr`'s combined cell text, and
+toggles `row.style.display` (`''` / `'none'`). When every data row is hidden it
+shows a single "No matching checks" row. The script guards for the missing
+input/table so it stays inert on pages that lack them (mirroring the pattern of
+`public/admin-time.js`).
+
+`public/admin-filters.js` is the sibling shared table-filter script, also
+dependency-free and CSP-safe, loaded via `<script src="/admin-filters.js" defer>`
+(`script-src 'self'`). It wires a search box plus a categorical filter to the
+Leads (Service), Conversations (Status), and Bookings (Event type) tables,
+filtering rows on input/change and keeping the expandable Conversations detail
+rows in sync with their parent rows. The Conversations, AI Checker, and Bookings
+section subtitles are worded to describe the business decision each supports.
 
 ## See also
 

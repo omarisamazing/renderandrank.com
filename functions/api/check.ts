@@ -550,6 +550,33 @@ function extractCompetitors(text: string, businessName: string): string[] {
   // Filter results for client: only return active engines with real data
   const clientResults = results.filter((r) => r.available && r.status !== 'not_configured');
 
+  // Enrich the funnel event with visitor context (geo/device/UTM). Never throws;
+  // fields are null when unavailable. Nested under a `visitor` sub-object so the
+  // visitor's geo `city` never collides with the searched `city` at top level.
+  let visitor: Record<string, string | null> | null = null;
+  try {
+    const meta = getVisitorMetadata(request, body as Record<string, any>);
+    visitor = {
+      country: meta.country,
+      region: meta.region,
+      city: meta.city,
+      device_type: meta.device_type,
+      browser: meta.browser,
+      os: meta.os,
+      referrer: meta.referrer,
+      landing_page: meta.landing_page,
+      utm_source: meta.utm_source,
+      utm_medium: meta.utm_medium,
+      utm_campaign: meta.utm_campaign,
+      timezone: meta.timezone,
+      isp: meta.isp,
+      language: meta.language,
+    };
+  } catch (err) {
+    console.error('getVisitorMetadata failed in check handler:', err);
+    visitor = null;
+  }
+
   // Persist to D1 funnel_events
   if (env.DB) {
     try {
@@ -567,6 +594,7 @@ function extractCompetitors(text: string, businessName: string): string[] {
         results: clientResults,
         totalActiveEngines: activeEngines.length,
         mentionedCount,
+        visitor,
       });
 
       await env.DB.prepare(

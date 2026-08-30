@@ -14,6 +14,7 @@ AI Visibility Checker (free-tier Google Gemini + Cloudflare Workers AI) and conn
 
 ## Done
 
+- **Admin dashboard subtitles rewrite + table filters**: reworded the Conversations, AI Checker, and Bookings section subtitles to describe the business decision each supports, and added a search box plus a categorical filter to the Leads (Service), Conversations (Status), and Bookings (Event type) tables, wired by the shared `public/admin-filters.js` client script.
 - **Design System & UI/UX Polish (`DESIGN.md` Alignment)**:
   - Added `.stat-xl` token in `src/styles/global.css` and gated `animate-fade-in` with `prefers-reduced-motion: no-preference`.
   - Harmonized homepage pastel color-block rhythm across Hero, Portfolio, AI Diagnostic, and Founder sections.

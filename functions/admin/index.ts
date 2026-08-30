@@ -95,6 +95,50 @@ interface MessageRow {
   created_at: string;
 }
 
+// A single funnel_events row of event_type='ai_check'. `payload` is the raw
+// JSON string logged by /api/check; it is JSON.parsed (in a try/catch) into
+// AiCheckPayload below. created_at mirrors the other tables' localizable value.
+interface AiCheckRow {
+  visitor_id: string | null;
+  payload: string | null;
+  created_at: string | null;
+}
+
+// The nested visitor sub-object added to the ai_check payload by /api/check.
+// Every field is nullable — a check may arrive with little or no context.
+interface AiCheckVisitor {
+  country: string | null;
+  region: string | null;
+  city: string | null;
+  device_type: string | null;
+  browser: string | null;
+  os: string | null;
+  referrer: string | null;
+  landing_page: string | null;
+  utm_source: string | null;
+  utm_medium: string | null;
+  utm_campaign: string | null;
+  timezone: string | null;
+  isp: string | null;
+  language: string | null;
+}
+
+// The shape of a parsed ai_check payload (see functions/api/check.ts). Only the
+// fields the dashboard reads are typed; everything is optional/defensive since
+// the payload is attacker-adjacent user input round-tripped through the DB.
+interface AiCheckPayload {
+  businessName?: string;
+  category?: string;
+  city?: string;
+  visibilityScore?: number;
+  rankPosition?: string;
+  recommendedRank?: string;
+  competitorsFound?: string[];
+  totalActiveEngines?: number;
+  mentionedCount?: number;
+  visitor?: AiCheckVisitor | null;
+}
+
 interface BookingRow {
   id: number | string | null;
   created_at: string | null;
@@ -644,6 +688,9 @@ function page(title: string, inner: string, bodyStyle = ''): string {
 <body style="margin:0;background:${CANVAS};color:${INK};font-family:${FONT_SANS};font-weight:380;letter-spacing:-0.006em;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;${bodyStyle}">
 ${inner}
 <script src="/admin-time.js" defer></script>
+<script src="/admin-ai-filter.js" defer></script>
+<script src="/admin-filters.js" defer></script>
+
 </body>
 </html>`;
 }
@@ -867,6 +914,70 @@ function renderBookingMeta(b: BookingRow): string {
   return `<div class="rr-convo-meta">${segments.join(' · ')}</div>`;
 }
 
+/**
+ * Compute the AI Checker summary matrix from the parsed ai_check payloads:
+ * total checks, average visibility score (rounded, over rows that carry a
+ * numeric score), the count/percent of "invisible" checks (recommendedRank
+ * === 'invisible' OR visibilityScore < INVISIBLE_SCORE_THRESHOLD), and the top
+ * top 5 categories and top 5 searched cities by count (up from 3 — the
+ * ranked-list panels in the renderer show a fuller list). Pure computation, no
+ * HTML — so it stays testable and the renderer just formats the returned data.
+ */
+const INVISIBLE_SCORE_THRESHOLD = 30;
+
+function computeAiCheckSummary(payloads: AiCheckPayload[]): {
+  total: number;
+  avgScore: number | null;
+  invisibleCount: number;
+  invisiblePct: number;
+  topCategories: Array<{ label: string; count: number }>;
+  topCities: Array<{ label: string; count: number }>;
+} {
+  const total = payloads.length;
+
+  let scoreSum = 0;
+  let scoreCount = 0;
+  let invisibleCount = 0;
+  const categoryCounts: Record<string, number> = {};
+  const cityCounts: Record<string, number> = {};
+
+  const tally = (bag: Record<string, number>, raw: unknown) => {
+    if (raw === null || raw === undefined) return;
+    const key = String(raw).trim();
+    if (key === '') return;
+    bag[key] = (bag[key] || 0) + 1;
+  };
+
+  for (const p of payloads) {
+    const score = typeof p.visibilityScore === 'number' ? p.visibilityScore : null;
+    if (score !== null) {
+      scoreSum += score;
+      scoreCount += 1;
+    }
+    const isInvisible =
+      p.recommendedRank === 'invisible' || (score !== null && score < INVISIBLE_SCORE_THRESHOLD);
+    if (isInvisible) invisibleCount += 1;
+
+    tally(categoryCounts, p.category);
+    tally(cityCounts, p.city);
+  }
+
+  const topN = (bag: Record<string, number>) =>
+    Object.entries(bag)
+      .map(([label, count]) => ({ label, count }))
+      .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
+      .slice(0, 5);
+
+  return {
+    total,
+    avgScore: scoreCount > 0 ? Math.round(scoreSum / scoreCount) : null,
+    invisibleCount,
+    invisiblePct: total > 0 ? Math.round((invisibleCount / total) * 100) : 0,
+    topCategories: topN(categoryCounts),
+    topCities: topN(cityCounts),
+  };
+}
+
 function renderConvoThread(messages: MessageRow[]): string {
   if (!messages || messages.length === 0) return '';
   const bubbles = messages
@@ -884,6 +995,186 @@ function renderConvoThread(messages: MessageRow[]): string {
   return `<details class="rr-thread"><summary>${esc(label)}</summary><div class="rr-msglist">${bubbles}</div></details>`;
 }
 
+/**
+ * Render the AI Checker section: a summary matrix of stat cards followed by a
+ * detailed table of the most recent checks. Rows are the raw funnel_events
+ * ai_check records; each payload has already been JSON.parsed (malformed rows
+ * dropped) by the caller into { created_at, payload }. Mirrors the Conversations
+ * / Bookings sections' section wrapper, heading, count badge, empty/error state,
+ * and shared rr-scroll/rr-table classes. Every dynamic value is escaped via
+ * esc(); missing fields render an em-dash.
+ */
+function renderAiCheckSection(
+  checks: Array<{ created_at: string | null; payload: AiCheckPayload }>,
+  aiChecksError = false
+): string {
+  const dash = '<span class="rr-muted">—</span>';
+
+  // Normalise a raw value into escaped text, dropping empty / "unknown".
+  const cell = (v: unknown): string => {
+    if (v === null || v === undefined) return dash;
+    const t = String(v).trim();
+    if (t === '' || t.toLowerCase() === 'unknown') return dash;
+    return esc(t);
+  };
+  const join = (parts: string[], sep: string) => parts.filter((p) => p !== '').join(sep);
+  const clean = (v: string | null | undefined): string => {
+    if (v === null || v === undefined) return '';
+    const t = String(v).trim();
+    if (t === '' || t.toLowerCase() === 'unknown') return '';
+    return esc(t);
+  };
+
+  const badge = `<span style="display:inline-flex;align-items:center;height:28px;padding:0 12px;border:1px solid ${HAIRLINE};border-radius:50px;background:${CANVAS};font-family:${FONT_MONO};font-size:12px;font-weight:500;letter-spacing:0.04em;color:${INK};">${checks.length} total</span>`;
+
+  const heading = `<h2 style="font-size:clamp(1.75rem,3.5vw,2.75rem);font-weight:400;line-height:1.06;letter-spacing:-0.017em;margin:0;text-wrap:balance;">AI Checker</h2>`;
+
+  // Error / empty states mirror the Conversations & Bookings sections exactly.
+  if (aiChecksError) {
+    const errBlock = `<div style="background:#fbeae8;border:1px solid #f0c9c4;border-radius:24px;padding:40px 40px;text-align:center;box-sizing:border-box;">
+<h2 style="font-size:24px;font-weight:400;line-height:1.2;letter-spacing:-0.013em;margin:0 0 10px;color:${DESTRUCTIVE};">Couldn&rsquo;t load AI checks &mdash; storage error</h2>
+<p style="font-size:17px;font-weight:350;line-height:1.55;letter-spacing:-0.008em;margin:0;max-width:520px;margin-left:auto;margin-right:auto;color:${DESTRUCTIVE};">The AI Visibility Checker events couldn&rsquo;t be read from the database. This is a query/storage error, not an empty inbox &mdash; check the D1 binding and that the funnel_events table exists.</p>
+</div>`;
+    return `<section id="ai-checker" style="margin-top:48px;">${heading}${errBlock}</section>`;
+  }
+
+  if (checks.length === 0) {
+    const emptyBlock = `<div style="background:${BLOCK_LIME};border-radius:24px;padding:56px 48px;text-align:center;box-sizing:border-box;">
+<h2 style="font-size:28px;font-weight:400;line-height:1.2;letter-spacing:-0.013em;margin:0 0 10px;">No AI checks yet</h2>
+<p style="font-size:18px;font-weight:350;line-height:1.55;letter-spacing:-0.008em;margin:0;max-width:520px;margin-left:auto;margin-right:auto;">Runs of the AI Visibility Checker will appear here automatically &mdash; newest first, with a summary matrix and visitor context.</p>
+</div>`;
+    return `<section id="ai-checker" style="margin-top:48px;">${heading}${emptyBlock}</section>`;
+  }
+
+  // --- Summary matrix (computed from the parsed payloads) ---
+  const summary = computeAiCheckSummary(checks.map((c) => c.payload));
+
+  // KPI stat card: small uppercase mono label, large numeric value, optional
+  // muted sub-label. Cards live in an even-width responsive grid (see below),
+  // so each fills its track — no wasted whitespace between the three KPIs.
+  const statCard = (label: string, value: string, sub = ''): string =>
+    `<div style="box-sizing:border-box;background:${CANVAS};border:1px solid ${HAIRLINE};border-radius:16px;padding:16px 18px;display:flex;flex-direction:column;gap:6px;">
+<div style="font-family:${FONT_MONO};font-size:10px;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:#55554f;">${esc(label)}</div>
+<div style="font-size:30px;font-weight:450;line-height:1.02;letter-spacing:-0.02em;color:${INK};font-variant-numeric:tabular-nums;">${value}</div>${
+      sub ? `<div style="font-size:12px;font-weight:350;line-height:1.4;color:#6b6b66;">${sub}</div>` : ''
+    }</div>`;
+
+  // A ranked-list panel (Top categories / Top cities): titled card containing
+  // rows of "label ...... [count badge]" with a subtle proportion bar relative
+  // to the top count. Long labels truncate with ellipsis + a title tooltip.
+  const rankPanel = (title: string, items: Array<{ label: string; count: number }>): string => {
+    const inner =
+      items.length === 0
+        ? `<div style="font-size:13px;font-weight:350;color:#9a9a93;padding:4px 0;">No data yet</div>`
+        : items
+            .map((it) => {
+              const max = items[0].count || 1;
+              const pct = Math.max(6, Math.round((it.count / max) * 100));
+              const safeLabel = esc(it.label);
+              return `<div style="display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid ${HAIRLINE_SOFT};">
+<span title="${safeLabel}" style="flex:1 1 auto;min-width:0;font-size:13px;font-weight:400;color:${INK};letter-spacing:-0.004em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${safeLabel}</span>
+<span aria-hidden="true" style="flex:0 0 44px;height:4px;border-radius:9999px;background:${HAIRLINE_SOFT};overflow:hidden;"><span style="display:block;height:100%;width:${pct}%;background:${BLOCK_LIME};"></span></span>
+<span style="flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:20px;padding:0 8px;border-radius:9999px;background:${SURFACE_SOFT};border:1px solid ${HAIRLINE};font-family:${FONT_MONO};font-size:11px;font-weight:500;font-variant-numeric:tabular-nums;color:${INK};">${esc(String(it.count))}</span>
+</div>`;
+            })
+            .join('');
+    return `<div style="box-sizing:border-box;background:${CANVAS};border:1px solid ${HAIRLINE};border-radius:16px;padding:16px 18px;">
+<div style="font-family:${FONT_MONO};font-size:10px;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:#55554f;margin:0 0 8px;">${esc(title)}</div>
+<div>${inner}</div>
+</div>`;
+  };
+
+  // KPIs: compact, evenly-spaced auto-fit grid so the three cards share the row
+  // without the old flex-basis whitespace gaps.
+  const kpiCards = [
+    statCard('Total checks', String(summary.total)),
+    statCard('Avg. visibility score', summary.avgScore !== null ? String(summary.avgScore) : '—'),
+    statCard(
+      'Invisible',
+      String(summary.invisibleCount),
+      `${summary.invisiblePct}% of checks`
+    ),
+  ].join('');
+  const kpiGrid = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:8px 0 12px;">${kpiCards}</div>`;
+
+  // Ranked-list panels sit in their own two-column grid beneath the KPIs.
+  const panels = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin:0 0 24px;">${rankPanel(
+    'Top categories',
+    summary.topCategories
+  )}${rankPanel('Top cities', summary.topCities)}</div>`;
+
+  const matrix = `${kpiGrid}${panels}`;
+
+  // --- Detailed table ---
+  const bodyRows = checks
+    .map(({ created_at, payload }) => {
+      const v = payload.visitor || null;
+
+      const receivedCell = `<td class="rr-received">${formatReceived(created_at)}</td>`;
+      const businessCell = `<td class="rr-name">${cell(payload.businessName)}</td>`;
+      const categoryCell = `<td class="rr-service">${cell(payload.category)}</td>`;
+      const cityCell = `<td class="rr-location">${cell(payload.city)}</td>`;
+      const scoreCell = `<td class="rr-num">${
+        typeof payload.visibilityScore === 'number' ? esc(String(payload.visibilityScore)) : dash
+      }</td>`;
+
+      // Rank: recommendedRank (— fallback) with rankPosition as a secondary line.
+      const rankTop = cell(payload.recommendedRank);
+      const rankSub =
+        payload.rankPosition && String(payload.rankPosition).trim() !== ''
+          ? `<div class="rr-phone">${esc(payload.rankPosition)}</div>`
+          : '';
+      const rankCell = `<td class="rr-service">${rankTop}${rankSub}</td>`;
+
+      // Competitors: count + names truncated, full list in title on hover.
+      const competitors = Array.isArray(payload.competitorsFound) ? payload.competitorsFound : [];
+      const compNames = competitors.map((c) => String(c)).filter((c) => c.trim() !== '');
+      const compCell = compNames.length
+        ? `<td class="rr-service" title="${esc(compNames.join(', '))}">${esc(
+            String(compNames.length)
+          )} <span class="rr-muted">(${esc(
+            compNames.slice(0, 2).join(', ')
+          )}${compNames.length > 2 ? '…' : ''})</span></td>`
+        : `<td class="rr-num">0</td>`;
+
+      // Visitor location — city, region, country (comma-joined, nulls dropped).
+      const place = v ? join([clean(v.city), clean(v.region), clean(v.country)], ', ') : '';
+      const locationCell = `<td class="rr-location">${place || dash}</td>`;
+
+      // Device — device_type / browser / os (slash-joined, nulls dropped).
+      const device = v ? join([clean(v.device_type), clean(v.browser), clean(v.os)], '/') : '';
+      const deviceCell = `<td class="rr-service">${device || dash}</td>`;
+
+      return `<tr>${receivedCell}${businessCell}${categoryCell}${cityCell}${scoreCell}${rankCell}${compCell}${locationCell}${deviceCell}</tr>`;
+    })
+    .join('');
+
+  const atLimit = checks.length === 500;
+  const limitNote = atLimit
+    ? `<p style="font-family:${FONT_MONO};font-size:12px;font-weight:400;letter-spacing:0.06em;text-transform:uppercase;color:#6b6b66;margin:16px 0 0;">Showing the latest 500 checks.</p>`
+    : '';
+
+  const headerCells = [
+    'Time',
+    'Business',
+    'Category',
+    'City',
+    'Visibility',
+    'Rank',
+    'Competitors',
+    'Visitor location',
+    'Device',
+  ]
+    .map((label) => `<th scope="col">${esc(label)}</th>`)
+    .join('');
+
+  const search = `<div style="margin-top:8px;"><input id="ai-check-search" type="search" placeholder="Search checks…" aria-label="Search checks" autocomplete="off" style="width:100%;max-width:360px;box-sizing:border-box;height:40px;padding:0 14px;border:1px solid ${HAIRLINE};border-radius:50px;background:${CANVAS};font-family:${FONT_MONO};font-size:13px;font-weight:400;letter-spacing:0.02em;color:${INK};outline:none;" /></div>`;
+
+  const table = `${search}<div class="rr-scroll" style="margin-top:8px;"><table id="ai-check-table" class="rr-table"><thead><tr>${headerCells}</tr></thead><tbody>${bodyRows}</tbody></table></div>${limitNote}`;
+
+  return `<section id="ai-checker" style="margin-top:48px;"><div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:0 0 6px;">${heading}${badge}</div><p style="font-size:16px;font-weight:350;line-height:1.5;letter-spacing:-0.008em;margin:6px 0 20px;">AI Visibility Checker runs, newest first. Use the matrix to see how many businesses are invisible in AI search and where average visibility is weakest, then target those categories and cities in outreach. Search or filter by category to surface the highest-potential prospects.</p>${matrix}${table}</section>`;
+}
+
 /** Render the table of submissions inside the monochrome editorial shell. */
 function renderDashboard(
   rows: SubmissionRow[],
@@ -891,7 +1182,9 @@ function renderDashboard(
   messagesByConvo: Record<string, MessageRow[]> = {},
   convosError = false,
   bookings: BookingRow[] = [],
-  bookingsError = false
+  bookingsError = false,
+  aiChecks: Array<{ created_at: string | null; payload: AiCheckPayload }> = [],
+  aiChecksError = false
 ): string {
   const headerCells = TABLE_HEADERS.map((label) => `<th scope="col">${esc(label)}</th>`).join('');
 
@@ -956,8 +1249,8 @@ function renderDashboard(
 <h2 style="font-size:28px;font-weight:400;line-height:1.2;letter-spacing:-0.013em;margin:0 0 10px;">No leads yet</h2>
 <p style="font-size:18px;font-weight:350;line-height:1.55;letter-spacing:-0.008em;margin:0;max-width:520px;margin-left:auto;margin-right:auto;">Submissions from your website's contact form will appear here automatically — newest first.</p>
 </div>`
-      : `<div class="rr-scroll">
-<table class="rr-table">
+      : `<div class="rr-filter" data-target="leads-table" style="display:flex;flex-wrap:wrap;gap:10px;margin:0 0 12px;"><input type="search" data-filter-search placeholder="Search leads…" aria-label="Search leads" autocomplete="off" style="width:100%;max-width:360px;box-sizing:border-box;height:40px;padding:0 14px;border:1px solid ${HAIRLINE};border-radius:50px;background:${CANVAS};font-family:${FONT_MONO};font-size:13px;font-weight:400;letter-spacing:0.02em;color:${INK};outline:none;" /><select data-filter-select data-col="4" aria-label="Filter by service" style="box-sizing:border-box;height:40px;padding:0 14px;border:1px solid ${HAIRLINE};border-radius:50px;background:${CANVAS};font-family:${FONT_MONO};font-size:13px;font-weight:400;letter-spacing:0.02em;color:${INK};outline:none;cursor:pointer;"><option value="">All services</option></select></div><div class="rr-scroll">
+<table id="leads-table" class="rr-table">
 <thead><tr>${headerCells}</tr></thead>
 <tbody>${bodyRows}</tbody>
 </table>
@@ -1008,7 +1301,7 @@ function renderDashboard(
   const convoSection =
     convos.length === 0
       ? `<section style="margin-top:48px;"><h2 style="font-size:clamp(1.75rem,3.5vw,2.75rem);font-weight:400;line-height:1.06;letter-spacing:-0.017em;margin:0 0 20px;text-wrap:balance;">Conversations</h2>${convoEmptyBlock}</section>`
-      : `<section style="margin-top:48px;"><div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:0 0 6px;"><h2 style="font-size:clamp(1.75rem,3.5vw,2.75rem);font-weight:400;line-height:1.06;letter-spacing:-0.017em;margin:0;text-wrap:balance;">Conversations</h2>${convoBadge}</div><p style="font-size:16px;font-weight:350;line-height:1.5;letter-spacing:-0.008em;margin:6px 0 20px;">Chat sessions from the on-site assistant, most recently active first. Visitor context (location, device, language and source) shows under each email. Expand a row to read its messages.</p><div class="rr-scroll" style="margin-top:8px;"><table class="rr-table"><thead><tr><th scope="col">Started</th><th scope="col">Last activity</th><th scope="col">Email</th><th scope="col">Status</th><th scope="col">Messages</th></tr></thead><tbody>${convoBody}</tbody></table></div></section>`;
+      : `<section style="margin-top:48px;"><div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:0 0 6px;"><h2 style="font-size:clamp(1.75rem,3.5vw,2.75rem);font-weight:400;line-height:1.06;letter-spacing:-0.017em;margin:0;text-wrap:balance;">Conversations</h2>${convoBadge}</div><p style="font-size:16px;font-weight:350;line-height:1.5;letter-spacing:-0.008em;margin:6px 0 20px;">Chat sessions from the on-site assistant, most recently active first. Use them to see what prospects ask most, which threads stall, and who is worth a follow-up. Filter by status or search by email to prioritise active, high-intent conversations.</p><div class="rr-filter" data-target="conversations-table" style="display:flex;flex-wrap:wrap;gap:10px;margin:0 0 12px;"><input type="search" data-filter-search placeholder="Search conversations…" aria-label="Search conversations" autocomplete="off" style="width:100%;max-width:360px;box-sizing:border-box;height:40px;padding:0 14px;border:1px solid ${HAIRLINE};border-radius:50px;background:${CANVAS};font-family:${FONT_MONO};font-size:13px;font-weight:400;letter-spacing:0.02em;color:${INK};outline:none;" /><select data-filter-select data-col="3" aria-label="Filter by status" style="box-sizing:border-box;height:40px;padding:0 14px;border:1px solid ${HAIRLINE};border-radius:50px;background:${CANVAS};font-family:${FONT_MONO};font-size:13px;font-weight:400;letter-spacing:0.02em;color:${INK};outline:none;cursor:pointer;"><option value="">All statuses</option></select></div><div class="rr-scroll" style="margin-top:8px;"><table id="conversations-table" class="rr-table"><thead><tr><th scope="col">Started</th><th scope="col">Last activity</th><th scope="col">Email</th><th scope="col">Status</th><th scope="col">Messages</th></tr></thead><tbody>${convoBody}</tbody></table></div></section>`;
 
   // Bookings section — mirrors the Conversations section's look (same <h2>
   // inline style, same count-badge pattern, same BLOCK_LIME empty state and
@@ -1053,7 +1346,11 @@ function renderDashboard(
   const bookingSection =
     bookings.length === 0
       ? `<section style="margin-top:48px;"><h2 style="font-size:clamp(1.75rem,3.5vw,2.75rem);font-weight:400;line-height:1.06;letter-spacing:-0.017em;margin:0 0 20px;text-wrap:balance;">Bookings</h2>${bookingEmptyBlock}</section>`
-      : `<section style="margin-top:48px;"><div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:0 0 6px;"><h2 style="font-size:clamp(1.75rem,3.5vw,2.75rem);font-weight:400;line-height:1.06;letter-spacing:-0.017em;margin:0;text-wrap:balance;">Bookings</h2>${bookingBadge}</div><p style="font-size:16px;font-weight:350;line-height:1.5;letter-spacing:-0.008em;margin:6px 0 20px;">Calls booked through the on-site scheduler, newest first. Visitor context (location, device, language and source) shows under each email.</p><div class="rr-scroll" style="margin-top:8px;"><table class="rr-table"><thead><tr><th scope="col">Created</th><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Timezone</th><th scope="col">Event type</th></tr></thead><tbody>${bookingBody}</tbody></table></div></section>`;
+      : `<section style="margin-top:48px;"><div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:0 0 6px;"><h2 style="font-size:clamp(1.75rem,3.5vw,2.75rem);font-weight:400;line-height:1.06;letter-spacing:-0.017em;margin:0;text-wrap:balance;">Bookings</h2>${bookingBadge}</div><p style="font-size:16px;font-weight:350;line-height:1.5;letter-spacing:-0.008em;margin:6px 0 20px;">Calls booked through the on-site scheduler, newest first. Track which event types and sources actually drive booked calls so you can double down on what converts. Filter by event type or search by email to focus your follow-up.</p><div class="rr-filter" data-target="bookings-table" style="display:flex;flex-wrap:wrap;gap:10px;margin:0 0 12px;"><input type="search" data-filter-search placeholder="Search bookings…" aria-label="Search bookings" autocomplete="off" style="width:100%;max-width:360px;box-sizing:border-box;height:40px;padding:0 14px;border:1px solid ${HAIRLINE};border-radius:50px;background:${CANVAS};font-family:${FONT_MONO};font-size:13px;font-weight:400;letter-spacing:0.02em;color:${INK};outline:none;" /><select data-filter-select data-col="4" aria-label="Filter by event type" style="box-sizing:border-box;height:40px;padding:0 14px;border:1px solid ${HAIRLINE};border-radius:50px;background:${CANVAS};font-family:${FONT_MONO};font-size:13px;font-weight:400;letter-spacing:0.02em;color:${INK};outline:none;cursor:pointer;"><option value="">All event types</option></select></div><div class="rr-scroll" style="margin-top:8px;"><table id="bookings-table" class="rr-table"><thead><tr><th scope="col">Created</th><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Timezone</th><th scope="col">Event type</th></tr></thead><tbody>${bookingBody}</tbody></table></div></section>`;
+
+  // AI Checker section — built by the dedicated renderer (summary matrix +
+  // detailed table). Sits between Leads and Conversations in the layout.
+  const aiCheckSection = renderAiCheckSection(aiChecks, aiChecksError);
 
   const inner = `
 <header style="border-bottom:1px solid ${HAIRLINE};background:${CANVAS};">
@@ -1070,7 +1367,11 @@ function renderDashboard(
     ${countBadge}
   </div>
   <p style="font-size:16px;font-weight:350;line-height:1.5;letter-spacing:-0.008em;margin:0 0 20px;">Every enquiry from your contact form, newest first.</p>
+  <nav aria-label="Sections" style="display:flex;flex-wrap:wrap;gap:10px;margin:0 0 24px;">
+    <a href="#ai-checker" style="display:inline-flex;align-items:center;height:32px;padding:0 14px;border:1px solid ${HAIRLINE};border-radius:50px;background:${CANVAS};color:${INK};text-decoration:none;font-family:${FONT_MONO};font-size:12px;font-weight:500;letter-spacing:0.04em;text-transform:uppercase;">AI Checker</a>
+  </nav>
   ${table}
+  ${aiCheckSection}
   ${convoSection}
   ${bookingSection}
 </main>`;
@@ -1175,8 +1476,47 @@ async function renderDashboardResponse(env: Env): Promise<Response> {
     }
   }
 
+  // Also load AI Visibility Checker events from funnel_events. Kept in its OWN
+  // try/catch (like the conversations & bookings queries) so a missing table or
+  // query error still lets the rest of the dashboard render — aiChecks falls
+  // back to []. Each payload is JSON.parsed defensively; malformed rows are
+  // skipped rather than breaking the page.
+  let aiChecks: Array<{ created_at: string | null; payload: AiCheckPayload }> = [];
+  let aiChecksError = false;
+  if (env.DB) {
+    try {
+      const ares = await env.DB.prepare(
+        `SELECT visitor_id, payload, created_at FROM funnel_events WHERE event_type='ai_check' ORDER BY created_at DESC LIMIT 500`
+      ).all<AiCheckRow>();
+      for (const row of ares.results || []) {
+        if (!row.payload) continue;
+        try {
+          const parsed = JSON.parse(row.payload) as AiCheckPayload;
+          if (parsed && typeof parsed === 'object') {
+            aiChecks.push({ created_at: row.created_at, payload: parsed });
+          }
+        } catch {
+          // Malformed payload JSON → skip this row, keep the page working.
+        }
+      }
+    } catch (err) {
+      console.error('D1 ai_check funnel_events query failed', String(err));
+      aiChecksError = true;
+      aiChecks = [];
+    }
+  }
+
   return html(
-    renderDashboard(rows, convos, messagesByConvo, convosError, bookings, bookingsError)
+    renderDashboard(
+      rows,
+      convos,
+      messagesByConvo,
+      convosError,
+      bookings,
+      bookingsError,
+      aiChecks,
+      aiChecksError
+    )
   );
 }
 
