@@ -7,7 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Invalid `Button` variant in `dialog.tsx` (TS2322)**: `DialogFooter`'s Close button used `variant="outline"`, which is not a valid Button variant; changed it to `variant="secondary"` so the type error is resolved.
+
 ### Added
+
+- **`typecheck` npm script**: added `"typecheck": "astro check && tsc --noEmit"` to `package.json` so type/diagnostic checking can be run on demand.
 
 - **Admin section navigation moved into the top navbar** (`functions/admin/index.ts`): the admin panel section links (Leads, AI Checker, Conversations, Bookings) now live in the top navbar; added section id anchors (`#leads`, `#conversations`, `#bookings`) so the navbar links jump directly to each section.
 - **Admin AI-check summary UI & table search/filter** (`functions/admin/index.ts`, `public/admin-ai-filter.js`):
