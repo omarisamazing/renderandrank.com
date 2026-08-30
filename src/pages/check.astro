@@ -49,7 +49,7 @@ const benefits = [
     </div>
   </div>
 
-  <AiCheckerSection tone="mint" />
+  <AiCheckerSection tone="mint" showPitch={false} />
 
   <!-- How It Works & Why It Matters -->
   <Section divider>
@@ -66,14 +66,12 @@ const benefits = [
     <div class="mx-auto mt-14 grid max-w-5xl gap-6 sm:grid-cols-2 lg:grid-cols-4" data-reveal-group>
       {
         benefits.map((item) => (
-          <div class="flex flex-col justify-between rounded-lg border border-hairline bg-canvas p-6 transition-colors hover:border-ink/25 md:p-7" data-reveal>
-            <div>
-              <span class="flex size-11 items-center justify-center rounded-full bg-surface-soft text-ink mb-5">
-                <item.icon class="size-5" aria-hidden="true" />
-              </span>
-              <h3 class="card-title text-ink">{item.title}</h3>
-              <p class="body-sm mt-3 text-ink">{item.body}</p>
-            </div>
+          <div class="rounded-lg border border-hairline bg-canvas p-6 transition-colors hover:border-ink/25 md:p-7" data-reveal>
+            <span class="mb-5 flex size-11 items-center justify-center rounded-full bg-surface-soft text-ink">
+              <item.icon class="size-5" aria-hidden="true" />
+            </span>
+            <h3 class="card-title text-ink">{item.title}</h3>
+            <p class="body-sm mt-3 text-ink">{item.body}</p>
           </div>
         ))
       }

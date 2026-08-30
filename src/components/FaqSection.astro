@@ -6,6 +6,19 @@ import BookCallButton from './BookCallButton.astro';
 import { FaqAccordion } from './faq/FaqAccordion';
 import { faqs } from '../data/faqs';
 
+interface Props {
+  /**
+   * White canvas by default. On every page that uses this section the next thing
+   * down is the navy CTA banner, and DESIGN.md requires white canvas between two
+   * blocks — so a lime FAQ panel here would always sit against a dark block.
+   * Pass `lime` to opt a single page back into the coloured panel.
+   */
+  tone?: 'canvas' | 'lime';
+}
+
+const { tone = 'canvas' } = Astro.props;
+const onBlock = tone === 'lime';
+
 const faqSchema = {
   '@context': 'https://schema.org',
   '@type': 'FAQPage',
@@ -18,20 +31,25 @@ const faqSchema = {
 ---
 
 <Section id="faq">
-  <div class="color-block color-block-lime color-block--bleed">
+  <div
+    class:list={[onBlock && 'color-block color-block-lime color-block--bleed']}
+  >
     <div class="mx-auto max-w-2xl text-center" data-reveal-group>
-      <Eyebrow tone="on-block" data-reveal>Questions</Eyebrow>
+      <Eyebrow tone={onBlock ? 'on-block' : 'ink'} data-reveal>Questions</Eyebrow>
       <h2 class="display-md mt-4 text-ink" data-reveal>
         The things people ask before they book
       </h2>
     </div>
 
     <div class="mx-auto mt-12 max-w-3xl md:mt-14" data-reveal>
-      <FaqAccordion client:visible items={faqs} />
+      <FaqAccordion client:visible items={faqs} surface={onBlock ? 'block' : 'canvas'} />
     </div>
 
     <div
-      class="mx-auto mt-12 flex max-w-3xl flex-col items-center gap-4 border-t border-black/10 pt-8 sm:flex-row sm:justify-between"
+      class:list={[
+        'mx-auto mt-12 flex max-w-3xl flex-col items-center gap-4 border-t pt-8 sm:flex-row sm:justify-between',
+        onBlock ? 'border-black/10' : 'border-hairline',
+      ]}
     >
       <p class="body-sm text-ink">Something not covered here?</p>
       <div class="flex flex-wrap items-center gap-3">

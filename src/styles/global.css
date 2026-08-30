@@ -317,6 +317,16 @@
     letter-spacing: -0.028em;
     font-variant-numeric: tabular-nums;
   }
+
+  /* The one figure a panel is built around — the ROI headline number. Sized to
+     outrank `.stat` so supporting figures can sit beneath it without competing. */
+  .stat-xl {
+    font-size: clamp(2.5rem, 5vw, 3.5rem);
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: -0.032em;
+    font-variant-numeric: tabular-nums;
+  }
 }
 
 /* ==========================================================================
@@ -401,6 +411,12 @@
   }
 
   .marquee-track {
+    animation: none !important;
+  }
+
+  /* tw-animate-css does not gate its own keyframes. The islands use this class
+     for their state transitions, so it has to be neutralised here. */
+  .animate-fade-in {
     animation: none !important;
   }
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { getClientVisitorData, getVisitorId } from '../lib/visitorClient';
 import { buttonVariants } from '../lib/button-variants';
 
@@ -31,7 +31,45 @@ interface CheckResponse {
   results?: EngineResult[];
 }
 
-export default function AiVisibilityChecker() {
+export interface AiVisibilityCheckerProps {
+  /**
+   * Where "See what this costs" goes. The home page renders the ROI calculator
+   * on the same page, so it passes an in-page anchor; /check sends people to the
+   * standalone calculator.
+   */
+  resultHref?: string;
+}
+
+/**
+ * What the scan is actually doing, in the order it happens. Kept at module scope
+ * so the progress effect can read the count without re-running when the market
+ * name changes.
+ */
+const SCAN_STEPS = [
+  {
+    title: () => 'Querying the answer engines',
+    desc: 'Running your category through live AI search',
+  },
+  {
+    title: (market: string) => `Reading who they name in ${market}`,
+    desc: 'Pulling the providers each engine recommends',
+  },
+  {
+    title: () => 'Comparing against local competitors',
+    desc: 'Checking which businesses hold the citations',
+  },
+  {
+    title: () => 'Building your result',
+    desc: 'Scoring visibility and the revenue gap',
+  },
+] as const;
+
+const FIELD_CLASS =
+  'h-12 w-full rounded-md border border-hairline bg-canvas px-3.5 text-[1.0625rem] text-ink placeholder:text-muted-foreground transition-[border-color] duration-200 focus-visible:border-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ink disabled:opacity-60';
+
+export default function AiVisibilityChecker({
+  resultHref = '/calculator',
+}: AiVisibilityCheckerProps = {}) {
   const [businessName, setBusinessName] = useState('');
   const [category, setCategory] = useState('');
   const [city, setCity] = useState('');
@@ -41,14 +79,16 @@ export default function AiVisibilityChecker() {
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<CheckResponse | null>(null);
 
-  const scanSteps = [
-    { title: 'Connecting to Google Search live citation index', desc: 'Querying real-time generative grounding' },
-    { title: 'Scanning local Knowledge Graph entity relationships', desc: `Analyzing ${city || 'local market'} provider network` },
-    { title: 'Evaluating competitor review velocity & citation rank', desc: 'Comparing entity presence against top competitors' },
-    { title: 'Synthesizing Generative Engine Visibility report', desc: 'Calculating authority score and revenue opportunity' },
-  ];
+  const businessRef = useRef<HTMLInputElement>(null);
+  const categoryRef = useRef<HTMLInputElement>(null);
+  const cityRef = useRef<HTMLInputElement>(null);
 
-  // Progressive scanning animation
+  const market = city.trim() || 'your market';
+  const steps = SCAN_STEPS.map((step) => ({
+    title: step.title(market),
+    desc: step.desc,
+  }));
+
   useEffect(() => {
     if (!loading) {
       setProgress(0);
@@ -57,27 +97,35 @@ export default function AiVisibilityChecker() {
     }
 
     const stepInterval = setInterval(() => {
-      setScanStep((prev) => (prev < scanSteps.length - 1 ? prev + 1 : prev));
+      setScanStep((prev) => (prev < SCAN_STEPS.length - 1 ? prev + 1 : prev));
     }, 1800);
 
+    // Decelerating fill rather than random jumps: quick off the mark, then
+    // asymptotic towards 95% so it never stalls on a round number and never
+    // claims to have finished before the response lands.
+    let tick = 0;
     const progressInterval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 95) return 95;
-        const inc = Math.floor(Math.random() * 8) + 4;
-        return Math.min(95, prev + inc);
-      });
-    }, 350);
+      tick += 1;
+      setProgress(Math.round(95 * (1 - Math.exp(-tick / 9))));
+    }, 240);
 
     return () => {
       clearInterval(stepInterval);
       clearInterval(progressInterval);
     };
-  }, [loading, city]);
+  }, [loading]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+
     if (!businessName.trim() || !category.trim() || !city.trim()) {
-      setError('Please fill in your business name, service category, and city/market.');
+      setError('Add your business name, category and city so we know what to look for.');
+      const firstEmpty = !businessName.trim()
+        ? businessRef
+        : !category.trim()
+          ? categoryRef
+          : cityRef;
+      firstEmpty.current?.focus();
       return;
     }
 
@@ -104,7 +152,7 @@ export default function AiVisibilityChecker() {
       const json = (await res.json()) as CheckResponse;
 
       if (!res.ok || !json.ok) {
-        setError(json.error || 'Diagnostic scan could not be completed. Please try again or book a call.');
+        setError(json.error || 'The scan could not finish. Try again, or book a call and we will run it for you.');
         setLoading(false);
         return;
       }
@@ -144,222 +192,260 @@ export default function AiVisibilityChecker() {
       }
     } catch (err) {
       console.error('AI check request failed:', err);
-      setError('Network error connecting to diagnostic servers. Please check your connection.');
+      setError('Could not reach the diagnostic server. Check your connection and try again.');
       setLoading(false);
     }
   }
 
-  function handleGoToCalculator() {
-    window.location.href = '/calculator';
+  function handleCheckAnother() {
+    setData(null);
+    setError(null);
+    setBusinessName('');
+    setCategory('');
+    setCity('');
+    // The panel has just swapped back to the form, so the first field is the
+    // only sensible place for focus to land.
+    requestAnimationFrame(() => businessRef.current?.focus());
   }
+
+  const cited = (data?.mentionedCount ?? 0) > 0;
+
+  /**
+   * One persistent status line for assistive tech. A live region that is
+   * conditionally rendered does not reliably announce, because it does not exist
+   * at the moment the content changes.
+   */
+  const status = loading
+    ? steps[scanStep].title
+    : data
+      ? cited
+        ? 'Check complete. Your business is cited in AI recommendations.'
+        : 'Check complete. Your business is not cited in AI recommendations.'
+      : (error ?? '');
 
   return (
     <div className="rounded-lg border border-black/8 bg-canvas p-6 md:p-8">
-      {/* Form State */}
-      {!data && (
-        <form onSubmit={handleSubmit} className="space-y-5">
+      <p className="sr-only" role="status">
+        {status}
+      </p>
+
+      {/* Form */}
+      {!data && !loading && (
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
           <div>
-            <label htmlFor="businessName" className="label block text-ink mb-1.5">
-              Business Name <span className="text-[#b42318]">*</span>
+            <label htmlFor="check-business-name" className="label block text-ink">
+              Business name
+              <span className="text-destructive" aria-hidden="true"> *</span>
             </label>
             <input
-              id="businessName"
+              id="check-business-name"
+              ref={businessRef}
+              name="businessName"
               type="text"
               required
+              autoComplete="organization"
+              spellCheck={false}
               placeholder="e.g. Apex Climate Heating"
+              maxLength={120}
               value={businessName}
               onChange={(e) => setBusinessName(e.target.value)}
-              disabled={loading}
-              className="w-full h-11 rounded-md border border-hairline bg-canvas px-3.5 py-2.5 body-sm text-ink placeholder:text-ink/40 focus:outline-none focus:ring-1 focus:ring-ink transition-all"
+              className={`mt-2 ${FIELD_CLASS}`}
             />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid gap-5 sm:grid-cols-2">
             <div>
-              <label htmlFor="category" className="label block text-ink mb-1.5">
-                Service / Category <span className="text-[#b42318]">*</span>
+              <label htmlFor="check-category" className="label block text-ink">
+                Service or category
+                <span className="text-destructive" aria-hidden="true"> *</span>
               </label>
               <input
-                id="category"
+                id="check-category"
+                ref={categoryRef}
+                name="category"
                 type="text"
                 required
+                autoComplete="off"
                 placeholder="e.g. emergency AC repair"
+                maxLength={120}
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                disabled={loading}
-                className="w-full h-11 rounded-md border border-hairline bg-canvas px-3.5 py-2.5 body-sm text-ink placeholder:text-ink/40 focus:outline-none focus:ring-1 focus:ring-ink transition-all"
+                className={`mt-2 ${FIELD_CLASS}`}
               />
             </div>
 
             <div>
-              <label htmlFor="city" className="label block text-ink mb-1.5">
-                City and state <span className="text-[#b42318]">*</span>
+              <label htmlFor="check-city" className="label block text-ink">
+                City and state
+                <span className="text-destructive" aria-hidden="true"> *</span>
               </label>
               <input
-                id="city"
+                id="check-city"
+                ref={cityRef}
+                name="city"
                 type="text"
                 required
+                autoComplete="address-level2"
+                spellCheck={false}
                 placeholder="e.g. Austin, TX"
+                maxLength={120}
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
-                disabled={loading}
-                className="w-full h-11 rounded-md border border-hairline bg-canvas px-3.5 py-2.5 body-sm text-ink placeholder:text-ink/40 focus:outline-none focus:ring-1 focus:ring-ink transition-all"
+                className={`mt-2 ${FIELD_CLASS}`}
               />
             </div>
           </div>
 
           {error && (
-            <div className="rounded-md bg-surface-soft border border-hairline p-3 text-sm text-[#721c24]" role="alert">
+            <p
+              className="body-sm rounded-md border border-destructive bg-canvas p-3.5 text-destructive"
+              role="alert"
+            >
               {error}
-            </div>
+            </p>
           )}
 
-          <div className="pt-2">
+          <div>
             <button
               type="submit"
-              disabled={loading}
-              className={buttonVariants({ variant: 'primary', size: 'lg', className: 'w-full text-canvas justify-center' })}
+              className={buttonVariants({
+                variant: 'primary',
+                size: 'lg',
+                block: true,
+              })}
             >
-              {loading ? (
-                <span className="inline-flex items-center gap-2">
-                  <svg className="animate-spin size-4 text-canvas" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
-                  Running AI Check...
-                </span>
-              ) : (
-                'Run AI Visibility Check →'
-              )}
+              Run the check
             </button>
-            <p className="caption mt-3 text-center text-ink/60">
-              Free real-time scan &middot; 3 checks per IP / day &middot; No pitch attached.
+            <p className="caption mt-3 text-center text-ink">
+              Free live scan &middot; three checks per day &middot; no pitch attached.
             </p>
           </div>
         </form>
       )}
 
-      {/* Live Multi-Step Scanning Experience */}
+      {/* Scanning */}
       {loading && (
-        <div className="space-y-4 animate-fade-in" aria-live="polite">
-          <div className="flex items-center justify-between">
-            <span className="eyebrow text-ink">
-              SCANNING REAL-TIME AI MODELS
-            </span>
-            <span className="numeric text-sm font-medium text-ink">{progress}%</span>
+        <div className="flex flex-col gap-4 animate-fade-in" aria-busy="true">
+          <div className="flex items-baseline justify-between gap-4">
+            <span className="eyebrow text-ink">Checking the answer engines</span>
+            <span className="label numeric text-ink">{progress}%</span>
           </div>
 
-          {/* Progress Bar */}
-          <div className="w-full bg-surface-soft rounded-full h-2 overflow-hidden border border-hairline">
+          {/* Scales rather than resizing, so the fill stays off the layout path. */}
+          <div className="h-2 w-full overflow-hidden rounded-pill border border-hairline bg-surface-soft">
             <div
-              className="bg-ink h-full transition-all duration-300 ease-out"
-              style={{ width: `${progress}%` }}
+              className="h-full w-full origin-left bg-ink transition-transform duration-300 ease-out"
+              style={{ transform: `scaleX(${progress / 100})` }}
             />
           </div>
 
-          {/* Step Checklist */}
-          <div className="space-y-3 pt-2">
-            {scanSteps.map((step, idx) => {
+          <ul className="mt-2 flex flex-col gap-3.5">
+            {steps.map((step, idx) => {
               const isDone = idx < scanStep;
               const isActive = idx === scanStep;
               return (
-                <div
-                  key={idx}
+                <li
+                  key={step.title}
                   className={`flex items-start gap-3 transition-opacity duration-300 ${
                     isDone || isActive ? 'opacity-100' : 'opacity-40'
                   }`}
                 >
-                  <div className="mt-0.5 shrink-0">
+                  <span className="mt-0.5 shrink-0" aria-hidden="true">
                     {isDone ? (
-                      <span className="size-4 rounded-full bg-ink text-canvas flex items-center justify-center text-[10px]">
-                        ✓
-                      </span>
+                      <svg
+                        className="size-4 rounded-full bg-ink p-0.5 text-canvas"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
                     ) : isActive ? (
-                      <span className="size-4 rounded-full border-2 border-ink border-t-transparent animate-spin block" />
+                      <span className="block size-4 animate-spin rounded-full border-2 border-ink border-t-transparent" />
                     ) : (
-                      <span className="size-4 rounded-full border border-hairline bg-canvas block" />
+                      <span className="block size-4 rounded-full border border-hairline bg-canvas" />
                     )}
-                  </div>
-                  <div>
-                    <p className={`body-sm text-ink ${isActive ? 'font-medium' : 'text-ink/80'}`}>
+                  </span>
+                  <span>
+                    <span className={`body-sm block text-ink ${isActive ? 'font-medium' : ''}`}>
                       {step.title}
-                    </p>
-                    <p className="caption text-ink/60">{step.desc}</p>
-                  </div>
-                </div>
+                    </span>
+                    <span className="caption block text-ink">{step.desc}</span>
+                  </span>
+                </li>
               );
             })}
-          </div>
+          </ul>
         </div>
       )}
 
-      {/* High-Impact Diagnostic Result */}
+      {/* Result */}
       {data && (
-        <div className="space-y-6 animate-fade-in" aria-live="polite">
-          <div className="space-y-2">
-            <span className="eyebrow block text-ink/70">
-              DIAGNOSTIC OUTCOME &middot; {data.businessName?.toUpperCase()} ({data.city})
+        <div className="flex flex-col gap-6 animate-fade-in">
+          {/* The verdict carries the colour, so it reads before the detail does. */}
+          <div
+            className={`rounded-lg p-5 md:p-6 ${cited ? 'bg-block-lime' : 'bg-block-pink'}`}
+          >
+            <span className="eyebrow block text-ink">
+              {data.businessName} &middot; {data.city}
             </span>
-            <h3 className="card-title text-xl text-ink">
-              {(data.mentionedCount ?? 0) > 0
-                ? 'Recommended in AI Search Answers'
-                : 'Not Cited in Top AI Recommendations'}
+            <h3 className="card-title mt-2.5 text-ink">
+              {cited
+                ? 'Recommended in AI search answers'
+                : 'Not cited in top AI recommendations'}
             </h3>
-            <p className="body-sm text-ink/80">
-              {data.diagnosticSummary}
-            </p>
+            {data.diagnosticSummary && (
+              <p className="body-sm mt-2.5 text-ink">{data.diagnosticSummary}</p>
+            )}
           </div>
 
-          {/* 3 Clean Market Comparison Tiles */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {/* 1: Entity Status */}
-            <div className="rounded-md border border-hairline bg-surface-soft p-3.5">
-              <span className="eyebrow text-ink/60 block text-[11px]">CITATION STATUS</span>
-              <div className="mt-1.5">
-                {(data.mentionedCount ?? 0) > 0 ? (
-                  <span className="inline-flex items-center gap-1.5 text-ink font-medium">
-                    <span className="size-2 rounded-full bg-[#1ea64a]"></span>
-                    <span className="label text-sm text-ink">Active in AI</span>
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1.5 text-ink font-medium">
-                    <span className="size-2 rounded-full bg-[#b42318]"></span>
-                    <span className="label text-sm text-ink">Displaced</span>
-                  </span>
-                )}
-              </div>
+          <dl className="grid gap-3 sm:grid-cols-3">
+            <div className="min-w-0 rounded-md border border-hairline bg-surface-soft p-3.5">
+              <dt className="eyebrow text-ink">Citation status</dt>
+              <dd className="label mt-2 inline-flex items-center gap-2 text-ink">
+                <span
+                  className={`size-2 shrink-0 rounded-full ${cited ? 'bg-success' : 'bg-destructive'}`}
+                  aria-hidden="true"
+                />
+                {cited ? 'Active in AI' : 'Displaced'}
+              </dd>
             </div>
 
-            {/* 2: Competitor Dominance */}
-            <div className="rounded-md border border-hairline bg-surface-soft p-3.5">
-              <span className="eyebrow text-ink/60 block text-[11px]">COMPETITORS CITED</span>
-              <p className="label text-sm text-ink mt-1.5 line-clamp-1">
+            <div className="min-w-0 rounded-md border border-hairline bg-surface-soft p-3.5">
+              <dt className="eyebrow text-ink">Competitors cited</dt>
+              <dd className="label mt-2 line-clamp-1 text-ink">
                 {data.competitorsFound && data.competitorsFound.length > 0
                   ? data.competitorsFound.slice(0, 2).join(', ')
                   : 'Local competitors'}
-              </p>
+              </dd>
             </div>
 
-            {/* 3: Search Demand */}
-            <div className="rounded-md border border-hairline bg-surface-soft p-3.5">
-              <span className="eyebrow text-ink/60 block text-[11px]">LOCAL SEARCHES</span>
-              <p className="label text-sm text-ink mt-1.5">
-                ~{data.recommendedSearchVolume?.toLocaleString() || '2,500'}/mo
-              </p>
+            <div className="min-w-0 rounded-md border border-hairline bg-surface-soft p-3.5">
+              <dt className="eyebrow text-ink">Local searches</dt>
+              <dd className="label numeric mt-2 text-ink">
+                ~{(data.recommendedSearchVolume ?? 2500).toLocaleString('en-US')}/mo
+              </dd>
             </div>
-          </div>
+          </dl>
 
-          {/* Action Row */}
-          <div className="pt-2 flex flex-col sm:flex-row gap-3">
-            <button
-              onClick={handleGoToCalculator}
-              className={buttonVariants({ variant: 'primary', size: 'md', className: 'flex-1 text-canvas justify-center' })}
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <a
+              href={resultHref}
+              className={buttonVariants({
+                variant: 'primary',
+                size: 'md',
+                className: 'flex-1',
+              })}
             >
-              Calculate Lost Revenue →
-            </button>
+              See what this is costing you
+            </a>
             <button
-              onClick={() => setData(null)}
-              className={buttonVariants({ variant: 'secondary', size: 'md', className: 'justify-center' })}
+              type="button"
+              onClick={handleCheckAnother}
+              className={buttonVariants({ variant: 'secondary', size: 'md' })}
             >
               Check another business
             </button>

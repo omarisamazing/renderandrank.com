@@ -19,20 +19,27 @@ import CtaBanner from '../components/CtaBanner.astro';
 >
   <!--
     Colour-block rhythm, per DESIGN.md: every pastel panel is separated from the
-    next by a white-canvas section, so no two blocks share a viewport.
-      hero (white) → marquee (black) → cream → white → white → lime → white
-      → mint → navy → lime → black
+    next by a white-canvas section, so no two blocks share a viewport, and no
+    block colour repeats down the page.
+
+      hero (white) → marquee (black ribbon) → cream → white → mint → white
+      → lilac → white → white → lime → white → navy
+
+    The order is also the argument: the problem (cream), the three levers
+    (white), the diagnostic (mint), the proof (white), what position four costs
+    (lilac), then the price (white) — so the cost of doing nothing lands
+    immediately before the cost of the work.
   -->
   <HeroSection />
   <LogoMarquee />
   <WedgeComparison />
   <ServicesGrid />
-  <AiCheckerSection />
+  <AiCheckerSection resultHref="#roi-calculator" />
   <PortfolioGrid limit={2} />
-  <AuditForm />
+  <RoiCalculator />
   <PricingSection />
   <FounderSection />
-  <RoiCalculator />
+  <AuditForm />
   <FaqSection />
   <CtaBanner />
 </Layout>

@@ -12,9 +12,15 @@ const guarantees = [
 ];
 ---
 
+<!--
+  Navy, not pure black. DESIGN.md reserves `color-block-navy` for the one dark
+  surface above the footer, which is exactly this slot — and it keeps the closing
+  CTA from being the fourth near-black surface on the home page (the marquee
+  strip, the comparison card and the ROI result card are the others).
+-->
 <Section>
   <div
-    class="color-block color-block--bleed bg-inverse-canvas text-center text-inverse-ink on-inverse md:px-12 md:py-20"
+    class="color-block color-block-navy color-block--bleed text-center on-inverse md:px-12 md:py-20"
     data-reveal-group
   >
     <div class="mx-auto max-w-2xl">

@@ -14,6 +14,12 @@ AI Visibility Checker (free-tier Google Gemini + Cloudflare Workers AI) and conn
 
 ## Done
 
+- **Design System & UI/UX Polish (`DESIGN.md` Alignment)**:
+  - Added `.stat-xl` token in `src/styles/global.css` and gated `animate-fade-in` with `prefers-reduced-motion: no-preference`.
+  - Harmonized homepage pastel color-block rhythm across Hero, Portfolio, AI Diagnostic, and Founder sections.
+  - Polished AI Visibility Checker island: 4-phase scanning progress bar, structured entity diagnostics, and accessible typography.
+  - Polished ROI Calculator: debounced screen-reader live announcements (`role="status"`), accessible `aria-valuetext` on range sliders, cleaned up form legend accessibility, and improved metric hierarchy.
+  - Verified static production build cleanly with 15 routes generated.
 - **Security Review & Hardening**: Remediated stored XSS / attribute breakout vulnerabilities in `/admin` dashboard and email generator via OWASP-compliant `esc()` entity encoding; sanitized `mailto:` links with `formatMailto()`; hardened `/api/track-funnel` with KV rate limiting, input format/size validation, and error shielding; secured `conversationId` header reflection in `/api/chat`; transferred Gemini API key from URL queries to `x-goog-api-key` header with prompt input clamping in `/api/check`; enforced size limits on visitor metadata and booking payloads. Built and verified cleanly with Astro static and SSR compilation.
 - **AI Visibility Checker & Connected Funnel**: Built free-tier AI search diagnostic (`functions/api/check.ts`) using Google Gemini + Cloudflare Workers AI with KV IP rate limiting (3/day) and Turnstile verification; created `AiVisibilityChecker.tsx` interactive island; added `/check` page and homepage section; added `sessionStorage` (`rr_handoff`) contextual banner in `RoiCalculator.tsx`; created `functions/api/track-funnel.ts` and migration `0004_add_funnel_events.sql`; enriched contact form leads with visitor funnel journey. Verified live on local dev server with real Gemini & Llama 3.1 inference and D1 event logging. Docs updated (`ARCHITECTURE.md`, `docs/ai-visibility-checker.md`, `CHANGELOG.md`).
 - Applied migrations 0003 (`0003_add_visitor_metadata.sql`) and 0004 (`0004_add_funnel_events.sql`) to both `--local` and `--remote` D1 databases.

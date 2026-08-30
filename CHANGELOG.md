@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `docs/seo-audit.md` — SEO and site audit snapshot: the OpenSEO MCP toolkit and its credit costs, the site's current SEO surface (routes, JSON-LD graph, `robots.txt`/`llms.txt`, sitemap), 14 catalogued defects with `file:line` references, and a phased improvement plan. Written so the audit does not have to be repeated.
 - **Security & Hardening**:
   - Upgraded HTML escaping across `functions/admin/index.ts` and `functions/api/contact.ts` to full OWASP entity encoding (`&`, `<`, `>`, `"`, `'`) to prevent attribute breakout and stored XSS in the admin dashboard and email templates.
   - Sanitized `mailto:` href attributes with `formatMailto()` to prevent URI control character injection.

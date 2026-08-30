@@ -6,9 +6,16 @@ import { Check, Clock } from '@lucide/astro';
 
 interface Props {
   tone?: 'mint' | 'cream' | 'lime';
+  /**
+   * /check already carries this pitch in its page header, so it suppresses the
+   * left rail and lets the form take the block on its own.
+   */
+  showPitch?: boolean;
+  /** Where the result CTA points. In-page anchor on the home page. */
+  resultHref?: string;
 }
 
-const { tone = 'mint' } = Astro.props;
+const { tone = 'mint', showPitch = true, resultHref } = Astro.props;
 
 const included = [
   'Live search-grounded citation test across major AI models',
@@ -19,40 +26,63 @@ const included = [
 
 <Section id="ai-checker">
   <div class:list={['color-block', `color-block-${tone}`, 'color-block--bleed']}>
-    <div class="grid gap-10 lg:grid-cols-12 lg:gap-14">
-      <!-- Pitch -->
-      <div class="lg:col-span-5" data-reveal-group>
-        <Eyebrow tone="on-block" data-reveal>Free Diagnostic</Eyebrow>
+    {
+      showPitch ? (
+        <div class="grid gap-10 lg:grid-cols-12 lg:gap-14">
+          <!-- Pitch -->
+          <div class="lg:col-span-5" data-reveal-group>
+            <Eyebrow tone="on-block" data-reveal>Free diagnostic</Eyebrow>
 
-        <h2 class="display-md mt-4 text-ink" data-reveal>
-          See if AI is recommending your business
-        </h2>
+            <h2 class="display-md mt-4 text-ink" data-reveal>
+              See if AI is recommending your business
+            </h2>
 
-        <p class="body mt-5 text-ink" data-reveal>
-          When local customers ask ChatGPT, Gemini, or AI assistants for the top provider in your city, does AI cite you or send high-intent buyers to competitors? Run a free 10-second check.
-        </p>
+            <p class="body mt-5 text-ink" data-reveal>
+              When local customers ask ChatGPT, Gemini, or AI assistants for the top
+              provider in your city, does AI cite you or send high-intent buyers to
+              competitors? Run a free 10-second check.
+            </p>
 
-        <ul class="mt-8 flex flex-col gap-3" data-reveal>
-          {
-            included.map((item) => (
-              <li class="flex gap-2.5">
+            <ul class="mt-8 flex flex-col gap-3" data-reveal>
+              {included.map((item) => (
+                <li class="flex gap-2.5">
+                  <Check class="mt-0.5 size-4 shrink-0 text-success" aria-hidden="true" />
+                  <span class="body-sm text-ink">{item}</span>
+                </li>
+              ))}
+            </ul>
+
+            <p class="caption mt-8 inline-flex items-center gap-2 text-ink" data-reveal>
+              <Clock class="size-4 shrink-0" aria-hidden="true" />
+              Real-time live query &middot; instant 10-second results.
+            </p>
+          </div>
+
+          <!-- Checker island -->
+          <div class="lg:col-span-7" data-reveal data-reveal-delay="0.1">
+            <AiVisibilityChecker client:visible resultHref={resultHref} />
+          </div>
+        </div>
+      ) : (
+        <div class="mx-auto max-w-2xl">
+          <div data-reveal>
+            <AiVisibilityChecker client:visible resultHref={resultHref} />
+          </div>
+
+          <!-- The three bullets stay, as a row under the form rather than a rail. -->
+          <ul
+            class="mt-8 flex flex-col gap-3 border-t border-black/10 pt-8 sm:flex-row sm:gap-6"
+            data-reveal
+          >
+            {included.map((item) => (
+              <li class="flex flex-1 gap-2.5">
                 <Check class="mt-0.5 size-4 shrink-0 text-success" aria-hidden="true" />
-                <span class="body-sm text-ink">{item}</span>
+                <span class="caption text-ink">{item}</span>
               </li>
-            ))
-          }
-        </ul>
-
-        <p class="caption mt-8 inline-flex items-center gap-2 text-ink" data-reveal>
-          <Clock class="size-4 shrink-0" aria-hidden="true" />
-          Real-time live query &middot; Instant 10-second results.
-        </p>
-      </div>
-
-      <!-- Checker Form / Results Island -->
-      <div class="lg:col-span-7" data-reveal data-reveal-delay="0.1">
-        <AiVisibilityChecker client:visible />
-      </div>
-    </div>
+            ))}
+          </ul>
+        </div>
+      )
+    }
   </div>
 </Section>

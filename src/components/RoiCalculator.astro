@@ -4,6 +4,13 @@ import Eyebrow from './ui/Eyebrow.astro';
 import { RoiCalculator } from './roi/RoiCalculator';
 import { getLangFromUrl, useTranslations } from "../i18n/utils";
 
+interface Props {
+  /** The calculator page has its own page header, so it suppresses this one. */
+  showHeader?: boolean;
+}
+
+const { showHeader = true } = Astro.props;
+
 const lang = getLangFromUrl(Astro.url);
 const t = useTranslations(lang);
 
@@ -28,18 +35,22 @@ const labels = {
 
 <Section id="roi-calculator">
   <div class="color-block color-block-lilac color-block--bleed">
-    <div class="mx-auto max-w-2xl text-center" data-reveal-group>
-      <Eyebrow tone="on-block" data-reveal>Opportunity estimate</Eyebrow>
-      <h2 class="display-md mt-4 text-ink" data-reveal>
-        What is position four costing you?
-      </h2>
-      <p class="subhead mt-5 text-ink" data-reveal>
-        Most local clicks and nearly every AI recommendation go to the top three.
-        Set your numbers and see the gap.
-      </p>
-    </div>
+    {
+      showHeader && (
+        <div class="mx-auto max-w-2xl text-center" data-reveal-group>
+          <Eyebrow tone="on-block" data-reveal>Opportunity estimate</Eyebrow>
+          <h2 class="display-md mt-4 text-ink" data-reveal>
+            What is position four costing you?
+          </h2>
+          <p class="subhead mt-5 text-ink" data-reveal>
+            Most local clicks and nearly every AI recommendation go to the top three.
+            Set your numbers and see the gap.
+          </p>
+        </div>
+      )
+    }
 
-    <div class="mt-12 md:mt-14" data-reveal>
+    <div class:list={[showHeader && 'mt-12 md:mt-14']} data-reveal>
       <RoiCalculator client:visible labels={labels} />
     </div>
   </div>
