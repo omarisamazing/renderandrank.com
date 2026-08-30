@@ -14,6 +14,7 @@ AI Visibility Checker (free-tier Google Gemini + Cloudflare Workers AI) and conn
 
 ## Done
 
+- **Admin section nav moved into top navbar + temp-file cleanup**: moved the admin panel section navigation (Leads, AI Checker, Conversations, Bookings) into the top navbar, removed the standalone "Sections" heading/nav block, and added section id anchors (`#leads`, `#conversations`, `#bookings`) so navbar links jump to each section (`functions/admin/index.ts`). Untracked temp/context files (`_tmp_slice.txt`, `ctx.txt`) and added `.gitignore` entries so they stay out of git. Docs updated (`CHANGELOG.md`).
 - **Admin dashboard subtitles rewrite + table filters**: reworded the Conversations, AI Checker, and Bookings section subtitles to describe the business decision each supports, and added a search box plus a categorical filter to the Leads (Service), Conversations (Status), and Bookings (Event type) tables, wired by the shared `public/admin-filters.js` client script.
 - **Design System & UI/UX Polish (`DESIGN.md` Alignment)**:
   - Added `.stat-xl` token in `src/styles/global.css` and gated `animate-fade-in` with `prefers-reduced-motion: no-preference`.
@@ -34,6 +35,7 @@ AI Visibility Checker (free-tier Google Gemini + Cloudflare Workers AI) and conn
 
 ## In progress / Next up
 
+- Click through `/admin` in `astro dev` to verify the navbar section links (Leads, AI Checker, Conversations, Bookings) scroll to the right anchors and that Conversations expand/collapse still works. No `tsc`/`astro check` verification available (TypeScript not installed).
 - Set `CALCOM_API_KEY` secret (local `.dev.vars` + remote via `npx wrangler pages secret put CALCOM_API_KEY`) and test a real booking end-to-end.
 - Optional: Set `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` secrets whenever ready to expand to paid ChatGPT / Claude checks.
 

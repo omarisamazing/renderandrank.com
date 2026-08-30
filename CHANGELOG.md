@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Admin section navigation moved into the top navbar** (`functions/admin/index.ts`): the admin panel section links (Leads, AI Checker, Conversations, Bookings) now live in the top navbar; added section id anchors (`#leads`, `#conversations`, `#bookings`) so the navbar links jump directly to each section.
 - **Admin AI-check summary UI & table search/filter** (`functions/admin/index.ts`, `public/admin-ai-filter.js`):
   - KPI stat-card grid summarising the logged AI Visibility Checker runs (total checks, average visibility, invisibility counts).
   - Ranked-list panels with count/score badges and truncated competitor/entity lists (full values on hover).
@@ -30,6 +31,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Server-side visitor metadata capture and the `bookings` table (migration 0003).
 - Bookings section in the admin dashboard.
 - `Cal('preload')` on every site visit (fired from the site-wide `CalScript.astro`) so the booking page/iframe is warmed before the visitor reaches /book-a-call, speeding up the booking page.
+
+### Changed
+
+- **Admin dashboard navigation**: removed the standalone "Sections" heading and its nav block from the admin panel, consolidating section navigation into the top navbar.
+
+### Removed
+
+- Untracked temporary/context files (`_tmp_slice.txt`, `ctx.txt`) and added `.gitignore` entries so they stay out of version control.
 
 ### Changed
 

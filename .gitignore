@@ -56,3 +56,8 @@ tmp_*
 
 # local reference images
 Photos for ai it should not be pushed in git/
+
+# local temp/context files
+_tmp_slice.txt
+ctx.txt
+*_tmp_*.txt
