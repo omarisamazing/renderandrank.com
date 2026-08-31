@@ -1,0 +1,6 @@
+
+> renderandrank.com@0.0.1 typecheck
+> astro check && tsc --noEmit
+
+[2m18:50:54[22m [34m[types][39m Generated [2m7.93s[22m
+[2m18:50:54[22m [34m[check][39m Getting diagnostics for Astro files in D:\Omar's Saved\OpenCode\renderandrank.com...

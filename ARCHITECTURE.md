@@ -190,6 +190,32 @@ is persisted as a `conversations` row with its turns in `messages`. When the
 visitor provides an email, the lead is emailed and recorded into
 `submissions`. Requests are rate limited via the `RATE_LIMIT` KV namespace.
 
+### (i-a) ChatWidget voice mode (Gemini Live)
+
+The vanilla-JS Astro ChatWidget adds a **Type / Talk toggle**. The typed path
+(text over SSE against `/api/chat`) is unchanged; switching to **Talk** starts a
+live, spoken conversation with the Gemini Live model while reusing the same
+conversation id and transcript storage.
+
+- **Mic capture (AudioWorklet).** `public/voice-capture-worklet.js` runs off the
+  main thread, resampling the microphone stream to **16 kHz** and emitting
+  **16-bit little-endian PCM** frames for upstream transmission.
+- **Session state machine (`src/lib/voiceSession.ts`).** A small state machine
+  drives the lifecycle: `idle → requesting-token → connecting → live →
+  closing/error`. It first fetches an ephemeral token from `/api/voice-token`
+  (see (i-b)), then opens the constrained Gemini Live WebSocket
+  (`BidiGenerateContentConstrained`, model
+  `gemini-2.5-flash-native-audio-preview-09-2025`). It streams the captured
+  base64-encoded PCM audio **up** to Gemini and plays the returned **24 kHz
+  PCM16** audio **back**, flushing the playback buffer on interruption for
+  **barge-in** (the visitor can talk over the assistant).
+- **Transcript beacon.** Finalized turns are POSTed to `/api/voice-transcript`
+  with `channel = 'voice'` (see (i-c)), so voice turns are persisted alongside
+  typed turns in the same `messages` table.
+- **Teardown.** Ending voice mode performs a full teardown: it closes the
+  WebSocket, stops the microphone tracks, and closes the capture and playback
+  `AudioContext`s so no mic or audio resources leak.
+
 ### (i-b) Voice assistant token minting
 
 The browser voice assistant obtains a short-lived Gemini Live token by POSTing

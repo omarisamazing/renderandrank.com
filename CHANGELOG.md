@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **ChatWidget voice mode (Gemini Live)**: added a **Type / Talk toggle** to the vanilla-JS Astro ChatWidget; the existing typed text/SSE path (`/api/chat`) is unchanged. **Talk** mode captures the microphone via an AudioWorklet (`public/voice-capture-worklet.js`) that resamples to 16 kHz, 16-bit LE PCM. A `src/lib/voiceSession.ts` state machine (`idle → requesting-token → connecting → live → closing/error`) fetches an ephemeral token from `/api/voice-token`, opens the constrained Gemini Live WebSocket (model `gemini-2.5-flash-native-audio-preview-09-2025`), streams base64 PCM audio up, and plays 24 kHz PCM16 audio back with barge-in flush on interruption. Finalized turns are beaconed to `/api/voice-transcript` with `channel = 'voice'`. Ending voice mode performs a full teardown: closes the WebSocket, stops the mic tracks, and closes the capture/playback `AudioContext`s.
+
 ### Changed
 
 - **Security headers for browser voice (`public/_headers`)**: extended the site-wide Content-Security-Policy `connect-src` directive to allow the Gemini Live WebSocket (`connect-src 'self' https://app.cal.com wss://generativelanguage.googleapis.com`) so the in-browser voice assistant can open its BidiGenerateContent connection, and changed `Permissions-Policy` from `microphone=()` to `microphone=(self)` to allow same-origin microphone access for the voice feature. `camera=()` and `geolocation=()` and all other CSP directives are unchanged.

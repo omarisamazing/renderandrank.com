@@ -2,8 +2,8 @@
 > renderandrank.com@0.0.1 typecheck
 > astro check && tsc --noEmit
 
-[2m17:47:21[22m [34m[types][39m Generated [2m800ms[22m
-[2m17:47:21[22m [34m[check][39m Getting diagnostics for Astro files in D:\Omar's Saved\OpenCode\renderandrank.com...
+[2m18:43:45[22m [34m[types][39m Generated [2m6.02s[22m
+[2m18:43:45[22m [34m[check][39m Getting diagnostics for Astro files in D:\Omar's Saved\OpenCode\renderandrank.com...
 [96msrc/components/AiVisibilityChecker.tsx[0m:[93m118[0m:[93m40[0m - [93mwarning[0m[90m ts(6385): [0m'FormEvent' is deprecated.
 
 [7m118[0m   async function handleSubmit(e: React.FormEvent) {

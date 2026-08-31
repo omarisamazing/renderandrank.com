@@ -1,0 +1,12 @@
+﻿Microsoft Windows [Version 10.0.26200.9168]
+(c) Microsoft Corporation. All rights reserved.D:\Omar's Saved\OpenCode\renderandrank.com>git add -A && git commit -m "Scaffold ChatWidget voice mode (Gemini Live, vanilla JS)" 2>&1 & git log --oneline -1 2>&1 & echo "===STATUS===" & git status --porcelain 2>&1
+warning: in the working copy of 'tc.log', LF will be replaced by CRLF the next time Git touches it
+[master 4da0b4b] Scaffold ChatWidget voice mode (Gemini Live, vanilla JS)
+ 4 files changed, 957 insertions(+), 5 deletions(-)
+ create mode 100644 public/voice-capture-worklet.js
+ create mode 100644 src/lib/voiceSession.ts
+ create mode 100644 tc.log
+=>4da0b4b (HEAD -> master) Scaffold ChatWidget voice mode (Gemini Live, vanilla JS)
+"===STATUS===" 
+
+
