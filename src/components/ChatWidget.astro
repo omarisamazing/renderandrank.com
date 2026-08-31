@@ -103,6 +103,18 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
       aria-relevant="additions text"
     ></div>
 
+    <!-- Talk-mode message surface. Kept parallel to (and separate from)
+         #rr-chat-log so voice/Talk transcripts never bleed into the Text
+         chat. Only one of the two logs is visible at a time (toggled in
+         switchMode); hidden by default since Type is the default mode. -->
+    <div
+      id="rr-chat-voicelog"
+      class="rr-chat__log rr-chat__log--hidden"
+      role="log"
+      aria-live="polite"
+      aria-relevant="additions text"
+    ></div>
+
     <!-- Prominent voice status bar: shown while a voice session is connecting
          or live. Animated equalizer + label + a Stop button to end voice.
          Rendered at the BOTTOM of the panel (below the message log, above the
@@ -527,6 +539,13 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
     background-color: var(--color-canvas, #fff);
   }
 
+  /* Only one message surface (#rr-chat-log or #rr-chat-voicelog) is visible at
+     a time — switchMode toggles this class so the two logs never stack or
+     overlap. Use display:none so the hidden log takes no layout space. */
+  .rr-chat__log--hidden {
+    display: none;
+  }
+
   :global(.rr-chat__msg) {
     max-width: 85%;
     padding: 0.625rem 0.875rem;
@@ -716,6 +735,9 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
   const panel = document.getElementById('rr-chat-panel') as HTMLElement | null;
   const closeBtn = document.getElementById('rr-chat-close') as HTMLButtonElement | null;
   const log = document.getElementById('rr-chat-log');
+  // Separate Talk-mode message surface so voice transcripts never bleed into
+  // the Text chat log. Only one of the two is visible at a time (switchMode).
+  const voicelog = document.getElementById('rr-chat-voicelog');
   const form = document.getElementById('rr-chat-form') as HTMLFormElement | null;
   const input = document.getElementById('rr-chat-input') as HTMLTextAreaElement | null;
   const sendBtn = document.getElementById('rr-chat-send') as HTMLButtonElement | null;
@@ -730,18 +752,33 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
   const greeting = document.getElementById('rr-chat-greeting') as HTMLElement | null;
   const greetingCloseBtn = document.getElementById('rr-chat-greeting-close') as HTMLButtonElement | null;
 
-  if (root && launcher && panel && closeBtn && log && form && input && sendBtn && modes && modeTypeBtn && modeTalkBtn) {
+  if (root && launcher && panel && closeBtn && log && voicelog && form && input && sendBtn && modes && modeTypeBtn && modeTalkBtn) {
+    // Scroll whichever log is currently active to the bottom. Type mode uses
+    // #rr-chat-log; Talk mode uses #rr-chat-voicelog.
     function scrollToBottom() {
-      log!.scrollTop = log!.scrollHeight;
+      const active = currentMode === 'talk' && voicelog ? voicelog : log!;
+      active.scrollTop = active.scrollHeight;
     }
 
-    function addBubble(role: 'user' | 'assistant' | 'error', text: string): HTMLElement {
+    // Generic bubble creator: appends into an explicit container so text and
+    // voice transcripts can live in separate surfaces.
+    function addBubbleTo(
+      container: HTMLElement,
+      role: 'user' | 'assistant' | 'error',
+      text: string
+    ): HTMLElement {
       const el = document.createElement('div');
       el.className = 'rr-chat__msg rr-chat__msg--' + role;
       el.textContent = text;
-      log!.appendChild(el);
+      container.appendChild(el);
       scrollToBottom();
       return el;
+    }
+
+    // Text-mode bubbles (greeting / typed chat / text errors) always go to the
+    // Text chat log.
+    function addBubble(role: 'user' | 'assistant' | 'error', text: string): HTMLElement {
+      return addBubbleTo(log!, role, text);
     }
 
     // Ready-made starter questions shown on first open, rendered as simple
@@ -991,10 +1028,17 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
       modeTalkBtn!.setAttribute('aria-selected', !isType ? 'true' : 'false');
       // Hide the text composer while talking; it stays available in Type mode.
       form!.style.display = isType ? '' : 'none';
+      // Segregate the message surface: show only the active mode's log so
+      // Talk transcripts and Text chat never stack or overlap.
+      log!.classList.toggle('rr-chat__log--hidden', !isType);
+      voicelog?.classList.toggle('rr-chat__log--hidden', isType);
     }
 
     function renderUserTranscript(text: string, final: boolean) {
-      if (!liveUserEl) liveUserEl = addBubble('user', text);
+      // Voice transcripts go to the Talk-only surface (#rr-chat-voicelog),
+      // never the shared Text chat log.
+      const target = voicelog ?? log!;
+      if (!liveUserEl) liveUserEl = addBubbleTo(target, 'user', text);
       else {
         liveUserEl.textContent = text;
         scrollToBottom();
@@ -1003,7 +1047,8 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
     }
 
     function renderAssistantTranscript(text: string, final: boolean) {
-      if (!liveAssistantEl) liveAssistantEl = addBubble('assistant', text);
+      const target = voicelog ?? log!;
+      if (!liveAssistantEl) liveAssistantEl = addBubbleTo(target, 'assistant', text);
       else {
         liveAssistantEl.textContent = text;
         scrollToBottom();
@@ -1062,6 +1107,9 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
       setVoiceUI('idle');
       liveUserEl = null;
       liveAssistantEl = null;
+      // Clear the Talk-only transcript surface so a fresh Talk session (or a
+      // later view) doesn't show stale voice bubbles.
+      if (voicelog) voicelog.textContent = '';
       if (voice) {
         voice.stop();
         voice = null;
@@ -1071,7 +1119,11 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
     function switchMode(mode: 'type' | 'talk') {
       if (mode === currentMode) return;
       currentMode = mode;
+      // selectModeButton toggles the visible message surface so only the active
+      // mode's log shows (Type → #rr-chat-log, Talk → #rr-chat-voicelog).
       selectModeButton(mode);
+      // Keep the now-active log scrolled to the latest message.
+      scrollToBottom();
       if (mode === 'talk') startVoice();
       else stopVoice();
     }

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Omli chat: Talk voice transcripts no longer overlap the Text chat** (`src/components/ChatWidget.astro`): voice transcripts now render in a separate `#rr-chat-voicelog` surface, and `switchMode` shows only the active mode's log so Talk and Text messages never stack.
+
 ### Changed
 
 - **Omli chat widget UX polish** (`src/components/ChatWidget.astro`, `src/lib/voiceSession.ts`):
