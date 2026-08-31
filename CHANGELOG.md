@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Security headers for browser voice (`public/_headers`)**: extended the site-wide Content-Security-Policy `connect-src` directive to allow the Gemini Live WebSocket (`connect-src 'self' https://app.cal.com wss://generativelanguage.googleapis.com`) so the in-browser voice assistant can open its BidiGenerateContent connection, and changed `Permissions-Policy` from `microphone=()` to `microphone=(self)` to allow same-origin microphone access for the voice feature. `camera=()` and `geolocation=()` and all other CSP directives are unchanged.
+
 ### Added
 
 - **`/api/voice-transcript` — voice transcript persistence endpoint** (`functions/api/voice-transcript.ts`) + **migration `0005_add_messages_channel.sql`**: POST-only Pages Function that persists finalized transcript turns from a running Gemini Live voice session (minted via `/api/voice-token`) into the same D1 `messages` table used by the typed chat, tagged with `channel = 'voice'`. Accepts `{ conversationId, channel, role, text, final }`; requires a non-empty `conversationId` and `text`, validates `role ∈ {'user','assistant'}` (all `400` otherwise), and defaults `channel` to `'voice'`. Interim turns (`final === false`) are skipped without a write (`{ ok: true, skipped: true }`); finalized turns are inserted exactly as `chat.ts` writes them (`id = crypto.randomUUID()`, `conversation_id`, `role`, `content = text`, `channel`) and then bump `conversations.updated_at`, returning `{ ok: true, id }`. Rate limited via the `RATE_LIMIT` KV namespace under an `rl:voice-transcript:` scope. Migration `0005` adds the `channel` column to `messages` (`TEXT NOT NULL DEFAULT 'text'`) so existing text turns and callers are unaffected; `chat.ts`'s `insertMessage` now records `channel` (defaulting to `'text'`).

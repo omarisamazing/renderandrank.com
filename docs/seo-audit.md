@@ -232,7 +232,10 @@ in one. It is currently one nav item, with no `SoftwareApplication` schema and n
 ### Already good — do not "fix" these
 
 Font subsetting with explicit `unicode-range` (`Layout.astro:18-38`); the `public/_headers`
-security posture; the AI-crawler allowlist in `robots.txt`; both `llms.txt` files;
+security posture (CSP `connect-src` now allows the Gemini Live WebSocket
+`wss://generativelanguage.googleapis.com`, and `Permissions-Policy` grants same-origin
+microphone `microphone=(self)` for the browser voice assistant; all other directives
+unchanged); the AI-crawler allowlist in `robots.txt`; both `llms.txt` files;
 `prefetchAll`; the skip link; the disciplined color-block rhythm.
 
 ---
