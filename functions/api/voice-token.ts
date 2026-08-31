@@ -10,10 +10,14 @@
  *   3. Reuse the client's conversationId if supplied and valid; otherwise mint
  *      a new one and persist a conversation row (mirrors chat.ts persistence).
  *   4. Exchange the server-side GEMINI_API_KEY for a short-lived ephemeral
- *      token via Google's auth_tokens endpoint. The API key never touches the
- *      browser — only the ephemeral token does.
+ *      token via Google's v1alpha auth_tokens endpoint (the ephemeral-token
+ *      API only lives on v1alpha) using a `liveConnectConstraints` body. The
+ *      API key never touches the browser — only the ephemeral token does.
+ *      Any non-OK upstream Google response is logged AND returned (status +
+ *      body) so the exact cause (bad key / unknown model / bad shape) is
+ *      visible instead of being swallowed.
  *   5. Return the token, conversationId, expiry, and a constrained BidiGenerate
- *      WebSocket URL the browser can open directly.
+ *      WebSocket URL (on the v1beta service path) the browser can open directly.
  *
  * Bindings (configured in wrangler.toml):
  *   DB              (optional) — Cloudflare D1 database. When unbound the token
@@ -22,6 +26,9 @@
  *                                rate limiting is skipped.
  *   GEMINI_API_KEY  (required) — Gemini API key secret. When unset the endpoint
  *                                returns 500.
+ *
+ * Error responses share the shape { ok: false, error, detail?, upstreamStatus? }
+ * so the browser client can log the exact upstream Google failure.
  */
 
 import { getVisitorMetadata, type VisitorMetadata } from '../lib/visitor';
@@ -43,7 +50,7 @@ interface VoiceTokenBody {
 // Gemini Live model + connect constraints baked into the ephemeral token.
 const GEMINI_MODEL = 'models/gemini-2.5-flash-native-audio-preview-09-2025';
 const GEMINI_AUTH_TOKENS_ENDPOINT =
-  'https://generativelanguage.googleapis.com/v1beta/auth_tokens';
+  'https://generativelanguage.googleapis.com/v1alpha/auth_tokens';
 
 // Token lifetime: usable for 30 minutes; a new session may be opened within 1 minute.
 const TOKEN_EXPIRE_MS = 30 * 60 * 1000;
@@ -236,29 +243,52 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   }
 
   if (!tokenResponse.ok) {
+    // Read Google's error body so the exact upstream cause (bad key, unknown
+    // model, malformed liveConnectConstraints, etc.) is logged AND returned to
+    // the caller instead of being swallowed behind a generic message.
     const detail = await tokenResponse.text().catch(() => '');
+    const trimmedDetail = detail.slice(0, 1000);
     console.error(
-      'Gemini auth_tokens returned ' + tokenResponse.status,
-      detail.slice(0, 500)
+      'Gemini auth_tokens returned HTTP ' +
+        tokenResponse.status +
+        ' ' +
+        tokenResponse.statusText,
+      trimmedDetail
     );
     return json(
       {
         ok: false,
         error: 'Failed to mint a voice token.',
-        detail: detail.slice(0, 500),
+        upstreamStatus: tokenResponse.status,
+        detail: trimmedDetail,
       },
-      tokenResponse.status
+      // Normalize any upstream status into a valid HTTP status; some Google
+      // errors (e.g. 4xx auth) shouldn't be echoed as a raw client status the
+      // browser fetch can't interpret, so clamp to 502 for non-standard codes.
+      tokenResponse.status >= 400 && tokenResponse.status <= 599
+        ? tokenResponse.status
+        : 502
     );
   }
 
-  const tokenData = (await tokenResponse.json().catch(() => ({}))) as { name?: string };
+  const tokenText = await tokenResponse.text().catch(() => '');
+  let tokenData: { name?: string } = {};
+  try {
+    tokenData = tokenText ? (JSON.parse(tokenText) as { name?: string }) : {};
+  } catch {
+    /* fall through; missing name is handled below. */
+  }
   const name = tokenData.name;
   if (!name) {
-    console.error('Gemini auth_tokens response missing `name` field');
+    console.error(
+      'Gemini auth_tokens response missing `name` field',
+      tokenText.slice(0, 500)
+    );
     return json(
       {
         ok: false,
         error: 'Failed to mint a voice token.',
+        detail: tokenText.slice(0, 500),
       },
       502
     );

@@ -221,19 +221,34 @@ conversation id and transcript storage.
 The browser voice assistant obtains a short-lived Gemini Live token by POSTing
 to `/api/voice-token` (`functions/api/voice-token.ts`). The endpoint keeps the
 server-side `GEMINI_API_KEY` secret out of the browser: it exchanges the key for
-an ephemeral token via Google's `auth_tokens` endpoint
-(`https://generativelanguage.googleapis.com/v1beta/auth_tokens`, `x-goog-api-key`
-header), constrained to `models/gemini-2.5-flash-native-audio-preview-09-2025`
+an ephemeral token via Google's **v1alpha** `auth_tokens` endpoint
+(`https://generativelanguage.googleapis.com/v1alpha/auth_tokens`, `x-goog-api-key`
+header — the ephemeral-token API is only exposed on v1alpha) with a
+`liveConnectConstraints` request body, constrained to
+`models/gemini-2.5-flash-native-audio-preview-09-2025`
 with an AUDIO response modality plus input/output transcription. The token is
 minted with `uses: 1`, a 30-minute `expireTime`, and a 1-minute
 `newSessionExpireTime`. The optional request body may carry a `conversationId`
 to reuse; otherwise a new id is minted and a best-effort `conversations` row is
 inserted (same helper/columns as the chat flow). On success it returns
 `{ ok, token, conversationId, expireTime, wssUrl }`, where `wssUrl` is the
-constrained `BidiGenerateContentConstrained` WebSocket URL with the ephemeral
-token as `access_token`, ready for the browser to open directly. Requests are
-rate limited via the `RATE_LIMIT` KV namespace under an `rl:voice-token:` scope;
-a missing `GEMINI_API_KEY` returns a 500 JSON error.
+constrained `BidiGenerateContentConstrained` WebSocket URL (on the v1beta
+service path) with the ephemeral token as `access_token`, ready for the browser
+to open directly. Requests are rate limited via the `RATE_LIMIT` KV namespace
+under an `rl:voice-token:` scope; a missing `GEMINI_API_KEY` returns a 500 JSON
+error.
+
+**Error surfacing.** When Google's `auth_tokens` call returns a non-OK status,
+the endpoint reads the upstream body and logs **and returns** it as
+`{ ok: false, error, detail, upstreamStatus }` (rather than swallowing it behind
+a generic message), so the exact upstream cause — bad key, unknown model, or a
+malformed `liveConnectConstraints` shape — is visible; a 2xx response missing the
+token `name` likewise returns the raw body as `detail`. Client-side,
+`requestToken()` in `voiceSession.ts` reads the response status + body and
+logs/throws the precise server (and upstream Google) error instead of only the
+HTTP status, and the WebSocket handler logs `close` code/reason and `error`
+events (rejecting a pre-open close with its code) so a bad/expired token is
+distinguishable from a bad model name.
 
 ### (i-c) Voice transcript persistence
 

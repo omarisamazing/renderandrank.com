@@ -5,8 +5,11 @@
  * existing vanilla-JS widget conventions (no framework, no external deps):
  *
  *   1. POST /api/voice-token to mint a single-use ephemeral token + wssUrl.
+ *      On failure the server's response body (including any upstream Google
+ *      error) is read and logged rather than swallowed behind the status code.
  *   2. Open a WebSocket to wssUrl and send the Gemini Live `setup` message;
- *      wait for `setupComplete`.
+ *      wait for `setupComplete`. WebSocket close code + reason and error
+ *      events are logged so the exact failure (bad token vs. bad model) shows.
  *   3. Capture the mic through an AudioWorklet (public/voice-capture-worklet.js),
  *      which resamples to 16 kHz PCM16; base64-encode chunks and send them as
  *      realtimeInput.audio (mimeType audio/pcm;rate=16000).
@@ -49,6 +52,10 @@ interface VoiceTokenResponse {
   expireTime?: string;
   wssUrl?: string;
   error?: string;
+  /** Upstream Google error body echoed by the server on failure. */
+  detail?: string;
+  /** Upstream Google HTTP status echoed by the server on failure. */
+  upstreamStatus?: number;
 }
 
 const CID_KEY = 'rr_chat_cid';
@@ -140,11 +147,14 @@ export class VoiceSession {
     let tokenData: VoiceTokenResponse;
     try {
       tokenData = await this.requestToken();
-    } catch {
+    } catch (err) {
+      // requestToken already logged the status + body; keep the console trace.
+      console.error('[voice] start() aborted: token minting failed', String(err));
       this.fail('Could not start the voice session. Please try again in a moment.');
       return;
     }
     if (!tokenData.wssUrl) {
+      console.error('[voice] token response had no wssUrl', tokenData);
       this.fail('The voice service is unavailable right now. Please try again later.');
       return;
     }
@@ -164,7 +174,9 @@ export class VoiceSession {
     this.setState('connecting');
     try {
       await this.openSocket(tokenData.wssUrl);
-    } catch {
+    } catch (err) {
+      // openSocket's onclose logs the exact WebSocket close code/reason.
+      console.error('[voice] WebSocket failed to open', String(err));
       this.fail('Lost connection to the voice service. Please try again.');
       return;
     }
@@ -172,7 +184,8 @@ export class VoiceSession {
     // 4) Start streaming the mic once setup completes.
     try {
       await this.startMicCapture();
-    } catch {
+    } catch (err) {
+      console.error('[voice] mic capture failed to start', String(err));
       this.fail('Could not access the microphone stream. Please try again.');
       return;
     }
@@ -206,8 +219,32 @@ export class VoiceSession {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
-    if (!res.ok) throw new Error('token request failed: ' + res.status);
-    return (await res.json()) as VoiceTokenResponse;
+
+    // Read the body regardless of status so we can surface the exact server
+    // (and upstream Google) error instead of just the HTTP status code.
+    const raw = await res.text().catch(() => '');
+    let parsed: VoiceTokenResponse = {};
+    if (raw) {
+      try {
+        parsed = JSON.parse(raw) as VoiceTokenResponse;
+      } catch {
+        /* non-JSON body; keep parsed empty and fall back to raw text below. */
+      }
+    }
+
+    if (!res.ok || parsed.ok === false) {
+      const detail =
+        parsed.detail ||
+        parsed.error ||
+        raw.slice(0, 500) ||
+        '(empty response body)';
+      const upstream =
+        parsed.upstreamStatus !== undefined ? ' (Google HTTP ' + parsed.upstreamStatus + ')' : '';
+      console.error('[voice] token request failed: HTTP ' + res.status + upstream, detail);
+      throw new Error('token request failed: ' + res.status + upstream + ' — ' + detail);
+    }
+
+    return parsed;
   }
 
   // ---- Step 2: WebSocket + setup handshake --------------------------------
@@ -222,21 +259,45 @@ export class VoiceSession {
       ws.onopen = () => {
         opened = true;
         // The very first frame must be the setup message.
-        ws.send(JSON.stringify(SETUP_MESSAGE));
+        try {
+          ws.send(JSON.stringify(SETUP_MESSAGE));
+        } catch (sendErr) {
+          console.error('[voice] failed to send setup frame', String(sendErr));
+        }
         // Resolve on open; setupComplete is awaited passively in onmessage.
         resolve();
       };
 
       ws.onmessage = (event) => {
-        this.handleServerMessage(event.data);
+        void this.handleServerMessage(event.data);
       };
 
       ws.onerror = () => {
+        // The WebSocket error event carries no useful detail per spec; the
+        // real cause (bad token vs. bad model) arrives in the onclose code +
+        // reason below, which we log there.
+        console.error('[voice] WebSocket error event (see close code/reason for cause)');
         if (!opened) reject(new Error('socket error before open'));
         else this.cb.onError?.('The voice connection hit an error.');
       };
 
-      ws.onclose = () => {
+      ws.onclose = (event) => {
+        // Log the exact close code + reason so we can tell a bad/expired token
+        // (Gemini closes 1008 / 1011 with an auth reason) apart from a bad
+        // model name or other setup rejection.
+        console.error(
+          '[voice] WebSocket closed: code=' +
+            event.code +
+            ' reason=' +
+            (event.reason || '(none)') +
+            ' wasClean=' +
+            event.wasClean
+        );
+        // If it closes before it ever opened, reject so start() surfaces it.
+        if (!opened) {
+          reject(new Error('socket closed before open (code ' + event.code + ')'));
+          return;
+        }
         // A close after we're live means the turn/session ended.
         if (this.state === 'live' || this.state === 'connecting') {
           this.setState('closing');

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Gemini Live voice: ephemeral token endpoint + error surfacing**. `functions/api/voice-token.ts` now mints the ephemeral token against Google's **v1alpha** `auth_tokens` endpoint (`https://generativelanguage.googleapis.com/v1alpha/auth_tokens`) using a `liveConnectConstraints` body; the WebSocket connection itself still uses the v1beta `BidiGenerateContentConstrained` path with the token as the `access_token` query param. On a non-OK upstream response the endpoint now logs **and returns** the Google error (status + body) as `{ ok:false, error, detail, upstreamStatus }` instead of a generic message, and a 2xx response missing the token `name` returns the raw body as `detail`. Client-side, `src/lib/voiceSession.ts` `requestToken()` reads the response status + body and logs/throws the exact server (and upstream Google) error rather than only the HTTP status; WebSocket `close` code/reason and `error` events are logged, a close before open now rejects with its close code, and the token/socket/mic failure paths log details so a bad token vs. a bad model name is distinguishable.
+
 ### Added
 
 - **ChatWidget voice mode (Gemini Live)**: added a **Type / Talk toggle** to the vanilla-JS Astro ChatWidget; the existing typed text/SSE path (`/api/chat`) is unchanged. **Talk** mode captures the microphone via an AudioWorklet (`public/voice-capture-worklet.js`) that resamples to 16 kHz, 16-bit LE PCM. A `src/lib/voiceSession.ts` state machine (`idle → requesting-token → connecting → live → closing/error`) fetches an ephemeral token from `/api/voice-token`, opens the constrained Gemini Live WebSocket (model `gemini-2.5-flash-native-audio-preview-09-2025`), streams base64 PCM audio up, and plays 24 kHz PCM16 audio back with barge-in flush on interruption. Finalized turns are beaconed to `/api/voice-transcript` with `channel = 'voice'`. Ending voice mode performs a full teardown: closes the WebSocket, stops the mic tracks, and closes the capture/playback `AudioContext`s.
