@@ -59,5 +59,10 @@ Photos for ai it should not be pushed in git/
 
 # local temp/context files
 _tmp_slice.txt
+astro_check_result.txt
+check.out.txt
+tc2-summary.txt
+tsc.out.txt
+tsc_result.txt
 ctx.txt
 *_tmp_*.txt
