@@ -10,10 +10,11 @@
 
 ## Current status
 
-AI Visibility Checker (free-tier Google Gemini + Cloudflare Workers AI) and connected conversion funnel implemented, fully verified in local development with live queries, and migrations 0003 & 0004 applied to both local and remote D1 databases. `GEMINI_API_KEY` secret is active.
+AI Visibility Checker (free-tier Google Gemini + Cloudflare Workers AI) and connected conversion funnel implemented, fully verified in local development with live queries, and migrations 0003 & 0004 applied to both local and remote D1 databases. `GEMINI_API_KEY` secret is active. The voice assistant now has both a token endpoint (`/api/voice-token`) and a transcript-persistence endpoint (`/api/voice-transcript`); migration 0005 (adds `messages.channel`) is created but NOT yet applied — see "Unapplied migrations / manual steps".
 
 ## Done
 
+- **Voice transcript persistence endpoint + `messages.channel` migration**: added `functions/api/voice-transcript.ts` (POST-only, verb-guarded like `voice-token.ts`) that validates `{ conversationId, channel, role, text, final }`, skips interim turns (`final === false` → `{ ok: true, skipped: true }`), and persists finalized turns into the D1 `messages` table exactly as `chat.ts` writes them (tagged `channel = 'voice'`) before bumping `conversations.updated_at`; rate limited via KV under an `rl:voice-transcript:` scope. Added migration `0005_add_messages_channel.sql` (`ALTER TABLE messages ADD COLUMN channel TEXT NOT NULL DEFAULT 'text'`); `chat.ts`'s `insertMessage` already records `channel` (defaulting to `'text'`). Docs updated (`ARCHITECTURE.md`, `docs/ai-chat.md`, `CHANGELOG.md`).
 - **Type fixes + `typecheck` script now working**: fixed the invalid `Button variant="outline"` in `src/components/ui/dialog.tsx` (`DialogFooter` Close button) to `variant="secondary"`, clearing the TS2322 error. Pinned TypeScript back to stable 5.x (`^5.6.0`, installed 5.9.3) and kept `tsconfig.json` `baseUrl "."` + `paths {"@/*":["./src/*"]}` so `tsc --noEmit` runs (no TS5102). Installed `@astrojs/check` and added a `typecheck` npm script (`astro check && tsc --noEmit`). Verified: `astro check` → 0 errors, 0 warnings, 13 hints; `tsc --noEmit` → exit 0.
 - **Admin section nav moved into top navbar + temp-file cleanup**: moved the admin panel section navigation (Leads, AI Checker, Conversations, Bookings) into the top navbar, removed the standalone "Sections" heading/nav block, and added section id anchors (`#leads`, `#conversations`, `#bookings`) so navbar links jump to each section (`functions/admin/index.ts`). Untracked temp/context files (`_tmp_slice.txt`, `ctx.txt`) and added `.gitignore` entries so they stay out of git. Docs updated (`CHANGELOG.md`).
 - **Admin dashboard subtitles rewrite + table filters**: reworded the Conversations, AI Checker, and Bookings section subtitles to describe the business decision each supports, and added a search box plus a categorical filter to the Leads (Service), Conversations (Status), and Bookings (Event type) tables, wired by the shared `public/admin-filters.js` client script.
@@ -36,12 +37,16 @@ AI Visibility Checker (free-tier Google Gemini + Cloudflare Workers AI) and conn
 
 ## In progress / Next up
 
+- **Apply migration `0005_add_messages_channel.sql` to both local and remote D1** (see "Unapplied migrations / manual steps" below) so the new `channel` column exists before `/api/voice-transcript` and the updated `chat.ts` `insertMessage` run against those databases.
 - Click through `/admin` in `astro dev` to verify the navbar section links (Leads, AI Checker, Conversations, Bookings) scroll to the right anchors and that Conversations expand/collapse still works. Type/diagnostic verification is now available via `npm run typecheck` (`astro check && tsc --noEmit`).
 - Set `CALCOM_API_KEY` secret (local `.dev.vars` + remote via `npx wrangler pages secret put CALCOM_API_KEY`) and test a real booking end-to-end.
 - Optional: Set `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` secrets whenever ready to expand to paid ChatGPT / Claude checks.
 
 ## Unapplied migrations / manual steps
 
-- None. All migrations (0001–0004) are applied to both local and remote D1 databases.
+- **`0005_add_messages_channel.sql`** — adds the `channel TEXT NOT NULL DEFAULT 'text'` column to `messages`. NOT yet applied. Apply to **both** local and remote D1:
+  - `npm run db:migrate:local`
+  - `npm run db:migrate:remote`
+- Migrations 0001–0004 are applied to both local and remote D1 databases.
 
 

@@ -65,6 +65,37 @@ Failure modes: a missing `GEMINI_API_KEY` returns a 500 JSON error; a non-OK
 upstream response is surfaced with the sanitized Google error text and the
 upstream status.
 
+## Voice transcript (`/api/voice-transcript`)
+
+- **Endpoint:** `functions/api/voice-transcript.ts`
+
+Persists finalized transcript turns from a running Gemini Live voice session
+(minted via `/api/voice-token`) into the same `messages` table used by the typed
+chat, tagged with `channel = 'voice'`.
+
+Responsibilities:
+
+- **POST only** (verb-guarded, mirroring `voice-token.ts` / `chat.ts`);
+  `OPTIONS` returns 204, other verbs return 405.
+- Accepts a JSON body `{ conversationId, channel, role, text, final }`.
+- Validates the input: `conversationId` and `text` must be non-empty and `role`
+  must be `'user'` or `'assistant'` (each returns a `400` otherwise). `channel`
+  defaults to `'voice'`.
+- **Interim turns are skipped:** when `final === false` the endpoint returns
+  `{ ok: true, skipped: true }` without writing anything. Only finalized turns
+  are persisted.
+- Persists a finalized turn as a `messages` row exactly as `chat.ts` writes them
+  (`id = crypto.randomUUID()`, `conversation_id`, `role`, `content = text`,
+  `channel`), then bumps the conversation's `updated_at`
+  (`UPDATE conversations SET updated_at = datetime('now') WHERE id = ?`).
+- Persistence is best-effort and skipped when the `DB` binding is unbound.
+- Rate-limited via KV using the `RATE_LIMIT` namespace under an
+  `rl:voice-transcript:` scope (separate from `rl:voice-token:` and `rl:chat:`).
+- Returns `{ ok: true, id }` on a persisted turn.
+
+The `channel` column that distinguishes voice turns from text turns is added by
+**migration 0005** (`0005_add_messages_channel.sql`, `NOT NULL DEFAULT 'text'`).
+
 ## Retention and privacy
 
 - Chat logs are retained to support follow-up and are deleted on request.

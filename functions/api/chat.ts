@@ -119,22 +119,33 @@ async function insertConversation(
   }
 }
 
-/** Insert a message row. Best-effort; swallows errors. */
+/**
+ * Insert a message row. Best-effort; swallows errors. Returns the new message
+ * id (or null when the insert failed / DB is misbehaving).
+ *
+ * `channel` records how the turn was captured: 'text' for the typed chat
+ * assistant (the default, so existing callers stay unchanged) and 'voice' for
+ * finalized voice-assistant transcripts (see functions/api/voice-transcript.ts).
+ */
 async function insertMessage(
   db: D1Database,
   conversationId: string,
   role: 'user' | 'assistant',
-  content: string
-): Promise<void> {
+  content: string,
+  channel: string = 'text'
+): Promise<string | null> {
+  const id = crypto.randomUUID();
   try {
     await db
       .prepare(
-        'INSERT INTO messages (id, conversation_id, role, content) VALUES (?, ?, ?, ?)'
+        'INSERT INTO messages (id, conversation_id, role, content, channel) VALUES (?, ?, ?, ?, ?)'
       )
-      .bind(crypto.randomUUID(), conversationId, role, content)
+      .bind(id, conversationId, role, content, channel)
       .run();
+    return id;
   } catch (err) {
     console.error('D1 insert message failed for conversation ' + conversationId, String(err));
+    return null;
   }
 }
 
@@ -361,7 +372,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // messages and lost conversations, and self-heals old browser sessions.
     await insertConversation(db, conversationId, meta);
     if (latestUserContent) {
-      await insertMessage(db, conversationId, 'user', latestUserContent);
+      await insertMessage(db, conversationId, 'user', latestUserContent, 'text');
       await maybeCaptureLead(
         db,
         conversationId,
@@ -403,7 +414,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       const db = env.DB;
       context.waitUntil(
         (async () => {
-          await insertMessage(db, conversationId, 'assistant', reply);
+          await insertMessage(db, conversationId, 'assistant', reply, 'text');
           await touchConversation(db, conversationId);
         })()
       );
@@ -449,7 +460,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         context.waitUntil(
           (async () => {
             if (reply) {
-              await insertMessage(db, conversationId, 'assistant', reply);
+              await insertMessage(db, conversationId, 'assistant', reply, 'text');
             }
             await touchConversation(db, conversationId);
           })()

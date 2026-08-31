@@ -40,6 +40,7 @@ Cloudflare D1 database that is surfaced through an internal admin dashboard.
           |             |             |             |
           v             v             v             v
      /api/chat     /api/contact   /api/check   /api/booking  (Pages Functions)
+     /api/voice-token   /api/voice-transcript
           |             |             |             |
           v             v             v             v
    +-------------------------------------------------------------+
@@ -59,7 +60,7 @@ Cloudflare D1 database that is surfaced through an internal admin dashboard.
 - `src/layouts` — shared page layouts/shells.
 - `src/lib/visitorClient.ts` — client-side visitor metadata collection (language, referrer, landing page, UTM params) sent to override/enrich server data.
 - `src/data/legal.ts` — legal copy (privacy policy, terms) rendered on the site.
-- `functions/api/*` — Pages Functions API endpoints (`chat`, `contact`, `booking`, `voice-token`).
+- `functions/api/*` — Pages Functions API endpoints (`chat`, `contact`, `booking`, `voice-token`, `voice-transcript`).
 - `functions/lib/visitor.ts` — `getVisitorMetadata` server-side visitor enrichment helper.
 - `functions/admin/index.ts` — signed-cookie admin dashboard rendering leads, conversations, bookings, and the AI-check summary (KPI stat cards, ranked panels, searchable table).
 - `public/admin-ai-filter.js` — dependency-free client script that powers the AI-check table search/filter (loaded same-origin by the admin page shell).
@@ -116,8 +117,13 @@ Each user/assistant turn within a conversation.
 | `role`            | TEXT | NOT NULL                           |
 | `content`         | TEXT | NOT NULL                           |
 | `created_at`      | TEXT | NOT NULL DEFAULT `datetime('now')` |
+| `channel`         | TEXT | NOT NULL DEFAULT `'text'` (migration 0005) |
 
 Indexes: `idx_messages_conversation_id`, `idx_conversations_created_at` (created_at DESC).
+
+The `channel` column (added in migration 0005) records how each turn was
+captured: `'text'` for the typed chat assistant (the default) and `'voice'` for
+finalized voice-assistant transcripts (see the (i-c) flow below).
 
 ### Migration 0003 — visitor metadata + bookings
 
@@ -202,6 +208,24 @@ constrained `BidiGenerateContentConstrained` WebSocket URL with the ephemeral
 token as `access_token`, ready for the browser to open directly. Requests are
 rate limited via the `RATE_LIMIT` KV namespace under an `rl:voice-token:` scope;
 a missing `GEMINI_API_KEY` returns a 500 JSON error.
+
+### (i-c) Voice transcript persistence
+
+Once a Gemini Live voice session is running, the browser posts each transcript
+turn to `/api/voice-transcript` (`functions/api/voice-transcript.ts`). The
+endpoint accepts a body of `{ conversationId, channel, role, text, final }`. It
+requires a non-empty `conversationId` and non-empty `text`, validates `role` ∈
+`{'user','assistant'}` (all `400` otherwise), and defaults `channel` to
+`'voice'`. Interim turns (`final === false`) are dropped without a write,
+returning `{ ok: true, skipped: true }`. Finalized turns are persisted as a
+`messages` row exactly as chat.ts writes them (`id = crypto.randomUUID()`,
+`conversation_id`, `role`, `content = text`, `channel`) and then bump the
+conversation's `updated_at` via the same `touchConversation()` pattern
+(`UPDATE conversations SET updated_at = datetime('now') WHERE id = ?`), returning
+`{ ok: true, id }`. Persistence is best-effort and skipped when `DB` is unbound.
+The `channel` column that distinguishes these voice turns from text turns is
+added by migration `0005_add_messages_channel.sql`. Requests are rate limited
+via the `RATE_LIMIT` KV namespace under an `rl:voice-transcript:` scope.
 
 ### (ii) Form / audit submissions
 
