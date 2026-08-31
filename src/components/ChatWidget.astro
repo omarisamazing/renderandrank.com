@@ -28,6 +28,19 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
     <X class="rr-chat__launcher-icon rr-chat__launcher-icon--close" aria-hidden="true" />
   </button>
 
+  <!-- Launcher greeting popup: a small speech bubble that nudges the visitor.
+       Shown a moment after load while the panel is closed; dismissible. -->
+  <div class="rr-chat__greeting" id="rr-chat-greeting" role="status" hidden>
+    <span class="rr-chat__greeting-text">Hi there! How can I help you today?</span>
+    <button
+      type="button"
+      id="rr-chat-greeting-close"
+      class="rr-chat__greeting-close"
+      aria-label="Dismiss greeting"
+    >×</button>
+    <span class="rr-chat__greeting-tail" aria-hidden="true"></span>
+  </div>
+
   <!-- Panel -->
   <section
     id="rr-chat-panel"
@@ -80,6 +93,14 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
         <span>Talk</span>
         <span class="rr-chat__mode-dot" id="rr-chat-live-dot" aria-hidden="true"></span>
       </button>
+    </div>
+
+    <!-- Prominent voice status bar: shown while a voice session is connecting
+         or live. Animated equalizer + label + a Stop button to end voice. -->
+    <div class="rr-chat__voicebar" id="rr-chat-voicebar" role="status" aria-live="polite" hidden>
+      <span class="rr-chat__voicebar-anim" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span class="rr-chat__voicebar-label" id="rr-chat-voicebar-label">Listening…</span>
+      <button type="button" class="rr-chat__voicebar-stop" id="rr-chat-voice-stop">Stop</button>
     </div>
 
     <div
@@ -303,6 +324,156 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
     50% { transform: scale(1.35); opacity: 0.55; }
   }
 
+  /* ---- Launcher greeting popup ------------------------------------------ */
+  /* Small speech bubble anchored above the launcher; matches widget chrome. */
+  .rr-chat__greeting {
+    position: absolute;
+    right: 0;
+    bottom: calc(3.25rem + 0.75rem);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    max-width: 15rem;
+    padding: 0.625rem 0.75rem;
+    background-color: var(--color-canvas, #fff);
+    color: var(--color-ink, #000);
+    border: 1px solid var(--color-hairline, #e6e6e6);
+    border-radius: var(--radius-lg, 16px);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.16);
+    z-index: 46;
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+    transform-origin: bottom right;
+    transition:
+      opacity 220ms var(--ease-brand, cubic-bezier(0.22, 1, 0.36, 1)),
+      transform 220ms var(--ease-brand, cubic-bezier(0.22, 1, 0.36, 1));
+    pointer-events: none;
+  }
+
+  .rr-chat__greeting[data-shown='true'] {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+  }
+
+  .rr-chat__greeting-text {
+    font-size: 0.8125rem;
+    line-height: 1.35;
+    letter-spacing: -0.006em;
+  }
+
+  .rr-chat__greeting-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 1.25rem;
+    height: 1.25rem;
+    border: none;
+    border-radius: var(--radius-pill, 50px);
+    background-color: var(--color-surface-soft, #f7f7f5);
+    color: var(--color-ink, #000);
+    font-size: 0.875rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color 160ms var(--ease-brand, cubic-bezier(0.22, 1, 0.36, 1));
+  }
+
+  .rr-chat__greeting-close:hover { background-color: var(--color-hairline, #e6e6e6); }
+
+  .rr-chat__greeting-close:focus-visible {
+    outline: 2px solid var(--color-ink, #000);
+    outline-offset: 2px;
+  }
+
+  /* Small tail/pointer toward the launcher icon (bottom-right corner). */
+  .rr-chat__greeting-tail {
+    position: absolute;
+    right: 1.25rem;
+    bottom: -0.4rem;
+    width: 0.8rem;
+    height: 0.8rem;
+    background-color: var(--color-canvas, #fff);
+    border-right: 1px solid var(--color-hairline, #e6e6e6);
+    border-bottom: 1px solid var(--color-hairline, #e6e6e6);
+    transform: rotate(45deg);
+  }
+
+  /* ---- Voice status bar ------------------------------------------------- */
+  /* Prominent bar shown while connecting/live so the user can tell voice is
+     active, with an animated equalizer and a Stop button. */
+  .rr-chat__voicebar {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.625rem 0.875rem;
+    border-bottom: 1px solid var(--color-hairline, #e6e6e6);
+    background-color: var(--color-surface-soft, #f7f7f5);
+    color: var(--color-ink, #000);
+  }
+
+  .rr-chat__voicebar[hidden] { display: none; }
+
+  .rr-chat__voicebar-anim {
+    display: inline-flex;
+    align-items: flex-end;
+    gap: 0.1875rem;
+    height: 1.125rem;
+    flex-shrink: 0;
+  }
+
+  .rr-chat__voicebar-anim i {
+    display: block;
+    width: 0.1875rem;
+    height: 0.375rem;
+    border-radius: var(--radius-pill, 50px);
+    background-color: #e5484d; /* live-red, matches the Talk-tab dot */
+    animation: rr-chat-eq 1s ease-in-out infinite;
+  }
+
+  .rr-chat__voicebar-anim i:nth-child(2) { animation-delay: 0.18s; }
+  .rr-chat__voicebar-anim i:nth-child(3) { animation-delay: 0.36s; }
+
+  /* While only connecting, dim the bars a touch (label reads "Connecting…"). */
+  .rr-chat__voicebar[data-phase='connecting'] .rr-chat__voicebar-anim i {
+    background-color: var(--color-ink, #000);
+    opacity: 0.55;
+  }
+
+  @keyframes rr-chat-eq {
+    0%, 100% { height: 0.375rem; }
+    50% { height: 1.125rem; }
+  }
+
+  .rr-chat__voicebar-label {
+    flex: 1;
+    font-size: 0.8125rem;
+    font-weight: 460;
+    letter-spacing: -0.006em;
+  }
+
+  .rr-chat__voicebar-stop {
+    flex-shrink: 0;
+    padding: 0.3125rem 0.75rem;
+    border: 1px solid var(--color-ink, #000);
+    border-radius: var(--radius-pill, 50px);
+    background-color: var(--color-ink, #000);
+    color: var(--color-inverse-ink, #fff);
+    font-family: inherit;
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: -0.006em;
+    cursor: pointer;
+    transition: opacity 160ms var(--ease-brand, cubic-bezier(0.22, 1, 0.36, 1));
+  }
+
+  .rr-chat__voicebar-stop:hover { opacity: 0.85; }
+
+  .rr-chat__voicebar-stop:focus-visible {
+    outline: 2px solid var(--color-ink, #000);
+    outline-offset: 2px;
+  }
+
   /* ---- Message log ------------------------------------------------------ */
   .rr-chat__log {
     flex: 1;
@@ -465,6 +636,11 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
     }
     .rr-chat__launcher:hover { transform: none; }
     .rr-chat__modes[data-live='true'] .rr-chat__mode-dot { animation: none; }
+    .rr-chat__greeting,
+    .rr-chat__voicebar-stop {
+      transition: none !important;
+    }
+    .rr-chat__voicebar-anim i { animation: none; }
   }
 </style>
 
@@ -503,6 +679,13 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
   const modes = document.getElementById('rr-chat-modes') as HTMLElement | null;
   const modeTypeBtn = document.getElementById('rr-chat-mode-type') as HTMLButtonElement | null;
   const modeTalkBtn = document.getElementById('rr-chat-mode-talk') as HTMLButtonElement | null;
+  // Voice status bar (visible listening/connecting indicator + Stop) and the
+  // dismissible launcher greeting popup. Optional — guarded before use.
+  const voicebar = document.getElementById('rr-chat-voicebar') as HTMLElement | null;
+  const voicebarLabel = document.getElementById('rr-chat-voicebar-label') as HTMLElement | null;
+  const voiceStopBtn = document.getElementById('rr-chat-voice-stop') as HTMLButtonElement | null;
+  const greeting = document.getElementById('rr-chat-greeting') as HTMLElement | null;
+  const greetingCloseBtn = document.getElementById('rr-chat-greeting-close') as HTMLButtonElement | null;
 
   if (root && launcher && panel && closeBtn && log && form && input && sendBtn && modes && modeTypeBtn && modeTalkBtn) {
     function scrollToBottom() {
@@ -560,6 +743,8 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
       root!.setAttribute('data-open', 'true');
       panel!.hidden = false;
       launcher!.setAttribute('aria-expanded', 'true');
+      // Opening the panel hides the launcher greeting popup immediately.
+      hideGreeting();
       if (!greeted) {
         greeted = true;
         addBubble('assistant', GREETING);
@@ -728,6 +913,24 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
       modes!.setAttribute('data-live', on ? 'true' : 'false');
     }
 
+    // Prominent voice status bar: show while connecting/live, hide otherwise.
+    function setVoiceUI(state: VoiceState) {
+      if (!voicebar) return;
+      if (state === 'requesting-token' || state === 'connecting') {
+        if (voicebarLabel) voicebarLabel.textContent = 'Connecting…';
+        voicebar.setAttribute('data-phase', 'connecting');
+        voicebar.hidden = false;
+      } else if (state === 'live') {
+        if (voicebarLabel) voicebarLabel.textContent = 'Listening…';
+        voicebar.setAttribute('data-phase', 'live');
+        voicebar.hidden = false;
+      } else {
+        // idle | error | closing → hide the bar.
+        voicebar.hidden = true;
+        voicebar.removeAttribute('data-phase');
+      }
+    }
+
     function selectModeButton(mode: 'type' | 'talk') {
       const isType = mode === 'type';
       modeTypeBtn!.classList.toggle('rr-chat__mode--active', isType);
@@ -764,6 +967,8 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
       voice = new VoiceSession({
         onState: (state: VoiceState) => {
           setLiveIndicator(state === 'live');
+          // Drive the prominent voice status bar (connecting/listening/Stop).
+          setVoiceUI(state);
           // If the session ends on its own (goAway/socket close/error), fall
           // back to Type mode so the composer is usable again.
           if (state === 'idle' || state === 'error') {
@@ -779,6 +984,7 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
 
     function stopVoice() {
       setLiveIndicator(false);
+      setVoiceUI('idle'); // hide the voice status bar immediately
       liveUserEl = null;
       liveAssistantEl = null;
       if (voice) {
@@ -798,8 +1004,73 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
     modeTypeBtn.addEventListener('click', () => switchMode('type'));
     modeTalkBtn.addEventListener('click', () => switchMode('talk'));
 
+    // Stop button on the voice bar: end voice and fall back to Type mode.
+    voiceStopBtn?.addEventListener('click', () => {
+      stopVoice();
+      switchMode('type');
+    });
+
     // Tear the voice session down if the panel closes or the page unloads.
     closeBtn.addEventListener('click', stopVoice);
     window.addEventListener('beforeunload', stopVoice);
+
+    // ---- Launcher greeting popup ----------------------------------------
+    // Module-scoped (per page load) in-memory flag — deliberately NOT
+    // localStorage/sessionStorage, so the popup returns after a refresh but
+    // stays gone for the rest of this page load once dismissed.
+    let greetingDismissed = false;
+    let greetingHideTimer: number | null = null;
+    let greetingReshowTimer: number | null = null;
+
+    function panelIsOpen(): boolean {
+      return root!.getAttribute('data-open') === 'true';
+    }
+
+    function showGreeting() {
+      if (!greeting) return;
+      if (greetingDismissed || panelIsOpen()) return;
+      greeting.hidden = false;
+      // Force a reflow so the transition runs when toggling the shown flag.
+      void greeting.offsetWidth;
+      greeting.setAttribute('data-shown', 'true');
+      // Auto-hide after ~7s, then re-show every ~25s while eligible.
+      if (greetingHideTimer !== null) window.clearTimeout(greetingHideTimer);
+      greetingHideTimer = window.setTimeout(() => {
+        hideGreeting();
+        if (greetingReshowTimer !== null) window.clearTimeout(greetingReshowTimer);
+        greetingReshowTimer = window.setTimeout(() => {
+          if (!greetingDismissed && !panelIsOpen()) showGreeting();
+        }, 25000);
+      }, 7000);
+    }
+
+    function hideGreeting() {
+      if (!greeting) return;
+      greeting.setAttribute('data-shown', 'false');
+      greeting.hidden = true;
+      if (greetingHideTimer !== null) {
+        window.clearTimeout(greetingHideTimer);
+        greetingHideTimer = null;
+      }
+    }
+
+    function dismissGreeting() {
+      greetingDismissed = true;
+      hideGreeting();
+      if (greetingReshowTimer !== null) {
+        window.clearTimeout(greetingReshowTimer);
+        greetingReshowTimer = null;
+      }
+    }
+
+    greetingCloseBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      dismissGreeting();
+    });
+
+    // First reveal ~1.5s after load, only while the panel is closed.
+    window.setTimeout(() => {
+      if (!greetingDismissed && !panelIsOpen()) showGreeting();
+    }, 1500);
   }
 </script>

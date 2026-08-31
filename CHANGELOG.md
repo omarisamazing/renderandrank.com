@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Voice assistant UX + limits** (`functions/api/voice-token.ts`, `src/components/ChatWidget.astro`, `src/lib/voiceSession.ts`): raised the too-aggressive `/api/voice-token` per-IP rate limits (daily 5→100, burst 3→20) so normal use/testing isn't blocked; added a prominent animated "Connecting…/Listening…" voice status bar with a Stop button inside the chat panel wired to the voice state machine; added a dismissible launcher greeting popup ("Hi there! How can I help you today?", in-memory per-page-load flag); and added a single guarded auto-reconnect in `voiceSession.ts` on an unexpected WebSocket drop (never loops, skipped on user stop).
+
 ### Fixed
 
 - **Gemini Live voice session start + assistant persona + rate limiting** (`src/lib/voiceSession.ts`, `functions/api/voice-token.ts`):

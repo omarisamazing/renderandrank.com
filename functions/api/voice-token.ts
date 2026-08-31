@@ -93,9 +93,9 @@ const CONVERSATION_ID_RE = /^[a-zA-Z0-9_-]{1,64}$/;
 //   2. A short burst guard over 10 minutes (stops rapid-fire abuse).
 // Each uses its own KV key scope so the two counters expire independently.
 // Tune these constants freely — they are the only knobs the limiter reads.
-const RATE_LIMIT_DAILY_MAX = 5;
+const RATE_LIMIT_DAILY_MAX = 100;
 const RATE_LIMIT_DAILY_WINDOW_SECONDS = 24 * 60 * 60; // 24h rolling window.
-const RATE_LIMIT_BURST_MAX = 3;
+const RATE_LIMIT_BURST_MAX = 20;
 const RATE_LIMIT_BURST_WINDOW_SECONDS = 10 * 60; // 10 minute burst guard.
 
 function json(data: unknown, status = 200): Response {
