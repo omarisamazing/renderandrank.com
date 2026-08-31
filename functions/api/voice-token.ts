@@ -6,12 +6,16 @@
  *
  * Flow:
  *   1. POST only (verb-guarded like chat.ts).
- *   2. IP rate limit backed by KV (`rl:voice-token:<ip>`, gated on RATE_LIMIT).
+ *   2. Per-IP rate limit backed by KV (a 24h daily cap + a short burst guard,
+ *      gated on RATE_LIMIT). Runs before minting so it protects the free tier.
  *   3. Reuse the client's conversationId if supplied and valid; otherwise mint
  *      a new one and persist a conversation row (mirrors chat.ts persistence).
- *   4. Exchange the server-side GEMINI_API_KEY for a short-lived ephemeral
+ *   4. Exchange the server-side voice key (GEMINI_VOICE_API_KEY, falling back to
+ *      GEMINI_API_KEY) for a short-lived ephemeral
  *      token via Google's v1alpha auth_tokens endpoint (the ephemeral-token
- *      API only lives on v1alpha) using a `liveConnectConstraints` body. The
+ *      API only lives on v1alpha) using a `bidiGenerateContentSetup` body that
+ *      also bakes in the sales-assistant systemInstruction, since the token
+ *      locks the session config and a client-supplied one is ignored. The
  *      API key never touches the browser — only the ephemeral token does.
  *      Any non-OK upstream Google response is logged AND returned (status +
  *      body) so the exact cause (bad key / unknown model / bad shape) is
@@ -22,10 +26,13 @@
  * Bindings (configured in wrangler.toml):
  *   DB              (optional) — Cloudflare D1 database. When unbound the token
  *                                still mints; conversation persistence is skipped.
- *   RATE_LIMIT      (optional) — KV namespace for IP rate limiting. When unset,
- *                                rate limiting is skipped.
- *   GEMINI_API_KEY  (required) — Gemini API key secret. When unset the endpoint
- *                                returns 500.
+ *   RATE_LIMIT      (optional) — KV namespace for per-IP rate limiting. When
+ *                                unset, rate limiting is skipped (fails open).
+ *   GEMINI_VOICE_API_KEY (preferred) — Dedicated Gemini API key for voice, so it
+ *                                does not share the AI checker's key/quota.
+ *   GEMINI_API_KEY  (fallback) — Gemini API key secret, used when
+ *                                GEMINI_VOICE_API_KEY is unset. When neither is
+ *                                set the endpoint returns 500.
  *
  * Error responses share the shape { ok: false, error, detail?, upstreamStatus? }
  * so the browser client can log the exact upstream Google failure.
@@ -36,10 +43,14 @@ import { getVisitorMetadata, type VisitorMetadata } from '../lib/visitor';
 interface Env {
   // Cloudflare D1 binding (configured in wrangler.toml as `DB`).
   DB?: D1Database;
-  // Optional KV namespace for IP rate limiting (bound as `RATE_LIMIT` in
+  // Optional KV namespace for per-IP rate limiting (bound as `RATE_LIMIT` in
   // wrangler.toml). When unset, rate limiting is skipped.
   RATE_LIMIT?: KVNamespace;
+  // Dedicated Gemini API key for the voice assistant. Preferred over
+  // GEMINI_API_KEY so voice does not share the AI checker's key/quota.
+  GEMINI_VOICE_API_KEY?: string;
   // Gemini API key secret used server-side to mint ephemeral tokens.
+  // Fallback when GEMINI_VOICE_API_KEY is not set.
   GEMINI_API_KEY?: string;
 }
 
@@ -49,6 +60,23 @@ interface VoiceTokenBody {
 
 // Gemini Live model + connect constraints baked into the ephemeral token.
 const GEMINI_MODEL = 'models/gemini-2.5-flash-native-audio-preview-09-2025';
+
+// Sales-assistant persona baked into the ephemeral token's
+// bidiGenerateContentSetup. The ephemeral token locks the session config, so a
+// systemInstruction supplied by the browser in its WebSocket setup frame is
+// ignored — the persona must be minted into the token here, server-side.
+const VOICE_SYSTEM_INSTRUCTION = `You are the voice sales assistant for Render and Rank, a local SEO and AEO/GEO agency that helps local and service-area businesses get found and chosen by customers. You ONLY act as this agency's sales assistant: if asked about anything unrelated (general trivia, coding help, other companies, etc.), politely decline and steer the conversation back to how Render and Rank can grow their business.
+
+What Render and Rank does — explain simply when relevant:
+- Local SEO & Hyper-Local Visibility: ranking a business for 'near me' and city searches with optimized pages, local schema, and citations across 70+ directories.
+- AEO & Generative Engine Optimization (GEO): making a business the one that ChatGPT, Gemini, Perplexity, Claude, and Google AI Overviews recommend and cite.
+- Google Maps 3-Pack Growth: optimizing the Google Business Profile, growing reviews, and expanding the map ranking area so the business lands in the top 3.
+
+Your goals, in order:
+1) Qualify the visitor and gather lead info conversationally — ask ONE question at a time and keep it natural for speech. Collect: their name; their business name and website; what they need or their biggest challenge; their budget and timeline; and the best email or phone to reach them.
+2) Persuade them to book a free discovery call as the main next step — that's the primary goal. Once they're interested, confirm the best way and time to follow up.
+
+Style: concise, warm, and confident. Speak in short spoken sentences, one idea at a time. Don't read long lists aloud — mention one or two relevant services and ask a follow-up. Never invent services, prices, or guarantees beyond what's described here; if unsure, offer to cover it on the discovery call. If they want to move forward or you have their contact details, encourage booking the call and confirm follow-up.`;
 const GEMINI_AUTH_TOKENS_ENDPOINT =
   'https://generativelanguage.googleapis.com/v1alpha/auth_tokens';
 
@@ -58,10 +86,17 @@ const NEW_SESSION_EXPIRE_MS = 60 * 1000;
 
 const CONVERSATION_ID_RE = /^[a-zA-Z0-9_-]{1,64}$/;
 
-// Fixed-window IP rate limit for voice-token: max requests per window (seconds).
-// Mirrors chat.ts's limiter semantics but with its own `rl:voice-token:` scope.
-const RATE_LIMIT_MAX = 30;
-const RATE_LIMIT_WINDOW_SECONDS = 600;
+// Per-IP rate limits for voice-token. Voice sessions mint a Gemini ephemeral
+// token that runs on the Gemini free tier, so a single visitor must not be able
+// to exhaust the quota. Two windows are enforced together:
+//   1. A rolling 24h cap (protects the daily free-tier quota).
+//   2. A short burst guard over 10 minutes (stops rapid-fire abuse).
+// Each uses its own KV key scope so the two counters expire independently.
+// Tune these constants freely — they are the only knobs the limiter reads.
+const RATE_LIMIT_DAILY_MAX = 5;
+const RATE_LIMIT_DAILY_WINDOW_SECONDS = 24 * 60 * 60; // 24h rolling window.
+const RATE_LIMIT_BURST_MAX = 3;
+const RATE_LIMIT_BURST_WINDOW_SECONDS = 10 * 60; // 10 minute burst guard.
 
 function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
@@ -117,20 +152,37 @@ async function insertConversation(
 }
 
 /**
- * Fixed-window IP rate limit backed by KV. Allows up to `max` requests per
- * `windowSeconds`. Gated by env.RATE_LIMIT: when unset the caller skips this.
- * Fails open on KV errors so a storage hiccup never blocks a real visitor.
- * Uses an `rl:voice-token:` key prefix so voice-token limits are tracked
- * separately from chat (`rl:chat:`) and the contact form (`rl:contact:`).
+ * Resolve the client IP. Prefer Cloudflare's `CF-Connecting-IP` (the true edge
+ * client IP) and fall back to the first entry of `X-Forwarded-For`.
+ */
+function getClientIp(request: Request): string | null {
+  const cf = request.headers.get('cf-connecting-ip');
+  if (cf) return cf.trim();
+  const xff = request.headers.get('x-forwarded-for');
+  if (xff) {
+    const first = xff.split(',')[0]?.trim();
+    if (first) return first;
+  }
+  return null;
+}
+
+/**
+ * Fixed-window per-IP rate limit backed by KV. Allows up to `max` requests per
+ * `windowSeconds` under the given `scope` key. Fails open on KV errors so a
+ * storage hiccup never blocks a real visitor. Each scope keeps its own counter
+ * under `rl:voice-token:<scope>:<ip>` so the daily and burst windows expire
+ * independently, and stay separate from chat (`rl:chat:`) and the contact form
+ * (`rl:contact:`) limits.
  */
 async function isRateLimited(
   kv: KVNamespace,
   ip: string | null,
-  max = RATE_LIMIT_MAX,
-  windowSeconds = RATE_LIMIT_WINDOW_SECONDS
+  scope: string,
+  max: number,
+  windowSeconds: number
 ): Promise<boolean> {
   if (!ip) return false;
-  const key = `rl:voice-token:${ip}`;
+  const key = `rl:voice-token:${scope}:${ip}`;
   try {
     const current = Number((await kv.get(key)) || '0');
     if (current >= max) return true;
@@ -141,11 +193,38 @@ async function isRateLimited(
   }
 }
 
+/**
+ * Enforce both voice-token windows for an IP: a short burst guard and a rolling
+ * 24h cap. Returns true if either limit is exceeded. Both counters are
+ * incremented on an allowed request.
+ */
+async function isVoiceRateLimited(kv: KVNamespace, ip: string | null): Promise<boolean> {
+  const burst = await isRateLimited(
+    kv,
+    ip,
+    'burst',
+    RATE_LIMIT_BURST_MAX,
+    RATE_LIMIT_BURST_WINDOW_SECONDS
+  );
+  const daily = await isRateLimited(
+    kv,
+    ip,
+    'daily',
+    RATE_LIMIT_DAILY_MAX,
+    RATE_LIMIT_DAILY_WINDOW_SECONDS
+  );
+  return burst || daily;
+}
+
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { request, env } = context;
 
-  // The server-side Gemini API key is required to mint ephemeral tokens.
-  if (!env.GEMINI_API_KEY) {
+  // Prefer the dedicated voice key so voice does not share the AI checker's
+  // GEMINI_API_KEY; fall back to GEMINI_API_KEY when the voice key is unset.
+  const apiKey = env.GEMINI_VOICE_API_KEY || env.GEMINI_API_KEY;
+
+  // A server-side Gemini API key is required to mint ephemeral tokens.
+  if (!apiKey) {
     return json(
       {
         ok: false,
@@ -165,22 +244,28 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     return json({ ok: false, error: 'Could not read the request body.' }, 400);
   }
 
-  const ip = request.headers.get('cf-connecting-ip');
+  // Client IP: CF-Connecting-IP is the true edge client IP; fall back to the
+  // first X-Forwarded-For entry when it is absent (e.g. local wrangler).
+  const ip = getClientIp(request);
 
-  // Rate limit (gated on the RATE_LIMIT KV binding). Skipped when unbound and
-  // fails open on KV errors. Runs BEFORE the upstream token mint so it actually
-  // protects the Google API call.
-  if (env.RATE_LIMIT && (await isRateLimited(env.RATE_LIMIT, ip))) {
+  // Per-IP rate limit (gated on the RATE_LIMIT KV binding). Skipped when
+  // unbound; fails open on KV errors. Runs BEFORE the upstream token mint,
+  // protecting the Gemini free-tier quota from a single visitor. Enforces a
+  // short burst guard AND a rolling 24h cap; either exceeded returns 429 and
+  // Google is never called.
+  if (env.RATE_LIMIT && (await isVoiceRateLimited(env.RATE_LIMIT, ip))) {
     return new Response(
       JSON.stringify({
         ok: false,
-        error: 'Too many requests. Please try again in a few minutes.',
+        error: 'rate_limited',
+        message:
+          "You've reached the voice session limit. Please try again later.",
       }),
       {
         status: 429,
         headers: {
           'content-type': 'application/json; charset=utf-8',
-          'Retry-After': String(RATE_LIMIT_WINDOW_SECONDS),
+          'Retry-After': String(RATE_LIMIT_BURST_WINDOW_SECONDS),
         },
       }
     );
@@ -214,19 +299,18 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-goog-api-key': env.GEMINI_API_KEY,
+        'x-goog-api-key': apiKey,
       },
       body: JSON.stringify({
         uses: 1,
         expireTime,
         newSessionExpireTime,
-        liveConnectConstraints: {
+        bidiGenerateContentSetup: {
           model: GEMINI_MODEL,
-          config: {
-            responseModalities: ['AUDIO'],
-            outputAudioTranscription: {},
-            inputAudioTranscription: {},
-          },
+          generationConfig: { responseModalities: ['AUDIO'] },
+          outputAudioTranscription: {},
+          inputAudioTranscription: {},
+          systemInstruction: { parts: [{ text: VOICE_SYSTEM_INSTRUCTION }] },
         },
       }),
     });
@@ -244,7 +328,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   if (!tokenResponse.ok) {
     // Read Google's error body so the exact upstream cause (bad key, unknown
-    // model, malformed liveConnectConstraints, etc.) is logged AND returned to
+    // model, malformed bidiGenerateContentSetup, etc.) is logged AND returned to
     // the caller instead of being swallowed behind a generic message.
     const detail = await tokenResponse.text().catch(() => '');
     const trimmedDetail = detail.slice(0, 1000);

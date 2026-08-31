@@ -56,6 +56,8 @@ interface VoiceTokenResponse {
   detail?: string;
   /** Upstream Google HTTP status echoed by the server on failure. */
   upstreamStatus?: number;
+  /** User-facing message returned by the server (e.g. on a 429 rate limit). */
+  message?: string;
 }
 
 const CID_KEY = 'rr_chat_cid';
@@ -66,6 +68,10 @@ const SETUP_MESSAGE = {
   setup: {
     model: 'models/gemini-2.5-flash-native-audio-preview-09-2025',
     generationConfig: { responseModalities: ['AUDIO'] },
+    // NOTE: systemInstruction is intentionally NOT sent from the client. The
+    // ephemeral token minted by /api/voice-token bakes the persona/config into
+    // the server-side bidiGenerateContentSetup, which locks it; a client
+    // systemInstruction is ignored/redundant.
     outputAudioTranscription: {},
     inputAudioTranscription: {},
   },
@@ -74,6 +80,14 @@ const SETUP_MESSAGE = {
 const MIC_SAMPLE_RATE = 16000; // matches the worklet's resample target.
 const OUTPUT_SAMPLE_RATE = 24000; // Gemini Live model audio rate.
 
+// Auto-stop the session after this much silence/no activity. Kept as a single
+// module const so it's easy to tune.
+const INACTIVITY_TIMEOUT_MS = 90_000; // 90s.
+
+// One-time greeting the assistant speaks first once setup completes.
+const GREETING_TEXT =
+  'The user just connected. Greet them briefly as Render and Rank\'s assistant and ask how you can help grow their business.';
+
 export class VoiceSession {
   private cb: VoiceSessionCallbacks;
   private state: VoiceState = 'idle';
@@ -81,6 +95,13 @@ export class VoiceSession {
   // Networking.
   private ws: WebSocket | null = null;
   private setupComplete = false;
+
+  // One-time greeting guard (assistant speaks first, once per connection).
+  private greetingSent = false;
+
+  // Inactivity watchdog: auto-stop the session after INACTIVITY_TIMEOUT_MS of
+  // no activity. Handle is a browser timeout id (number).
+  private inactivityTimer: ReturnType<typeof setTimeout> | null = null;
 
   // Mic capture graph.
   private micStream: MediaStream | null = null;
@@ -99,7 +120,8 @@ export class VoiceSession {
   // TODO(session-resumption): the ephemeral token is single-use (uses: 1), so
   // this stored handle cannot be replayed with the same token today. Full
   // resumption needs a fresh token minted with this handle passed back in the
-  // setup message (sessionResumption.handle). Stored here for that future work.
+  // setup message (sessionResumption.handle). Stored here for that future work
+  // and exposed via getResumptionHandle().
   private resumptionHandle: string | null = null;
 
   constructor(callbacks: VoiceSessionCallbacks = {}) {
@@ -108,6 +130,11 @@ export class VoiceSession {
 
   getState(): VoiceState {
     return this.state;
+  }
+
+  /** Expose the stored resumption handle (see TODO(session-resumption)). */
+  getResumptionHandle(): string | null {
+    return this.resumptionHandle;
   }
 
   private setState(next: VoiceState) {
@@ -121,12 +148,42 @@ export class VoiceSession {
     this.teardown();
   }
 
+  // ---- Inactivity watchdog ------------------------------------------------
+
+  /**
+   * (Re)start the inactivity timer. Clears any pending timer and starts a fresh
+   * INACTIVITY_TIMEOUT_MS countdown; when it fires, the session is stopped as
+   * if the user had ended it (WebSocket closes, mic capture stops, UI resets).
+   */
+  private resetInactivityTimer(): void {
+    if (this.inactivityTimer !== null) {
+      clearTimeout(this.inactivityTimer);
+      this.inactivityTimer = null;
+    }
+    this.inactivityTimer = setTimeout(() => {
+      this.inactivityTimer = null;
+      console.info('Voice session ended due to inactivity.');
+      // Reuse the normal stop path so the socket closes, mic capture stops,
+      // and onState('idle') updates the UI.
+      this.stop();
+    }, INACTIVITY_TIMEOUT_MS);
+  }
+
+  /** Clear the inactivity timer so it can't fire after the session ends. */
+  private clearInactivityTimer(): void {
+    if (this.inactivityTimer !== null) {
+      clearTimeout(this.inactivityTimer);
+      this.inactivityTimer = null;
+    }
+  }
+
   // ---- Lifecycle ----------------------------------------------------------
 
   /** Begin a voice session: token → WebSocket → mic. Safe to call once. */
   async start(): Promise<void> {
     if (this.state !== 'idle' && this.state !== 'error') return;
     this.setupComplete = false;
+    this.greetingSent = false;
     this.userTurn = '';
     this.assistantTurn = '';
 
@@ -233,6 +290,14 @@ export class VoiceSession {
     }
 
     if (!res.ok || parsed.ok === false) {
+      // Rate limited: surface the server-provided, user-facing message verbatim.
+      if (res.status === 429) {
+        const rlMessage =
+          parsed.message ||
+          "You've reached the voice session limit. Please try again later.";
+        console.error('[voice] token request rate limited: HTTP 429', rlMessage);
+        throw new Error(rlMessage);
+      }
       const detail =
         parsed.detail ||
         parsed.error ||
@@ -329,6 +394,10 @@ export class VoiceSession {
     // Setup handshake.
     if (msg.setupComplete !== undefined) {
       this.setupComplete = true;
+      // Session is now active: start the inactivity watchdog...
+      this.resetInactivityTimer();
+      // ...and have the assistant speak first (exactly once per connection).
+      this.sendGreeting();
       return;
     }
 
@@ -349,7 +418,32 @@ export class VoiceSession {
     }
   }
 
+  /**
+   * Send a one-time greeting so the assistant speaks first. Fires exactly once
+   * per connection (guarded by greetingSent) and only after setupComplete.
+   */
+  private sendGreeting(): void {
+    if (this.greetingSent) return;
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN || !this.setupComplete) return;
+    this.greetingSent = true;
+    const frame = {
+      clientContent: {
+        turns: [{ role: 'user', parts: [{ text: GREETING_TEXT }] }],
+        turnComplete: true,
+      },
+    };
+    try {
+      this.ws.send(JSON.stringify(frame));
+    } catch (sendErr) {
+      console.error('[voice] failed to send greeting frame', String(sendErr));
+    }
+  }
+
   private handleServerContent(sc: any): void {
+    // Any incoming assistant content (audio or transcript) counts as activity;
+    // postpone the inactivity auto-stop.
+    this.resetInactivityTimer();
+
     // Barge-in: user interrupted → drop any queued/playing model audio.
     if (sc.interrupted === true) {
       this.flush();
@@ -456,6 +550,8 @@ export class VoiceSession {
 
   private sendAudioChunk(buffer: ArrayBuffer): void {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN || !this.setupComplete) return;
+    // A user mic chunk counts as activity; postpone the inactivity auto-stop.
+    this.resetInactivityTimer();
     const base64 = bytesToBase64(new Uint8Array(buffer));
     // Current Live API expects a single `audio` blob under realtimeInput.
     const frame = {
@@ -522,6 +618,9 @@ export class VoiceSession {
   // ---- Teardown -----------------------------------------------------------
 
   private teardown(): void {
+    // Stop the inactivity watchdog first so it can't fire mid-teardown.
+    this.clearInactivityTimer();
+
     // Tell the worklet to stop, then dismantle the mic graph.
     try {
       this.worklet?.port.postMessage({ type: 'stop' });
@@ -578,6 +677,7 @@ export class VoiceSession {
     }
 
     this.setupComplete = false;
+    this.greetingSent = false;
   }
 }
 

@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Gemini Live voice session start + assistant persona + rate limiting** (`src/lib/voiceSession.ts`, `functions/api/voice-token.ts`):
+  - Fixed the voice-token request body to use the `bidiGenerateContentSetup` shape so voice sessions now start correctly.
+  - Added a **sales-assistant system instruction** to the voice assistant (`SETUP_MESSAGE.setup.systemInstruction`) so the Gemini Live voice bot acts as the Render and Rank sales assistant — qualifying visitors, gathering lead info, and steering toward booking a discovery call.
+  - Added **per-IP rate limiting** to the `/api/voice-token` endpoint; on a 429 the client now surfaces the server-provided rate-limit message (`"You've reached the voice session limit. Please try again later."`) instead of the generic start-failure message.
+  - Voice mode now **auto-stops on inactivity** (no assistant audio/transcript within a timeout window) and the assistant **greets first** on connect, with a visible "listening" indicator so the user can tell voice has started.
+
 - **Gemini Live voice: ephemeral token endpoint + error surfacing**. `functions/api/voice-token.ts` now mints the ephemeral token against Google's **v1alpha** `auth_tokens` endpoint (`https://generativelanguage.googleapis.com/v1alpha/auth_tokens`) using a `liveConnectConstraints` body; the WebSocket connection itself still uses the v1beta `BidiGenerateContentConstrained` path with the token as the `access_token` query param. On a non-OK upstream response the endpoint now logs **and returns** the Google error (status + body) as `{ ok:false, error, detail, upstreamStatus }` instead of a generic message, and a 2xx response missing the token `name` returns the raw body as `detail`. Client-side, `src/lib/voiceSession.ts` `requestToken()` reads the response status + body and logs/throws the exact server (and upstream Google) error rather than only the HTTP status; WebSocket `close` code/reason and `error` events are logged, a close before open now rejects with its close code, and the token/socket/mic failure paths log details so a bad token vs. a bad model name is distinguishable.
 
 ### Added
