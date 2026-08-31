@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`/api/voice-token` — Gemini Live ephemeral token endpoint** (`functions/api/voice-token.ts`): POST-only Pages Function that mints a short-lived Gemini Live token so the browser voice assistant can open a WebSocket directly without ever seeing the server-side `GEMINI_API_KEY`. Exchanges the key for an ephemeral token via Google's `auth_tokens` endpoint (30-minute `expireTime`, 1-minute `newSessionExpireTime`, constrained to `models/gemini-2.5-flash-native-audio-preview-09-2025` with AUDIO response + input/output transcription), reuses or mints a `conversations` row (best-effort D1 persistence), and returns `{ token, conversationId, expireTime, wssUrl }` where `wssUrl` targets the constrained BidiGenerateContent WebSocket. Rate limited via the `RATE_LIMIT` KV namespace under an `rl:voice-token:` scope; returns 500 when `GEMINI_API_KEY` is unset.
+
 ### Fixed
 
 - **Invalid `Button` variant in `dialog.tsx` (TS2322)**: `DialogFooter`'s Close button used `variant="outline"`, which is not a valid Button variant; changed it to `variant="secondary"` so the type error is resolved.

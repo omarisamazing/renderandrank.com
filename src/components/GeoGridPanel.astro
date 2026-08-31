@@ -6,6 +6,8 @@
  *
  * The grid is a hardcoded rank pattern rather than randomised so the build is
  * reproducible and the composition never lands on an ugly arrangement.
+ * Enhancements: radius ring + coordinate grid overlay, staggered row reveal,
+ * and an expanded legend with radius annotation.
  */
 import Eyebrow from './ui/Eyebrow.astro';
 import { MapPin } from '@lucide/astro';
@@ -49,6 +51,10 @@ const coverage = [
   { label: 'Average rank', value: '4.2' },
   { label: 'Radius audited', value: '4.5 mi' },
 ];
+
+// Stagger delay per row (row 0 = fastest, row 6 = slowest).
+// 50ms per row gives a gentle cascade across the 7-row grid.
+const rowDelay = (i: number) => `0.1${(i * 50) / 1000}s`;
 ---
 
 <div
@@ -69,28 +75,90 @@ const coverage = [
     <!-- The grid itself -->
     <div class="md:col-span-3">
       <div
-        class="relative mx-auto grid aspect-9/7 w-full max-w-lg grid-cols-9 gap-1.5 sm:gap-2"
+        class="relative mx-auto aspect-9/7 w-full max-w-lg"
         role="img"
-        aria-label="Geo-grid showing rank position across 63 sample points around the business. 31 points rank in the top three."
+        aria-label="Geo-grid showing rank position across 63 sample points around the business, surrounded by a 4.5 mile audit radius. 31 points rank in the top three."
       >
-        {
-          ranks.map((rank, i) =>
-            i === centre ? (
-              <div class="relative flex items-center justify-center">
-                <span
-                  class="flex size-full items-center justify-center rounded-full bg-ink text-canvas"
+        <!-- Coordinate grid + radius ring overlay (decorative, behind points) -->
+        <svg
+          class="pointer-events-none absolute inset-0 h-full w-full text-hairline"
+          viewBox="0 0 9 7"
+          preserveAspectRatio="none"
+          aria-hidden="true"
+        >
+          <!-- Coordinate grid lines (subtle, behind everything) -->
+          <g stroke="currentColor" stroke-width="0.012" opacity="0.45">
+            <line x1="0" y1="1" x2="9" y2="1" />
+            <line x1="0" y1="2" x2="9" y2="2" />
+            <line x1="0" y1="3" x2="9" y2="3" />
+            <line x1="0" y1="4" x2="9" y2="4" />
+            <line x1="0" y1="5" x2="9" y2="5" />
+            <line x1="0" y1="6" x2="9" y2="6" />
+            <line x1="1" y1="0" x2="1" y2="7" />
+            <line x1="2" y1="0" x2="2" y2="7" />
+            <line x1="3" y1="0" x2="3" y2="7" />
+            <line x1="4" y1="0" x2="4" y2="7" />
+            <line x1="5" y1="0" x2="5" y2="7" />
+            <line x1="6" y1="0" x2="6" y2="7" />
+            <line x1="7" y1="0" x2="7" y2="7" />
+            <line x1="8" y1="0" x2="8" y2="7" />
+          </g>
+          <!-- 4.5 mi audit radius ring (concentric, centred on the business pin) -->
+          <circle
+            cx="4.5"
+            cy="3.5"
+            r="2.5"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="0.022"
+            stroke-dasharray="0.08 0.06"
+            opacity="0.85"
+          />
+        </svg>
+
+        <!-- Grid points layer (above the overlay) -->
+        <div
+          class="absolute inset-0 grid grid-cols-9 gap-1.5 sm:gap-2"
+        >
+          {
+            ranks.map((rank, i) => {
+              const row = Math.floor(i / 9);
+              return i === centre ? (
+                <div
+                  class="relative flex items-center justify-center"
+                  data-reveal
+                  data-reveal-delay={rowDelay(row)}
                 >
-                  <MapPin class="size-3 sm:size-3.5" aria-hidden="true" />
-                </span>
-              </div>
-            ) : (
-              <div
-                class:list={['rounded-full', bandClass[band(rank)]]}
-                aria-hidden="true"
-              />
-            )
-          )
-        }
+                  <span
+                    class="flex size-full items-center justify-center rounded-full bg-ink text-canvas"
+                  >
+                    <MapPin class="size-3 sm:size-3.5" aria-hidden="true" />
+                  </span>
+                </div>
+              ) : (
+                <div
+                  class:list={[
+                    'rounded-full',
+                    bandClass[band(rank)],
+                  ]}
+                  aria-hidden="true"
+                  data-reveal
+                  data-reveal-delay={rowDelay(row)}
+                />
+              );
+            })
+          }
+        </div>
+
+        <!-- Radius annotation callout (anchored near the ring's edge) -->
+        <div
+          class="pointer-events-none absolute top-[6%] right-[8%] flex items-center gap-1.5"
+          data-reveal
+          data-reveal-delay="0.5s"
+        >
+          <span class="caption numeric text-ink">4.5 mi</span>
+          <span class="block h-px w-6 bg-ink/60" aria-hidden="true"></span>
+        </div>
       </div>
 
       <ul class="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
@@ -102,6 +170,24 @@ const coverage = [
             </li>
           ))
         }
+        <li class="flex items-center gap-2">
+          <svg
+            class="size-3.5 text-hairline"
+            viewBox="0 0 16 16"
+            aria-hidden="true"
+          >
+            <circle
+              cx="8"
+              cy="8"
+              r="6"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.2"
+              stroke-dasharray="1.6 1.2"
+            />
+          </svg>
+          <span class="caption text-ink">Audit radius</span>
+        </li>
       </ul>
     </div>
 

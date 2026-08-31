@@ -4,6 +4,11 @@
     "astronomer-docs-mcp": {
       "type": "remote",
       "url": "https://www.astronomer.io/docs/_mcp/server"
+    },
+    "gemini-api-docs-mcp": {
+      "type": "remote",
+      "url": "https://gemini-api-docs-mcp.dev",
+      "enabled": true
     }
   }
 }

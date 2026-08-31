@@ -15,3 +15,7 @@ CONTACT_FROM=Render and Rank <onboarding@resend.dev>
 # Used server-side to fetch attendee name/email/timezone for a booking uid via
 # GET /v2/bookings/{uid}. In production add it as an encrypted Pages Secret.
 CALCOM_API_KEY=your-cal-com-api-key-here
+# Google AI Studio (Gemini) API key. Used server-side by /api/check and
+# /api/voice-token (to mint Gemini Live ephemeral auth tokens). In production
+# add it as an encrypted Pages Secret.
+GEMINI_API_KEY=your-gemini-api-key-here

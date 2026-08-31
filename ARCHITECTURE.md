@@ -59,7 +59,7 @@ Cloudflare D1 database that is surfaced through an internal admin dashboard.
 - `src/layouts` — shared page layouts/shells.
 - `src/lib/visitorClient.ts` — client-side visitor metadata collection (language, referrer, landing page, UTM params) sent to override/enrich server data.
 - `src/data/legal.ts` — legal copy (privacy policy, terms) rendered on the site.
-- `functions/api/*` — Pages Functions API endpoints (`chat`, `contact`, `booking`).
+- `functions/api/*` — Pages Functions API endpoints (`chat`, `contact`, `booking`, `voice-token`).
 - `functions/lib/visitor.ts` — `getVisitorMetadata` server-side visitor enrichment helper.
 - `functions/admin/index.ts` — signed-cookie admin dashboard rendering leads, conversations, bookings, and the AI-check summary (KPI stat cards, ranked panels, searchable table).
 - `public/admin-ai-filter.js` — dependency-free client script that powers the AI-check table search/filter (loaded same-origin by the admin page shell).
@@ -184,6 +184,25 @@ is persisted as a `conversations` row with its turns in `messages`. When the
 visitor provides an email, the lead is emailed and recorded into
 `submissions`. Requests are rate limited via the `RATE_LIMIT` KV namespace.
 
+### (i-b) Voice assistant token minting
+
+The browser voice assistant obtains a short-lived Gemini Live token by POSTing
+to `/api/voice-token` (`functions/api/voice-token.ts`). The endpoint keeps the
+server-side `GEMINI_API_KEY` secret out of the browser: it exchanges the key for
+an ephemeral token via Google's `auth_tokens` endpoint
+(`https://generativelanguage.googleapis.com/v1beta/auth_tokens`, `x-goog-api-key`
+header), constrained to `models/gemini-2.5-flash-native-audio-preview-09-2025`
+with an AUDIO response modality plus input/output transcription. The token is
+minted with `uses: 1`, a 30-minute `expireTime`, and a 1-minute
+`newSessionExpireTime`. The optional request body may carry a `conversationId`
+to reuse; otherwise a new id is minted and a best-effort `conversations` row is
+inserted (same helper/columns as the chat flow). On success it returns
+`{ ok, token, conversationId, expireTime, wssUrl }`, where `wssUrl` is the
+constrained `BidiGenerateContentConstrained` WebSocket URL with the ephemeral
+token as `access_token`, ready for the browser to open directly. Requests are
+rate limited via the `RATE_LIMIT` KV namespace under an `rl:voice-token:` scope;
+a missing `GEMINI_API_KEY` returns a 500 JSON error.
+
 ### (ii) Form / audit submissions
 
 The AuditForm island posts to `/api/contact`. The endpoint validates the
@@ -295,6 +314,6 @@ section subtitles are worded to describe the business decision each supports.
 
 ## See also
 
-- [docs/ai-chat.md](docs/ai-chat.md) — AI chat assistant details.
+- [docs/ai-chat.md](docs/ai-chat.md) — AI chat assistant details (includes the `/api/voice-token` Gemini Live token endpoint).
 - [docs/visitor-metadata.md](docs/visitor-metadata.md) — visitor metadata capture.
 - [docs/bookings.md](docs/bookings.md) — Cal.com booking capture, embed layout/preload/scrollable container, and known issues.
