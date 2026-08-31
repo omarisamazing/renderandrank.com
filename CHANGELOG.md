@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Omli chat widget UX polish** (`src/components/ChatWidget.astro`, `src/lib/voiceSession.ts`):
+  - Fixed the launcher greeting popup so its text renders horizontally instead of stacking vertically.
+  - Moved the voice "listening/Stop" status bar to the bottom of the chat panel.
+  - Restricted the full assistant greeting line to the text chat section only (not the voice section).
+  - Changed the launcher greeting to show once per day (persisted via localStorage `omli_greeting_date`), reappearing after the day rolls over.
+  - Prevented the voice assistant from interrupting the user: added a barge-in guard so she finishes her current utterance, plus a ~2500ms silence grace window before responding.
+  - Smoothed widget UX with fade/slide transitions (respecting `prefers-reduced-motion`).
+
 - **Voice assistant UX + limits** (`functions/api/voice-token.ts`, `src/components/ChatWidget.astro`, `src/lib/voiceSession.ts`): raised the too-aggressive `/api/voice-token` per-IP rate limits (daily 5→100, burst 3→20) so normal use/testing isn't blocked; added a prominent animated "Connecting…/Listening…" voice status bar with a Stop button inside the chat panel wired to the voice state machine; added a dismissible launcher greeting popup ("Hi there! How can I help you today?", in-memory per-page-load flag); and added a single guarded auto-reconnect in `voiceSession.ts` on an unexpected WebSocket drop (never loops, skipped on user stop).
 
 ### Fixed

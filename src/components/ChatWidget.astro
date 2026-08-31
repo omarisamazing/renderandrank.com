@@ -95,14 +95,6 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
       </button>
     </div>
 
-    <!-- Prominent voice status bar: shown while a voice session is connecting
-         or live. Animated equalizer + label + a Stop button to end voice. -->
-    <div class="rr-chat__voicebar" id="rr-chat-voicebar" role="status" aria-live="polite" hidden>
-      <span class="rr-chat__voicebar-anim" aria-hidden="true"><i></i><i></i><i></i></span>
-      <span class="rr-chat__voicebar-label" id="rr-chat-voicebar-label">Listening…</span>
-      <button type="button" class="rr-chat__voicebar-stop" id="rr-chat-voice-stop">Stop</button>
-    </div>
-
     <div
       id="rr-chat-log"
       class="rr-chat__log"
@@ -110,6 +102,16 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
       aria-live="polite"
       aria-relevant="additions text"
     ></div>
+
+    <!-- Prominent voice status bar: shown while a voice session is connecting
+         or live. Animated equalizer + label + a Stop button to end voice.
+         Rendered at the BOTTOM of the panel (below the message log, above the
+         composer) so it never covers the conversation. -->
+    <div class="rr-chat__voicebar" id="rr-chat-voicebar" role="status" aria-live="polite" hidden>
+      <span class="rr-chat__voicebar-anim" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span class="rr-chat__voicebar-label" id="rr-chat-voicebar-label">Listening…</span>
+      <button type="button" class="rr-chat__voicebar-stop" id="rr-chat-voice-stop">Stop</button>
+    </div>
 
     <form id="rr-chat-form" class="rr-chat__form">
       <label for="rr-chat-input" class="sr-only">Type your message</label>
@@ -330,10 +332,15 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
     position: absolute;
     right: 0;
     bottom: calc(3.25rem + 0.75rem);
+    /* Force a normal horizontal sentence layout regardless of any inherited
+       vertical writing-mode or narrow launcher width. */
     display: flex;
+    flex-direction: row;
     align-items: center;
-    gap: 0.5rem;
-    max-width: 15rem;
+    gap: 8px;
+    width: max-content;
+    max-width: 280px;
+    white-space: normal;
     padding: 0.625rem 0.75rem;
     background-color: var(--color-canvas, #fff);
     color: var(--color-ink, #000);
@@ -345,8 +352,8 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
     transform: translateY(6px) scale(0.98);
     transform-origin: bottom right;
     transition:
-      opacity 220ms var(--ease-brand, cubic-bezier(0.22, 1, 0.36, 1)),
-      transform 220ms var(--ease-brand, cubic-bezier(0.22, 1, 0.36, 1));
+      opacity 260ms var(--ease-brand, cubic-bezier(0.16, 1, 0.3, 1)),
+      transform 260ms var(--ease-brand, cubic-bezier(0.16, 1, 0.3, 1));
     pointer-events: none;
   }
 
@@ -357,8 +364,17 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
   }
 
   .rr-chat__greeting-text {
+    /* Defensive: guarantee horizontal text flow with graceful wrapping even if
+       an ancestor sets a vertical writing-mode or a tiny inherited width. */
+    writing-mode: horizontal-tb;
+    white-space: normal;
+    word-break: normal;
+    overflow-wrap: break-word;
+    text-orientation: mixed;
+    min-width: 0;
+    flex: 1 1 auto;
+    line-height: 1.4;
     font-size: 0.8125rem;
-    line-height: 1.35;
     letter-spacing: -0.006em;
   }
 
@@ -407,12 +423,25 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
     align-items: center;
     gap: 0.625rem;
     padding: 0.625rem 0.875rem;
-    border-bottom: 1px solid var(--color-hairline, #e6e6e6);
+    /* Sits at the bottom of the panel now (below the log, above the composer),
+       so use a top border to separate it from the log rather than a bottom one. */
+    border-top: 1px solid var(--color-hairline, #e6e6e6);
     background-color: var(--color-surface-soft, #f7f7f5);
     color: var(--color-ink, #000);
+    flex-shrink: 0;
+    /* Smooth fade/slide when it appears at the bottom. */
+    opacity: 1;
+    transform: translateY(0);
+    transition:
+      opacity 240ms var(--ease-brand, cubic-bezier(0.16, 1, 0.3, 1)),
+      transform 240ms var(--ease-brand, cubic-bezier(0.16, 1, 0.3, 1));
   }
 
-  .rr-chat__voicebar[hidden] { display: none; }
+  .rr-chat__voicebar[hidden] {
+    opacity: 0;
+    transform: translateY(6px);
+    display: none;
+  }
 
   .rr-chat__voicebar-anim {
     display: inline-flex;
@@ -637,6 +666,7 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
     .rr-chat__launcher:hover { transform: none; }
     .rr-chat__modes[data-live='true'] .rr-chat__mode-dot { animation: none; }
     .rr-chat__greeting,
+    .rr-chat__voicebar,
     .rr-chat__voicebar-stop {
       transition: none !important;
     }
@@ -743,7 +773,9 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
       root!.setAttribute('data-open', 'true');
       panel!.hidden = false;
       launcher!.setAttribute('aria-expanded', 'true');
-      // Opening the panel hides the launcher greeting popup immediately.
+      // Opening the panel hides the launcher greeting popup immediately and
+      // records today's date so the once-per-day popup won't reappear today.
+      markGreetingShownToday();
       hideGreeting();
       if (!greeted) {
         greeted = true;
@@ -1015,9 +1047,37 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
     window.addEventListener('beforeunload', stopVoice);
 
     // ---- Launcher greeting popup ----------------------------------------
-    // Module-scoped (per page load) in-memory flag — deliberately NOT
-    // localStorage/sessionStorage, so the popup returns after a refresh but
-    // stays gone for the rest of this page load once dismissed.
+    // Once-per-day gating via localStorage: the popup shows at most once per
+    // calendar day. The key stores today's date as YYYY-MM-DD; when the stored
+    // value already equals today, the popup is suppressed. After the day rolls
+    // over (or on a refresh on a new day) it becomes eligible again.
+    const GREETING_DATE_KEY = 'omli_greeting_date';
+
+    function todayKey(): string {
+      const d = new Date();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return d.getFullYear() + '-' + mm + '-' + dd;
+    }
+
+    function greetingShownToday(): boolean {
+      try {
+        return localStorage.getItem(GREETING_DATE_KEY) === todayKey();
+      } catch {
+        return false; // localStorage unavailable → treat as not-yet-shown
+      }
+    }
+
+    function markGreetingShownToday(): void {
+      try {
+        localStorage.setItem(GREETING_DATE_KEY, todayKey());
+      } catch {
+        /* localStorage may be unavailable; gating degrades to per-load only */
+      }
+    }
+
+    // Session-local flag so a dismiss/close hides it for the rest of this load
+    // even before the day rolls over (complements the localStorage day gate).
     let greetingDismissed = false;
     let greetingHideTimer: number | null = null;
     let greetingReshowTimer: number | null = null;
@@ -1029,6 +1089,10 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
     function showGreeting() {
       if (!greeting) return;
       if (greetingDismissed || panelIsOpen()) return;
+      // Once-per-day: skip if we've already shown it today.
+      if (greetingShownToday()) return;
+      // Record today's date so it won't show again until the day rolls over.
+      markGreetingShownToday();
       greeting.hidden = false;
       // Force a reflow so the transition runs when toggling the shown flag.
       void greeting.offsetWidth;
@@ -1056,6 +1120,9 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
 
     function dismissGreeting() {
       greetingDismissed = true;
+      // Persist today's date so the once-per-day gate also suppresses it on
+      // subsequent loads within the same day.
+      markGreetingShownToday();
       hideGreeting();
       if (greetingReshowTimer !== null) {
         window.clearTimeout(greetingReshowTimer);
@@ -1068,9 +1135,10 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
       dismissGreeting();
     });
 
-    // First reveal ~1.5s after load, only while the panel is closed.
+    // First reveal ~1.5s after load, only while the panel is closed and if the
+    // once-per-day gate hasn't already been satisfied today.
     window.setTimeout(() => {
-      if (!greetingDismissed && !panelIsOpen()) showGreeting();
+      if (!greetingDismissed && !panelIsOpen() && !greetingShownToday()) showGreeting();
     }, 1500);
   }
 </script>

@@ -113,6 +113,18 @@ export class VoiceSession {
   // no activity. Handle is a browser timeout id (number).
   private inactivityTimer: ReturnType<typeof setTimeout> | null = null;
 
+  // Barge-in guard: true while the assistant is actively speaking (audio
+  // playing). When the model reports an interruption mid-utterance we do NOT
+  // cut it off immediately; instead we flag pendingFlush and flush only once
+  // the current utterance finishes (turnComplete / playback end).
+  private assistantSpeaking = false;
+  private pendingFlush = false;
+
+  // 2500ms silence grace so we don't cut the user off. Restarted on each
+  // incoming user speech/transcription event; the assistant is only allowed to
+  // finalize/respond after this window of user silence elapses.
+  private graceTimer: ReturnType<typeof setTimeout> | null = null;
+
   // Mic capture graph.
   private micStream: MediaStream | null = null;
   private inputCtx: AudioContext | null = null;
@@ -184,6 +196,32 @@ export class VoiceSession {
     if (this.inactivityTimer !== null) {
       clearTimeout(this.inactivityTimer);
       this.inactivityTimer = null;
+    }
+  }
+
+  // ---- Silence grace window ----------------------------------------------
+
+  /**
+   * (Re)start the 2500ms silence grace so we don't cut the user off. Called on
+   * each incoming user speech/transcription event; while this timer is pending
+   * the user is still considered mid-sentence and the assistant must wait.
+   */
+  private restartGraceTimer(): void {
+    if (this.graceTimer !== null) {
+      clearTimeout(this.graceTimer);
+      this.graceTimer = null;
+    }
+    // 2500ms silence grace so we don't cut the user off.
+    this.graceTimer = setTimeout(() => {
+      this.graceTimer = null;
+    }, 2500);
+  }
+
+  /** Clear the grace timer so it can't fire after the session ends. */
+  private clearGraceTimer(): void {
+    if (this.graceTimer !== null) {
+      clearTimeout(this.graceTimer);
+      this.graceTimer = null;
     }
   }
 
@@ -491,9 +529,15 @@ export class VoiceSession {
     // postpone the inactivity auto-stop.
     this.resetInactivityTimer();
 
-    // Barge-in: user interrupted → drop any queued/playing model audio.
+    // Barge-in: user interrupted. Do NOT cut the assistant off mid-utterance:
+    // if it is actively speaking, defer the flush until the utterance finishes
+    // (turnComplete / playback end). Only flush immediately when it is silent.
     if (sc.interrupted === true) {
-      this.flush();
+      if (this.assistantSpeaking) {
+        this.pendingFlush = true;
+      } else {
+        this.flush();
+      }
     }
 
     // Model audio chunks arrive as inlineData parts (audio/pcm;rate=24000).
@@ -502,15 +546,20 @@ export class VoiceSession {
       for (const part of parts) {
         const inline = part?.inlineData;
         if (inline?.data && typeof inline.mimeType === 'string' && inline.mimeType.startsWith('audio/pcm')) {
+          // Assistant audio is starting to play → it is now speaking.
+          this.assistantSpeaking = true;
           this.enqueuePlayback(inline.data);
         }
       }
     }
 
-    // Interim transcripts: render live, never beacon.
+    // Interim transcripts: render live, never beacon. A user transcription
+    // event means the user is still talking, so (re)start the 2500ms silence
+    // grace so we don't cut the user off.
     if (sc.inputTranscription?.text) {
       this.userTurn += sc.inputTranscription.text;
       this.cb.onUserTranscript?.(this.userTurn, false);
+      this.restartGraceTimer();
     }
     if (sc.outputTranscription?.text) {
       this.assistantTurn += sc.outputTranscription.text;
@@ -519,8 +568,33 @@ export class VoiceSession {
 
     // Turn finished: finalize + beacon both channels, then reset accumulators.
     if (sc.turnComplete === true) {
-      this.finalizeTurn();
+      // 2500ms silence grace so we don't cut the user off: if the user is still
+      // mid-sentence (grace timer pending), defer finalizing until the window
+      // elapses rather than responding immediately.
+      if (this.graceTimer !== null) {
+        clearTimeout(this.graceTimer);
+        this.graceTimer = setTimeout(() => {
+          this.graceTimer = null;
+          this.completeUtterance();
+        }, 2500);
+        return;
+      }
+      this.completeUtterance();
     }
+  }
+
+  /**
+   * Finish the current assistant utterance: the assistant is no longer speaking
+   * (playback finished), so run the deferred barge-in flush if one is pending
+   * and finalize/beacon the turn.
+   */
+  private completeUtterance(): void {
+    this.assistantSpeaking = false;
+    if (this.pendingFlush) {
+      this.pendingFlush = false;
+      this.flush();
+    }
+    this.finalizeTurn();
   }
 
   /** Finalize the current turn: emit final callbacks and beacon persisted turns. */
@@ -647,6 +721,19 @@ export class VoiceSession {
     const startAt = Math.max(this.playHead, ctx.currentTime);
     src.start(startAt);
     this.playHead = startAt + audioBuffer.duration;
+
+    // When this (currently last) scheduled chunk finishes and nothing newer has
+    // been queued after it, the assistant utterance has finished playing back:
+    // clear assistantSpeaking and run any deferred barge-in flush.
+    src.onended = () => {
+      if (this.outputCtx && ctx === this.outputCtx && this.playHead <= ctx.currentTime + 0.0001) {
+        this.assistantSpeaking = false;
+        if (this.pendingFlush) {
+          this.pendingFlush = false;
+          this.flush();
+        }
+      }
+    };
   }
 
   /** Barge-in: stop and discard all queued/playing model audio immediately. */
@@ -667,6 +754,11 @@ export class VoiceSession {
   private teardown(): void {
     // Stop the inactivity watchdog first so it can't fire mid-teardown.
     this.clearInactivityTimer();
+    // Clear the silence grace timer so it can't fire after teardown (no leak).
+    this.clearGraceTimer();
+    // Reset barge-in flags so a fresh session starts clean.
+    this.assistantSpeaking = false;
+    this.pendingFlush = false;
 
     // Tell the worklet to stop, then dismantle the mic graph.
     try {
