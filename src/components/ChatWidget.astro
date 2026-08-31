@@ -469,6 +469,19 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
     opacity: 0.55;
   }
 
+  /* Error phase: Talk-only surface for mic/voice errors. Tint the bar with the
+     brand pink block and freeze the equalizer so it reads as a message, not a
+     live session. This keeps voice errors out of the shared text chat log. */
+  .rr-chat__voicebar[data-phase='error'] {
+    background-color: var(--color-block-pink, #efd4d4);
+  }
+
+  .rr-chat__voicebar[data-phase='error'] .rr-chat__voicebar-anim i {
+    background-color: var(--color-ink, #000);
+    opacity: 0.4;
+    animation: none;
+  }
+
   @keyframes rr-chat-eq {
     0%, 100% { height: 0.375rem; }
     50% { height: 1.125rem; }
@@ -777,7 +790,10 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
       // records today's date so the once-per-day popup won't reappear today.
       markGreetingShownToday();
       hideGreeting();
-      if (!greeted) {
+      // Text greeting only in Type mode. The Talk (voice) path speaks its own
+      // spoken greeting via voiceSession.ts and must never surface this text
+      // GREETING into #rr-chat-log, so guard it on currentMode === 'type'.
+      if (!greeted && currentMode === 'type') {
         greeted = true;
         addBubble('assistant', GREETING);
         renderSuggestions();
@@ -956,8 +972,12 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
         if (voicebarLabel) voicebarLabel.textContent = 'Listening…';
         voicebar.setAttribute('data-phase', 'live');
         voicebar.hidden = false;
+      } else if (state === 'error') {
+        // Keep the bar visible on error so the Talk-only message (set by
+        // showVoiceError) stays on screen; do not hide it here.
+        return;
       } else {
-        // idle | error | closing → hide the bar.
+        // idle | closing → hide the bar.
         voicebar.hidden = true;
         voicebar.removeAttribute('data-phase');
       }
@@ -995,6 +1015,8 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
       removeSuggestions();
       liveUserEl = null;
       liveAssistantEl = null;
+      // Fresh Talk session: clear any lingering error phase from a prior attempt.
+      voicebar?.removeAttribute('data-phase');
 
       voice = new VoiceSession({
         onState: (state: VoiceState) => {
@@ -1003,20 +1025,41 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
           setVoiceUI(state);
           // If the session ends on its own (goAway/socket close/error), fall
           // back to Type mode so the composer is usable again.
-          if (state === 'idle' || state === 'error') {
+          // Only auto-fall back to Type on a clean idle end. On 'error' we
+          // stay in Talk so the mic/voice error stays on the Talk-only voice
+          // bar (see showVoiceError) and never leaks into the text chat.
+          if (state === 'idle') {
             if (currentMode === 'talk') switchMode('type');
           }
         },
         onUserTranscript: renderUserTranscript,
         onAssistantTranscript: renderAssistantTranscript,
-        onError: (message: string) => addBubble('error', message),
+        // Mic/voice errors belong to the Talk section only — never surface them
+        // in the shared text chat (#rr-chat-log). Show them on the Talk-only
+        // voice bar (label) and keep the mode on Talk so onState's idle/error
+        // fall-back to Type doesn't leak the error into the text composer.
+        onError: (message: string) => showVoiceError(message),
       });
       voice.start();
     }
 
+    // Surface a mic/voice error on the Talk-only voice bar (never in the shared
+    // text chat log). Keeps the current mode as-is (Talk) so switching to Type
+    // doesn't leak the error into the text composer. If the voice bar isn't
+    // available for some reason, we still avoid touching #rr-chat-log.
+    function showVoiceError(message: string) {
+      if (voicebar && voicebarLabel) {
+        voicebarLabel.textContent = message;
+        voicebar.setAttribute('data-phase', 'error');
+        voicebar.hidden = false;
+      }
+    }
+
     function stopVoice() {
       setLiveIndicator(false);
-      setVoiceUI('idle'); // hide the voice status bar immediately
+      // Clear any error phase and hide the voice status bar immediately.
+      voicebar?.removeAttribute('data-phase');
+      setVoiceUI('idle');
       liveUserEl = null;
       liveAssistantEl = null;
       if (voice) {
@@ -1037,6 +1080,8 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
     modeTalkBtn.addEventListener('click', () => switchMode('talk'));
 
     // Stop button on the voice bar: end voice and fall back to Type mode.
+    // stopVoice() clears any error phase, so switching to Type here does not
+    // carry a voice error into the text chat.
     voiceStopBtn?.addEventListener('click', () => {
       stopVoice();
       switchMode('type');
