@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Removed the assistant greeting bubble from the Type chat panel; it now opens with just the suggestion pills.
 - **Voice assistant responds immediately (removed silence grace window)** (`src/lib/voiceSession.ts`): removed the `SPEECH_GRACE_MS` / `graceTimer` ~2500ms silence grace window and its start/reset/clear logic. Turns now finalize immediately on `turnComplete` and interim user transcription no longer defers the assistant, so the AI voice assistant replies without waiting after the user stops speaking. The barge-in guard, inactivity watchdog, and all other voice-session behavior are unchanged.
 
 ### Fixed

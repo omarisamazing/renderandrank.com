@@ -828,14 +828,12 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
       // records today's date so the once-per-day popup won't reappear today.
       markGreetingShownToday();
       hideGreeting();
-      // Text greeting only in Type mode. The Talk (voice) path speaks its own
-      // spoken greeting via voiceSession.ts and must never surface this text
-      // GREETING into #rr-chat-log, so guard it on currentMode === 'type'.
+      // The Talk (voice) path speaks its own spoken greeting via voiceSession.ts.
+      // The Type panel no longer renders a text greeting bubble; it opens with
+      // just the suggestion pills. We still set greeted=true so the separate
+      // daily-greeting bookkeeping continues to behave.
       if (currentMode === 'type') {
-        if (!greeted) {
-          greeted = true;
-          addBubble('assistant', GREETING);
-        }
+        greeted = true;
         if (!userHasMessaged) renderSuggestions();
       }
       // Move focus into the input on open (only relevant in Type mode).
