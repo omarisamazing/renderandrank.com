@@ -212,6 +212,17 @@ conversation id and transcript storage.
 - **Transcript beacon.** Finalized turns are POSTed to `/api/voice-transcript`
   with `channel = 'voice'` (see (i-c)), so voice turns are persisted alongside
   typed turns in the same `messages` table.
+- **In-session voice memory.** Finalized voice turns (user + `model`) are also
+  handed back to the widget via an `onTurnFinalized` callback and kept in an
+  in-memory `voiceTurns` array for the page load — mirroring the typed-text
+  `messages` array. It persists across Stop/Start and Type↔Talk toggles and
+  resets only on a full page reload. When a new Live session connects, the
+  widget passes these retained turns to `VoiceSession` (`priorTurns`), which
+  seeds them into the session right after `setupComplete` as a single
+  `clientContent` history frame (`turnComplete: false`, sent before the
+  greeting) so the model actually remembers earlier Talk exchanges rather than
+  the UI merely retaining the transcript. This does not change what is sent to
+  `/api/chat` or `/api/voice-transcript`, nor the token-minting flow.
 - **Teardown.** Ending voice mode performs a full teardown: it closes the
   WebSocket, stops the microphone tracks, and closes the capture and playback
   `AudioContext`s so no mic or audio resources leak.

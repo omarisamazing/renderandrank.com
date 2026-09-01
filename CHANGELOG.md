@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Voice assistant now remembers prior voice turns as context within the page session** (`src/lib/voiceSession.ts`, `src/components/ChatWidget.astro`): finalized Talk turns (user + assistant) are retained in an in-memory `voiceTurns` array for the page load — mirroring the typed-text `messages` array — and persist across Stop/Start and Type↔Talk toggles, resetting only on a full page reload (consistent with the transcript retention from commit aeb4fbb). When a new Live session connects, the retained turns are seeded into the Gemini Live session as `clientContent` conversation history (with `turnComplete: false`, before the greeting) so the assistant actually recalls earlier Talk exchanges rather than only visually retaining the transcript. No change to what is sent to `/api/chat` or `/api/voice-transcript`, and the token-minting flow is untouched.
 - Talk (voice) transcript now persists on screen after stopping a conversation (temporary in-session memory), instead of being cleared on Stop. It resets on page reload.
 
 ### Changed

@@ -35,6 +35,16 @@ export type VoiceState =
   | 'closing'
   | 'error';
 
+/**
+ * A finalized voice turn kept in the page-session memory. `role` uses the
+ * Gemini Live wire vocabulary (`'user'` | `'model'`) so retained turns can be
+ * fed straight back into a fresh session's clientContent without remapping.
+ */
+export interface VoiceTurn {
+  role: 'user' | 'model';
+  text: string;
+}
+
 export interface VoiceSessionCallbacks {
   /** State-machine transitions (idle → requesting-token → connecting → live → closing/error). */
   onState?: (state: VoiceState) => void;
@@ -44,6 +54,21 @@ export interface VoiceSessionCallbacks {
   onAssistantTranscript?: (text: string, final: boolean) => void;
   /** Human-readable error message (already safe to show to the user). */
   onError?: (message: string) => void;
+  /**
+   * A voice turn just finalized (user or assistant). The widget mirrors the
+   * typed-text `messages` array by pushing these into a page-session array so
+   * they can seed the next Live session as in-session memory.
+   */
+  onTurnFinalized?: (turn: VoiceTurn) => void;
+}
+
+/**
+ * Optional per-session options. `priorTurns` carries finalized voice turns from
+ * earlier Talk sessions in the same page load so the model actually remembers
+ * them (in-session voice memory), rather than only visually retaining them.
+ */
+export interface VoiceSessionOptions {
+  priorTurns?: VoiceTurn[];
 }
 
 // Shape returned by POST /api/voice-token.
@@ -143,8 +168,18 @@ export class VoiceSession {
   // and exposed via getResumptionHandle().
   private resumptionHandle: string | null = null;
 
-  constructor(callbacks: VoiceSessionCallbacks = {}) {
+  // In-session voice memory: finalized turns from earlier Talk sessions in this
+  // page load, seeded into the Live session (as clientContent history) right
+  // after setupComplete so the model actually remembers prior Talk exchanges.
+  // Empty for a first session; the widget passes retained turns for later ones.
+  private priorTurns: VoiceTurn[] = [];
+
+  constructor(callbacks: VoiceSessionCallbacks = {}, options: VoiceSessionOptions = {}) {
     this.cb = callbacks;
+    if (Array.isArray(options.priorTurns)) {
+      // Copy so later mutations of the caller's array don't leak in mid-session.
+      this.priorTurns = options.priorTurns.slice();
+    }
   }
 
   getState(): VoiceState {
@@ -452,6 +487,10 @@ export class VoiceSession {
       this.setupComplete = true;
       // Session is now active: start the inactivity watchdog...
       this.resetInactivityTimer();
+      // ...seed any retained prior voice turns so the model remembers earlier
+      // Talk exchanges (in-session memory), BEFORE the greeting so it has the
+      // context in hand when it speaks first...
+      this.seedPriorTurns();
       // ...and have the assistant speak first (exactly once per connection).
       this.sendGreeting();
       return;
@@ -471,6 +510,40 @@ export class VoiceSession {
 
     if (msg.serverContent) {
       this.handleServerContent(msg.serverContent);
+    }
+  }
+
+  /**
+   * Seed the Live session with finalized voice turns retained from earlier Talk
+   * sessions in this page load, so the model actually remembers them (in-session
+   * voice memory) rather than the UI merely retaining the transcript.
+   *
+   * Sent as a single `clientContent` history frame right after setupComplete,
+   * following the same setup-message conventions used by sendGreeting(). Uses
+   * only documented fields (`turns[].role`/`parts[].text`); `turnComplete` is
+   * false so this is background context and does NOT trigger a model response —
+   * the subsequent greeting frame drives the assistant's first utterance.
+   */
+  private seedPriorTurns(): void {
+    if (!this.priorTurns.length) return;
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN || !this.setupComplete) return;
+
+    const turns = this.priorTurns
+      .filter((t) => t && typeof t.text === 'string' && t.text.trim())
+      .map((t) => ({ role: t.role, parts: [{ text: t.text }] }));
+    if (!turns.length) return;
+
+    const frame = {
+      clientContent: {
+        turns,
+        // Background memory only — do not prompt a response for the history.
+        turnComplete: false,
+      },
+    };
+    try {
+      this.ws.send(JSON.stringify(frame));
+    } catch (sendErr) {
+      console.error('[voice] failed to seed prior turns', String(sendErr));
     }
   }
 
@@ -561,11 +634,16 @@ export class VoiceSession {
       const text = this.userTurn.trim();
       this.cb.onUserTranscript?.(text, true);
       this.beaconTranscript('user', text);
+      // Mirror the typed-text `messages` array: hand the finalized turn to the
+      // widget so it can retain it as in-session voice memory (role 'user').
+      this.cb.onTurnFinalized?.({ role: 'user', text });
     }
     if (this.assistantTurn.trim()) {
       const text = this.assistantTurn.trim();
       this.cb.onAssistantTranscript?.(text, true);
       this.beaconTranscript('assistant', text);
+      // Assistant turn uses the Live wire role 'model' for the retained memory.
+      this.cb.onTurnFinalized?.({ role: 'model', text });
     }
     this.userTurn = '';
     this.assistantTurn = '';

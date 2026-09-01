@@ -716,7 +716,7 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
 <script>
   import { getClientVisitorData } from '../lib/visitorClient';
   import { VoiceSession } from '../lib/voiceSession';
-  import type { VoiceState } from '../lib/voiceSession';
+  import type { VoiceState, VoiceTurn } from '../lib/voiceSession';
 
   // This is a plain bundled module <script> (no define:vars), so the ESM import
   // above resolves normally in the browser and getClientVisitorData() runs at
@@ -731,6 +731,14 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
 
   // In-memory transcript sent to the API on every turn.
   const messages: { role: 'user' | 'assistant'; content: string }[] = [];
+
+  // In-session voice memory: finalized Talk turns for this page load. Mirrors
+  // the typed-text `messages` array above, but for voice — it persists across
+  // Stop/Start and Type<->Talk toggles and is seeded into each new Live session
+  // so the assistant remembers earlier Talk exchanges. Resets only on a full
+  // page reload (module re-evaluation), consistent with the on-screen Talk
+  // transcript retention added in commit aeb4fbb.
+  const voiceTurns: VoiceTurn[] = [];
 
   let isStreaming = false;
   let greeted = false;
@@ -1082,6 +1090,9 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
       }
 
       voice = new VoiceSession({
+        // Feed the finalized turns retained across this page session into the
+        // new Live session so the assistant remembers earlier Talk exchanges
+        // (in-session voice memory), not just the visible transcript.
         onState: (state: VoiceState) => {
           setLiveIndicator(state === 'live');
           // Drive the prominent voice status bar (connecting/listening/Stop).
@@ -1097,11 +1108,21 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
         },
         onUserTranscript: renderUserTranscript,
         onAssistantTranscript: renderAssistantTranscript,
+        // Retain every finalized voice turn for this page session so the next
+        // Live session can be seeded with it (in-session voice memory). Same
+        // pattern as the typed-text `messages.push(...)` calls.
+        onTurnFinalized: (turn: VoiceTurn) => {
+          voiceTurns.push(turn);
+        },
         // Mic/voice errors belong to the Talk section only — never surface them
         // in the shared text chat (#rr-chat-log). Show them on the Talk-only
         // voice bar (label) and keep the mode on Talk so onState's idle/error
         // fall-back to Type doesn't leak the error into the text composer.
         onError: (message: string) => showVoiceError(message),
+      }, {
+        // Seed the new Live session with the turns retained so far this page
+        // session (in-session voice memory). Empty on the first session.
+        priorTurns: voiceTurns,
       });
       voice.start();
     }
