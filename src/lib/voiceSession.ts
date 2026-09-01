@@ -16,7 +16,9 @@
  *   4. Play back the model's 24 kHz PCM16 audio through a dedicated output
  *      AudioContext queue; flush it on barge-in (serverContent.interrupted).
  *   5. Render live transcripts via callbacks and beacon only FINALIZED turns to
- *      /api/voice-transcript (never interim).
+ *      /api/voice-transcript (never interim). Turns are finalized immediately on
+ *      turnComplete so the assistant responds without waiting on a silence
+ *      grace window.
  *
  * The class is UI-agnostic: it exposes callbacks (onState / onUserTranscript /
  * onAssistantTranscript / onError) and start()/stop(). The widget wires those
@@ -84,12 +86,6 @@ const OUTPUT_SAMPLE_RATE = 24000; // Gemini Live model audio rate.
 // module const so it's easy to tune.
 const INACTIVITY_TIMEOUT_MS = 90_000; // 90s.
 
-// Silence grace window applied symmetrically on both speech transitions
-// (assistant speaking → listening for the user, and user speaking → assistant):
-// neither side is allowed to interrupt/finalize during this window, so the two
-// speakers don't cut each other off. Single module const so it's easy to tune.
-const SPEECH_GRACE_MS = 1000;
-
 // One-time greeting the assistant speaks first once setup completes.
 const GREETING_TEXT =
   'The user just connected. Greet them briefly as Render and Rank\'s assistant and ask how you can help grow their business.';
@@ -125,11 +121,6 @@ export class VoiceSession {
   // the current utterance finishes (turnComplete / playback end).
   private assistantSpeaking = false;
   private pendingFlush = false;
-
-  // SPEECH_GRACE_MS silence grace so we don't cut the user off. Restarted on
-  // each incoming user speech/transcription event; the assistant is only allowed
-  // to finalize/respond after this window of user silence elapses.
-  private graceTimer: ReturnType<typeof setTimeout> | null = null;
 
   // Mic capture graph.
   private micStream: MediaStream | null = null;
@@ -202,34 +193,6 @@ export class VoiceSession {
     if (this.inactivityTimer !== null) {
       clearTimeout(this.inactivityTimer);
       this.inactivityTimer = null;
-    }
-  }
-
-  // ---- Silence grace window ----------------------------------------------
-
-  /**
-   * (Re)start the SPEECH_GRACE_MS silence grace so we don't cut the user off.
-   * Called on each incoming user speech/transcription event; while this timer is
-   * pending the user is still considered mid-sentence and the assistant must
-   * wait. This is the user-speaking→assistant side of the symmetric grace window
-   * (the assistant-speaking→user side lives in the turnComplete branch below).
-   */
-  private restartGraceTimer(): void {
-    if (this.graceTimer !== null) {
-      clearTimeout(this.graceTimer);
-      this.graceTimer = null;
-    }
-    // SPEECH_GRACE_MS silence grace so we don't cut the user off.
-    this.graceTimer = setTimeout(() => {
-      this.graceTimer = null;
-    }, SPEECH_GRACE_MS);
-  }
-
-  /** Clear the grace timer so it can't fire after the session ends. */
-  private clearGraceTimer(): void {
-    if (this.graceTimer !== null) {
-      clearTimeout(this.graceTimer);
-      this.graceTimer = null;
     }
   }
 
@@ -561,34 +524,19 @@ export class VoiceSession {
       }
     }
 
-    // Interim transcripts: render live, never beacon. A user transcription
-    // event means the user is still talking, so (re)start the SPEECH_GRACE_MS
-    // silence grace so we don't cut the user off.
+    // Interim transcripts: render live, never beacon.
     if (sc.inputTranscription?.text) {
       this.userTurn += sc.inputTranscription.text;
       this.cb.onUserTranscript?.(this.userTurn, false);
-      this.restartGraceTimer();
     }
     if (sc.outputTranscription?.text) {
       this.assistantTurn += sc.outputTranscription.text;
       this.cb.onAssistantTranscript?.(this.assistantTurn, false);
     }
 
-    // Turn finished: finalize + beacon both channels, then reset accumulators.
+    // Turn finished: finalize + beacon both channels immediately, then reset
+    // accumulators.
     if (sc.turnComplete === true) {
-      // SPEECH_GRACE_MS silence grace so we don't cut the user off: if the user
-      // is still mid-sentence (grace timer pending), defer finalizing until the
-      // window elapses rather than responding immediately. This is the
-      // assistant-speaking→user side of the symmetric grace window (mirrors
-      // restartGraceTimer above), so neither speaker interrupts the other.
-      if (this.graceTimer !== null) {
-        clearTimeout(this.graceTimer);
-        this.graceTimer = setTimeout(() => {
-          this.graceTimer = null;
-          this.completeUtterance();
-        }, SPEECH_GRACE_MS);
-        return;
-      }
       this.completeUtterance();
     }
   }
@@ -596,7 +544,7 @@ export class VoiceSession {
   /**
    * Finish the current assistant utterance: the assistant is no longer speaking
    * (playback finished), so run the deferred barge-in flush if one is pending
-   * and finalize/beacon the turn.
+   * and finalize/beacon the turn immediately.
    */
   private completeUtterance(): void {
     this.assistantSpeaking = false;
@@ -764,8 +712,6 @@ export class VoiceSession {
   private teardown(): void {
     // Stop the inactivity watchdog first so it can't fire mid-teardown.
     this.clearInactivityTimer();
-    // Clear the silence grace timer so it can't fire after teardown (no leak).
-    this.clearGraceTimer();
     // Reset barge-in flags so a fresh session starts clean.
     this.assistantSpeaking = false;
     this.pendingFlush = false;
