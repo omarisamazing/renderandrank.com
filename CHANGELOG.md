@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Suggestion pills now show whenever the Type chat panel opens before the first message, no longer gated behind the daily-greeting flag.
 - **Omli chat: Talk voice transcripts no longer overlap the Text chat** (`src/components/ChatWidget.astro`): voice transcripts now render in a separate `#rr-chat-voicelog` surface, and `switchMode` shows only the active mode's log so Talk and Text messages never stack.
 
 ### Changed
