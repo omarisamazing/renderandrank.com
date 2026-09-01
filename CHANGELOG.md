@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Talk (voice) transcript now persists on screen after stopping a conversation (temporary in-session memory), instead of being cleared on Stop. It resets on page reload.
+
 ### Changed
 
 - Removed the assistant greeting bubble from the Type chat panel; it now opens with just the suggestion pills.

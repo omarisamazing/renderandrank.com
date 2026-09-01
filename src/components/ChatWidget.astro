@@ -546,6 +546,13 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
     display: none;
   }
 
+  /* Divider between retained Talk sessions (temp in-session transcript memory). */
+  .rr-chat__voice-divider {
+    border-top: 1px solid var(--color-hairline, #e6e6e6);
+    margin: 8px 0;
+    opacity: 0.5;
+  }
+
   :global(.rr-chat__msg) {
     max-width: 85%;
     padding: 0.625rem 0.875rem;
@@ -1065,6 +1072,15 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
       // Fresh Talk session: clear any lingering error phase from a prior attempt.
       voicebar?.removeAttribute('data-phase');
 
+      // Temp in-session memory: keep prior Talk transcript visible. If there's
+      // already history, add a subtle divider before the new session's bubbles.
+      if (voicelog && voicelog.childElementCount > 0) {
+        const divider = document.createElement('div');
+        divider.className = 'rr-chat__voice-divider';
+        divider.setAttribute('role', 'separator');
+        voicelog.appendChild(divider);
+      }
+
       voice = new VoiceSession({
         onState: (state: VoiceState) => {
           setLiveIndicator(state === 'live');
@@ -1109,9 +1125,6 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
       setVoiceUI('idle');
       liveUserEl = null;
       liveAssistantEl = null;
-      // Clear the Talk-only transcript surface so a fresh Talk session (or a
-      // later view) doesn't show stale voice bubbles.
-      if (voicelog) voicelog.textContent = '';
       if (voice) {
         voice.stop();
         voice = null;
