@@ -5,6 +5,9 @@ publishDate: 2026-09-05
 author: "Omar Ali"
 topic: "generative-search"
 pillar: "Generative Search & AEO"
+related:
+  - "google-maps-3-pack-ranking-factors-geo-grid"
+  - "local-seo-pricing-roi-calculator"
 faq:
   - q: "What is the difference between AEO and GEO?"
     a: "AEO (Answer Engine Optimization) targets direct answers in assistants like ChatGPT. GEO (Generative Engine Optimization) targets cited presence inside generative results like Google AI Overviews. Both reward the same foundation: consistent entity data, structured markup, and third-party corroboration."

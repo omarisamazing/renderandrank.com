@@ -31,4 +31,8 @@ Render and Rank helps local service companies and multi-location businesses outr
 ## Blog — Search Engineering Notes
 - [Blog index](https://renderandrank.com/blog)
 - [How ChatGPT Finds Local Businesses: The 4 Pathways of AI Information](https://renderandrank.com/blog/ai-visibility-local-business-chatgpt-gemini-perplexity/)
+- [Google Maps 3-Pack Ranking Factors: The Geo-Grid Method](https://renderandrank.com/blog/google-maps-3-pack-ranking-factors-geo-grid/)
+- [Local Citations and NAP Consistency: The Complete Guide](https://renderandrank.com/blog/local-citations-nap-consistency-guide/)
+- [Google Review Velocity: The SMS Pipeline That Moves Maps Rankings](https://renderandrank.com/blog/google-reviews-velocity-maps-rankings-sms-pipeline/)
+- [Local SEO Pricing and ROI: What It Costs and What It Returns](https://renderandrank.com/blog/local-seo-pricing-roi-calculator/)
 - [RSS feed](https://renderandrank.com/rss.xml)
