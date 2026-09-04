@@ -15,9 +15,11 @@ interface Props {
   /** Which pastel ground the process block sits on. */
   block?: 'lime' | 'lilac' | 'cream' | 'mint' | 'coral' | 'pink';
   lede?: string;
+  /** Pillar posts for further reading (title + href). */
+  relatedPosts?: Array<{ title: string; description: string; href: string }>;
 }
 
-const { service, block = 'cream', lede } = Astro.props;
+const { service, block = 'cream', lede, relatedPosts = [] } = Astro.props;
 
 const blockClass = {
   lime: 'color-block-lime',
@@ -156,6 +158,32 @@ const faqSchema =
     </ol>
   </div>
 </Section>
+
+<!-- Pillar reading, wired per service page -->
+{
+  relatedPosts.length > 0 && (
+    <Section divider>
+      <div data-reveal-group>
+        <Eyebrow data-reveal>Further reading</Eyebrow>
+        <h2 class="display-md mt-4 text-ink" data-reveal>
+          The engineering behind this service
+        </h2>
+      </div>
+      <div class="mt-10 grid gap-6 md:grid-cols-2" data-reveal-group>
+        {relatedPosts.map((post) => (
+          <a
+            href={post.href}
+            class="rounded-lg border border-hairline bg-canvas p-6 transition-colors hover:border-ink/25 md:p-7"
+            data-reveal
+          >
+            <h3 class="card-title text-ink">{post.title}</h3>
+            <p class="body-sm mt-3 text-ink">{post.description}</p>
+          </a>
+        ))}
+      </div>
+    </Section>
+  )
+}
 
 <!-- Service-specific questions -->
 {

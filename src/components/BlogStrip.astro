@@ -1,0 +1,49 @@
+---
+/**
+ * Homepage discovery strip for the editorial engine: white canvas, three
+ * latest posts, one link to the index. Sits between proof (PortfolioGrid)
+ * and the calculator so the argument flows: proof → learn → measure.
+ */
+import { getCollection } from 'astro:content';
+import Section from './ui/Section.astro';
+import Eyebrow from './ui/Eyebrow.astro';
+
+const posts = (await getCollection('blog', ({ data }) => data.draft !== true))
+  .sort((a, b) => b.data.publishDate.getTime() - a.data.publishDate.getTime())
+  .slice(0, 3);
+---
+
+{posts.length > 0 && (
+  <Section id="insights">
+    <div class="flex flex-wrap items-end justify-between gap-6" data-reveal-group>
+      <div>
+        <Eyebrow data-reveal>Insights</Eyebrow>
+        <h2 class="display-md mt-4 text-ink" data-reveal>
+          Search engineering notes
+        </h2>
+      </div>
+      <a
+        href="/blog"
+        class="link text-ink hover:underline hover:underline-offset-4"
+        data-reveal
+      >
+        All articles →
+      </a>
+    </div>
+    <div class="mt-10 grid gap-6 md:grid-cols-3" data-reveal-group>
+      {posts.map((post) => (
+        <a
+          href={`/blog/${post.id}/`}
+          class="flex flex-col rounded-lg border border-hairline bg-canvas p-6 transition-colors hover:border-ink/25 md:p-7"
+          data-reveal
+        >
+          <h3 class="card-title text-ink">{post.data.title}</h3>
+          <p class="body-sm mt-3 text-ink">{post.data.description}</p>
+          <p class="caption mt-4 text-ink">
+            {post.data.publishDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+          </p>
+        </a>
+      ))}
+    </div>
+  </Section>
+)}

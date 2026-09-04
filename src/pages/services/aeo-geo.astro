@@ -16,6 +16,18 @@ const service = services.find((s) => s.slug === 'aeo-geo')!;
     service={service}
     block="lilac"
     lede="When the answer replaces the search results"
+    relatedPosts={[
+      {
+        title: 'How ChatGPT Finds Local Businesses: The 4 Pathways of AI Information',
+        description: 'Training, live retrieval, licensing, direct APIs — and how to show up in each.',
+        href: '/blog/ai-visibility-local-business-chatgpt-gemini-perplexity/',
+      },
+      {
+        title: 'Google Maps 3-Pack Ranking Factors: The Geo-Grid Method',
+        description: 'The Maps foundation every AI citation stands on.',
+        href: '/blog/google-maps-3-pack-ranking-factors-geo-grid/',
+      },
+    ]}
   />
   <CtaBanner />
 </Layout>

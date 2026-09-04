@@ -11,6 +11,7 @@ import RoiCalculator from '../components/RoiCalculator.astro';
 import AuditForm from '../components/AuditForm.astro';
 import AiCheckerSection from '../components/AiCheckerSection.astro';
 import FaqSection from '../components/FaqSection.astro';
+import BlogStrip from '../components/BlogStrip.astro';
 import CtaBanner from '../components/CtaBanner.astro';
 ---
 
@@ -23,12 +24,12 @@ import CtaBanner from '../components/CtaBanner.astro';
     block colour repeats down the page.
 
       hero (white) → marquee (black ribbon) → cream → white → mint → white
-      → lilac → white → white → lime → white → navy
+      → white (insights) → lilac → white → white → lime → white → navy
 
     The order is also the argument: the problem (cream), the three levers
-    (white), the diagnostic (mint), the proof (white), what position four costs
-    (lilac), then the price (white) — so the cost of doing nothing lands
-    immediately before the cost of the work.
+    (white), the diagnostic (mint), the proof (white), the reading room
+    (white), what position four costs (lilac), then the price (white) — so
+    the cost of doing nothing lands immediately before the cost of the work.
   -->
   <HeroSection />
   <LogoMarquee />
@@ -36,6 +37,7 @@ import CtaBanner from '../components/CtaBanner.astro';
   <ServicesGrid />
   <AiCheckerSection resultHref="#roi-calculator" />
   <PortfolioGrid limit={2} />
+  <BlogStrip />
   <RoiCalculator />
   <PricingSection />
   <FounderSection />
