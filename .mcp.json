@@ -15,6 +15,13 @@
     "gemini-api-docs-mcp": {
       "type": "http",
       "url": "https://gemini-api-docs-mcp.dev"
+    },
+    "21st": {
+      "type": "http",
+      "url": "https://21st.dev/api/mcp",
+      "headers": {
+        "x-api-key": "21st_sk_92f3b0cb1f433bfa8f669145d8c18b176f31c842a908ab904d9434b572a2c91b"
+      }
     }
   }
 }

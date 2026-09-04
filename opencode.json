@@ -1,23 +1,51 @@
 {
   "$schema": "https://opencode.ai/config.json",
+
+  "provider": {
+    "hcnsec": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "HCNSEC",
+      "options": {
+        "baseURL": "https://api.hcnsec.cn/v1"
+      },
+      "models": {
+        "DeepSeek-V4-Flash": {
+          "name": "DeepSeek V4 Flash"
+        }
+      }
+    }
+  },
+
   "mcp": {
     "astro-docs": {
       "type": "remote",
       "url": "https://mcp.docs.astro.build/mcp"
     },
+
     "motion": {
       "type": "remote",
       "url": "https://mcp.motion.dev",
       "enabled": true
     },
+
     "motion-plus": {
       "type": "remote",
       "url": "https://mcp.motion.dev/plus",
       "enabled": true
     },
+
     "gemini-api-docs-mcp": {
       "type": "remote",
       "url": "https://gemini-api-docs-mcp.dev",
+      "enabled": true
+    },
+
+    "21st": {
+      "type": "remote",
+      "url": "https://21st.dev/api/mcp",
+      "headers": {
+        "x-api-key": "21st_sk_92f3b0cb1f433bfa8f669145d8c18b176f31c842a908ab904d9434b572a2c91b"
+      },
       "enabled": true
     }
   }
