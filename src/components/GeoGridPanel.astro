@@ -54,7 +54,7 @@ const band = (rank: number) => {
 const bandClass = {
   top: 'bg-ink text-canvas',
   mid: 'bg-block-lime border border-black/10 text-ink',
-  low: 'bg-canvas border border-hairline text-ink',
+  low: 'bg-hairline text-ink',
   risk: 'bg-block-coral border border-black/10 text-ink',
   empty: 'bg-transparent border border-dashed border-hairline',
 } as const;
@@ -62,20 +62,20 @@ const bandClass = {
 const legend = [
   { swatch: 'bg-ink', label: 'Top 3 — in the pack' },
   { swatch: 'bg-block-lime border border-black/10', label: 'Rank 4–10' },
-  { swatch: 'bg-canvas border border-hairline', label: 'Rank 11–12' },
+  { swatch: 'bg-hairline', label: 'Rank 11–12' },
   { swatch: 'bg-block-coral border border-black/10', label: 'Rank 13+' },
 ];
 
 const coverage = [
   { label: 'Grid points in the top 3', before: '13 of 63', after: '50 of 63', countTo: 13, decimals: 0, suffix: ' of 63' },
   { label: 'Average rank', before: '6.2', after: '2.1', countTo: 6.2, decimals: 1, suffix: '' },
-  { label: 'Radius audited', before: '4.5 mi', after: '4.5 mi', countTo: null as number | null, decimals: 0, suffix: '' },
+  { label: 'Radius audited', before: '4.5 mi', after: '4.5 mi', countTo: null as number | null, decimals: 0, suffix: '' },
 ];
 
 const ariaBefore =
-  'Geo-grid showing rank position across 63 sample points around the business, surrounded by a 4.5 mile audit radius. 13 points rank in the top three.';
+  'Geo-grid showing rank position across 63 sample points around the business, surrounded by a 4.5 mile audit radius. 13 points rank in the top three.';
 const ariaAfter =
-  'Geo-grid showing rank position across 63 sample points around the business, surrounded by a 4.5 mile audit radius. 50 points rank in the top three.';
+  'Geo-grid showing rank position across 63 sample points around the business, surrounded by a 4.5 mile audit radius. 50 points rank in the top three.';
 
 // Center-out scan wave: delay grows with Euclidean distance from the pin.
 // 60ms per grid unit caps the far corners at ~0.35s — a scan, not a curtain.
@@ -86,7 +86,7 @@ const waveDelay = (i: number) => {
   return `${(0.05 + dist * 0.06).toFixed(2)}s`;
 };
 
-// Approx miles from the business: the 4.5 mi ring sits at r = 2.5 grid units.
+// Approx miles from the business: the 4.5 mi ring sits at r = 2.5 grid units.
 const tip = (i: number, rank: number) => {
   if (rank === 0) return 'Outside the top 20';
   const dx = (i % 9) - centreCol;
@@ -110,7 +110,7 @@ const tip = (i: number, rank: number) => {
       <Eyebrow>Geo-grid audit &middot; Austin, TX</Eyebrow>
     </div>
     <div class="flex items-center gap-3">
-      <span class="caption rounded-pill border border-hairline bg-canvas px-3 py-1 text-ink">"emergency plumber near me"</span>
+      <span class="caption rounded-pill border border-hairline bg-canvas px-3 py-1 text-ink">&ldquo;emergency plumber near me&rdquo;</span>
       <span class="caption numeric hidden text-ink sm:inline">Jul 2025</span>
     </div>
   </div>
@@ -129,7 +129,7 @@ const tip = (i: number, rank: number) => {
             type="button"
             data-geo-state="before"
             aria-pressed="true"
-            class="caption rounded-pill bg-ink px-4 py-1.5 text-canvas"
+            class="caption rounded-pill bg-ink px-4 py-1.5 text-canvas transition-colors"
           >
             Today
           </button>
@@ -137,7 +137,7 @@ const tip = (i: number, rank: number) => {
             type="button"
             data-geo-state="after"
             aria-pressed="false"
-            class="caption rounded-pill px-4 py-1.5 text-ink"
+            class="caption rounded-pill px-4 py-1.5 text-ink transition-colors hover:bg-surface-soft"
           >
             With us
           </button>
@@ -145,7 +145,7 @@ const tip = (i: number, rank: number) => {
       </div>
 
       <div
-        class="relative mx-auto aspect-9/7 w-full max-w-lg"
+        class="relative mx-auto w-full max-w-lg"
         role="img"
         aria-label={ariaBefore}
         data-geo-grid
@@ -183,23 +183,26 @@ const tip = (i: number, rank: number) => {
             cy="3.5"
             r="2.5"
             fill="none"
+            class="text-ink/25"
             stroke="currentColor"
-            stroke-width="0.022"
+            stroke-width="0.03"
             stroke-dasharray="0.08 0.06"
-            opacity="0.85"
+            opacity="0.9"
             style="transform-box: fill-box; transform-origin: center;"
           />
         </svg>
 
-        <!-- Grid points layer (above the overlay) -->
+        <!-- Grid points layer (above the overlay; in normal flow so every
+             dot is a true square — aspect-square on the dot itself, never a
+             stretched ellipse from the old absolute-fill approach) -->
         <div
-          class="absolute inset-0 grid grid-cols-9 gap-1.5 sm:gap-2"
+          class="relative grid grid-cols-9 gap-1.5 sm:gap-2"
         >
           {
             ranks.map((rank, i) => {
               return i === centre ? (
                 <div
-                  class="relative flex min-h-0 min-w-0 items-center justify-center"
+                  class="relative flex aspect-square w-full items-center justify-center"
                   data-reveal
                   data-reveal-delay={waveDelay(i)}
                 >
@@ -217,7 +220,7 @@ const tip = (i: number, rank: number) => {
               ) : (
                 <div
                   class:list={[
-                    'flex min-h-0 min-w-0 items-center justify-center rounded-full',
+                    'flex aspect-square w-full items-center justify-center rounded-full',
                     bandClass[band(rank)],
                   ]}
                   aria-hidden="true"
@@ -241,13 +244,14 @@ const tip = (i: number, rank: number) => {
           }
         </div>
 
-        <!-- Radius annotation callout (anchored near the ring's edge) -->
+        <!-- Radius annotation callout (anchored near the ring's edge, with a
+             canvas chip behind it so it never collides with the dots) -->
         <div
-          class="pointer-events-none absolute top-[6%] right-[8%] flex items-center gap-1.5"
+          class="pointer-events-none absolute top-[6%] right-[8%] flex items-center gap-1.5 rounded-pill border border-hairline bg-canvas px-2.5 py-1"
           data-reveal
           data-reveal-delay="0.5s"
         >
-          <span class="caption numeric text-ink">4.5 mi</span>
+          <span class="caption numeric text-ink">4.5 mi</span>
           <span class="block h-px w-6 bg-ink/60" aria-hidden="true"></span>
         </div>
       </div>
@@ -328,7 +332,7 @@ const tip = (i: number, rank: number) => {
           ring.style.willChange = 'opacity, transform';
           animate(
             ring,
-            { opacity: [0, 0.85], transform: ['scale(0.92)', 'scale(1)'] },
+            { opacity: [0, 0.9], transform: ['scale(0.92)', 'scale(1)'] },
             { duration: 1.1, ease: EASE }
           ).then(() => {
             ring.style.willChange = 'auto';
@@ -374,7 +378,7 @@ const tip = (i: number, rank: number) => {
   const BANDS: Record<string, string[]> = {
     top: ['bg-ink', 'text-canvas'],
     mid: ['bg-block-lime', 'border', 'border-black/10', 'text-ink'],
-    low: ['bg-canvas', 'border', 'border-hairline', 'text-ink'],
+    low: ['bg-hairline', 'text-ink'],
     risk: ['bg-block-coral', 'border', 'border-black/10', 'text-ink'],
     empty: ['bg-transparent', 'border', 'border-dashed', 'border-hairline'],
   };
@@ -436,6 +440,7 @@ const tip = (i: number, rank: number) => {
       btn.classList.toggle('bg-ink', active);
       btn.classList.toggle('text-canvas', active);
       btn.classList.toggle('text-ink', !active);
+      btn.classList.toggle('hover:bg-surface-soft', !active);
     }
 
     for (const el of readoutEls) {

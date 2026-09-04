@@ -21,6 +21,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Geo-grid visual polish pass** (`src/components/GeoGridPanel.astro`, verified via headless-Chromium screenshots at 1440px and 390px):
+  - Dots are true circles again — the grid now sizes rows from `aspect-square` dots in normal flow instead of stretching an absolute fill (which rendered ovals).
+  - Rank 11–12 dots were near-invisible (white `#ffffff` on panel `#f7f7f5`, contrast 1.07); they now use a `bg-hairline` fill from the existing token set, with the legend swatch matched.
+  - The audit-radius ring was invisible (hairline on off-white); it now strokes ink at 25% with a slightly heavier weight, and the "4.5 mi" annotation sits on a canvas pill chip so it never collides with dots.
+  - Keyword pill uses curly quotes (“ ”) and mile values use non-breaking spaces per the interface guidelines; the Today/With-us toggle gains a hover state with `transition-colors`.
 - **Geo-grid coverage stats now match the mock data** (`src/components/GeoGridPanel.astro`): the readouts previously claimed "31 of 63 / 4.2" but the hardcoded pattern only has 13 top-3 points at a 6.2 average (same methodology: non-zero points, pin excluded). Both states now report honest derived numbers — Today 13 of 63 / 6.2, With us 50 of 63 / 2.1.
 - Suggestion pills now show whenever the Type chat panel opens before the first message, no longer gated behind the daily-greeting flag.
 - **Omli chat: Talk voice transcripts no longer overlap the Text chat** (`src/components/ChatWidget.astro`): voice transcripts now render in a separate `#rr-chat-voicelog` surface, and `switchMode` shows only the active mode's log so Talk and Text messages never stack.
