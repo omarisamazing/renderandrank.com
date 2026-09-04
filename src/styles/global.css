@@ -427,6 +427,45 @@
   }
 }
 
+/* ==========================================================================
+   Geo-grid living details.
+   The pin pulse is transform/opacity only (compositor-friendly) and runs
+   solely under prefers-reduced-motion: no-preference. Reduced-motion and
+   print users get a static panel with zero information loss.
+   ========================================================================== */
+.geo-pulse {
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes geo-ping {
+    from {
+      transform: scale(1);
+      opacity: 0.45;
+    }
+    to {
+      transform: scale(1.9);
+      opacity: 0;
+    }
+  }
+
+  .geo-pulse {
+    animation: geo-ping 2.2s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .geo-pulse {
+    display: none;
+  }
+}
+
+@media print {
+  .geo-pulse {
+    display: none;
+  }
+}
+
 /* Marquee strip — CSS-driven so it never touches the main thread */
 @keyframes marquee-scroll {
   from { transform: translate3d(0, 0, 0); }

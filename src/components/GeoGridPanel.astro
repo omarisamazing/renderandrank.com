@@ -6,8 +6,9 @@
  *
  * The grid is a hardcoded rank pattern rather than randomised so the build is
  * reproducible and the composition never lands on an ugly arrangement.
- * Enhancements: radius ring + coordinate grid overlay, staggered row reveal,
- * and an expanded legend with radius annotation.
+ * Living details: numbered dots (Whitespark-style), center-out scan wave,
+ * pin pulse, radius-ring draw, and count-up readouts. All motion is
+ * transform/opacity only and gated by prefers-reduced-motion.
  */
 import Eyebrow from './ui/Eyebrow.astro';
 import { MapPin } from '@lucide/astro';
@@ -25,40 +26,60 @@ const ranks = [
 ];
 
 const centre = 3 * 9 + 4; // the pin sits at the middle of row four
+const centreCol = 4;
+const centreRow = 3;
 
 const band = (rank: number) => {
   if (rank === 0) return 'empty';
   if (rank <= 3) return 'top';
   if (rank <= 10) return 'mid';
-  return 'low';
+  if (rank <= 12) return 'low';
+  return 'risk';
 };
 
 const bandClass = {
-  top: 'bg-ink',
-  mid: 'bg-block-lime border border-black/10',
-  low: 'bg-canvas border border-hairline',
+  top: 'bg-ink text-canvas',
+  mid: 'bg-block-lime border border-black/10 text-ink',
+  low: 'bg-canvas border border-hairline text-ink',
+  risk: 'bg-block-coral border border-black/10 text-ink',
   empty: 'bg-transparent border border-dashed border-hairline',
 } as const;
 
 const legend = [
   { swatch: 'bg-ink', label: 'Top 3 — in the pack' },
   { swatch: 'bg-block-lime border border-black/10', label: 'Rank 4–10' },
-  { swatch: 'bg-canvas border border-hairline', label: 'Rank 11+' },
+  { swatch: 'bg-canvas border border-hairline', label: 'Rank 11–12' },
+  { swatch: 'bg-block-coral border border-black/10', label: 'Rank 13+' },
 ];
 
 const coverage = [
-  { label: 'Grid points in the top 3', value: '31 of 63' },
-  { label: 'Average rank', value: '4.2' },
-  { label: 'Radius audited', value: '4.5 mi' },
+  { label: 'Grid points in the top 3', display: '31 of 63', countTo: 31, decimals: 0, suffix: ' of 63' },
+  { label: 'Average rank', display: '4.2', countTo: 4.2, decimals: 1, suffix: '' },
+  { label: 'Radius audited', display: '4.5 mi', countTo: null as number | null, decimals: 0, suffix: '' },
 ];
 
-// Stagger delay per row (row 0 = fastest, row 6 = slowest).
-// 50ms per row gives a gentle cascade across the 7-row grid.
-const rowDelay = (i: number) => `0.1${(i * 50) / 1000}s`;
+// Center-out scan wave: delay grows with Euclidean distance from the pin.
+// 60ms per grid unit caps the far corners at ~0.35s — a scan, not a curtain.
+const waveDelay = (i: number) => {
+  const dx = (i % 9) - centreCol;
+  const dy = Math.floor(i / 9) - centreRow;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  return `${(0.05 + dist * 0.06).toFixed(2)}s`;
+};
+
+// Approx miles from the business: the 4.5 mi ring sits at r = 2.5 grid units.
+const tip = (i: number, rank: number) => {
+  if (rank === 0) return 'Outside the top 20';
+  const dx = (i % 9) - centreCol;
+  const dy = Math.floor(i / 9) - centreRow;
+  const mi = (Math.sqrt(dx * dx + dy * dy) * 1.8).toFixed(1);
+  return `Rank ${rank} · ${mi} mi from business`;
+};
 ---
 
 <div
   class="mx-auto max-w-5xl overflow-hidden rounded-xl border border-hairline bg-surface-soft"
+  data-geo-panel
 >
   <!-- Panel header -->
   <div
@@ -68,7 +89,10 @@ const rowDelay = (i: number) => `0.1${(i * 50) / 1000}s`;
       <MapPin class="size-4 text-ink" aria-hidden="true" />
       <Eyebrow>Geo-grid audit &middot; Austin, TX</Eyebrow>
     </div>
-    <span class="caption text-ink">"emergency plumber near me"</span>
+    <div class="flex items-center gap-3">
+      <span class="caption rounded-pill border border-hairline bg-canvas px-3 py-1 text-ink">"emergency plumber near me"</span>
+      <span class="caption numeric hidden text-ink sm:inline">Jul 2025</span>
+    </div>
   </div>
 
   <div class="grid gap-8 p-5 md:grid-cols-5 md:gap-10 md:p-8">
@@ -105,6 +129,7 @@ const rowDelay = (i: number) => `0.1${(i * 50) / 1000}s`;
           </g>
           <!-- 4.5 mi audit radius ring (concentric, centred on the business pin) -->
           <circle
+            data-geo-ring
             cx="4.5"
             cy="3.5"
             r="2.5"
@@ -113,6 +138,7 @@ const rowDelay = (i: number) => `0.1${(i * 50) / 1000}s`;
             stroke-width="0.022"
             stroke-dasharray="0.08 0.06"
             opacity="0.85"
+            style="transform-box: fill-box; transform-origin: center;"
           />
         </svg>
 
@@ -122,15 +148,19 @@ const rowDelay = (i: number) => `0.1${(i * 50) / 1000}s`;
         >
           {
             ranks.map((rank, i) => {
-              const row = Math.floor(i / 9);
               return i === centre ? (
                 <div
-                  class="relative flex items-center justify-center"
+                  class="relative flex min-h-0 min-w-0 items-center justify-center"
                   data-reveal
-                  data-reveal-delay={rowDelay(row)}
+                  data-reveal-delay={waveDelay(i)}
                 >
                   <span
-                    class="flex size-full items-center justify-center rounded-full bg-ink text-canvas"
+                    data-geo-pulse
+                    class="geo-pulse absolute inset-0 rounded-full bg-ink/20"
+                    aria-hidden="true"
+                  />
+                  <span
+                    class="relative flex size-full items-center justify-center rounded-full bg-ink text-canvas"
                   >
                     <MapPin class="size-3 sm:size-3.5" aria-hidden="true" />
                   </span>
@@ -138,13 +168,20 @@ const rowDelay = (i: number) => `0.1${(i * 50) / 1000}s`;
               ) : (
                 <div
                   class:list={[
-                    'rounded-full',
+                    'flex min-h-0 min-w-0 items-center justify-center rounded-full',
                     bandClass[band(rank)],
                   ]}
                   aria-hidden="true"
+                  title={tip(i, rank)}
                   data-reveal
-                  data-reveal-delay={rowDelay(row)}
-                />
+                  data-reveal-delay={waveDelay(i)}
+                >
+                  {rank === 0 ? null : (
+                    <span class="text-[9px] leading-none font-semibold tabular-nums sm:text-[11px]">
+                      {rank}
+                    </span>
+                  )}
+                </div>
               );
             })
           }
@@ -197,10 +234,79 @@ const rowDelay = (i: number) => `0.1${(i * 50) / 1000}s`;
         coverage.map((row) => (
           <div class="rounded-md border border-hairline bg-canvas p-4">
             <dt class="caption text-ink">{row.label}</dt>
-            <dd class="stat numeric mt-1.5 text-ink">{row.value}</dd>
+            <dd
+              class="stat numeric mt-1.5 text-ink"
+              data-countup={row.countTo === null ? undefined : ''}
+              data-count-to={row.countTo ?? undefined}
+              data-decimals={row.decimals}
+              data-suffix={row.suffix}
+            >
+              {row.display}
+            </dd>
           </div>
         ))
       }
     </dl>
   </div>
 </div>
+
+<script>
+  import { animate, inView } from 'motion';
+
+  const EASE = [0.22, 1, 0.36, 1] as const;
+
+  if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    // Radius ring: gentle scale-in the first time the panel enters view.
+    // Opacity + transform only, so this stays on WAAPI off the main thread.
+    const ring = document.querySelector<SVGCircleElement>('[data-geo-ring]');
+    const panel = document.querySelector<HTMLElement>('[data-geo-panel]');
+    if (ring && panel) {
+      let ringDone = false;
+      inView(
+        panel,
+        () => {
+          if (ringDone) return;
+          ringDone = true;
+          ring.style.willChange = 'opacity, transform';
+          animate(
+            ring,
+            { opacity: [0, 0.85], transform: ['scale(0.92)', 'scale(1)'] },
+            { duration: 1.1, ease: EASE }
+          ).then(() => {
+            ring.style.willChange = 'auto';
+            ring.style.opacity = '';
+            ring.style.transform = '';
+          });
+        },
+        { amount: 0.35 }
+      );
+    }
+
+    // Readout count-up: 31 → "31 of 63", 4.2 average. Static text is the
+    // server-rendered fallback, so a JS failure still shows correct values.
+    document.querySelectorAll<HTMLElement>('[data-countup]').forEach((el) => {
+      const target = Number(el.dataset.countTo);
+      if (!Number.isFinite(target)) return;
+      const decimals = Number(el.dataset.decimals ?? 0);
+      const suffix = el.dataset.suffix ?? '';
+      let done = false;
+      inView(
+        el,
+        () => {
+          if (done) return;
+          done = true;
+          animate(0, target, {
+            duration: 1.4,
+            ease: EASE,
+            onUpdate: (v) => {
+              el.textContent = `${v.toFixed(decimals)}${suffix}`;
+            },
+          }).then(() => {
+            el.textContent = `${target.toFixed(decimals)}${suffix}`;
+          });
+        },
+        { amount: 0.6 }
+      );
+    });
+  }
+</script>
