@@ -8,25 +8,30 @@ import {
 } from "@/components/ui/navigation-menu"
 import { Badge } from "@/components/ui/badge"
 
-export interface ServiceLink {
+export interface MenuLink {
   name: string
   description: string
   href: string
   tag?: string
 }
 
+/** Back-compat alias (Services was the first menu). */
+export type ServiceLink = MenuLink;
+
 /**
- * The single dropdown in the top nav. Everything else in the bar is a static
- * link rendered by Navbar.astro, so this is the only part that ships JS.
+ * Generic dropdown for the top nav (Services, Resources, ...). Everything
+ * else in the bar is a static link rendered by Navbar.astro.
  */
-export function ServicesMenu({
+export function NavMenu({
   label,
   href,
+  footerLabel = 'All capabilities',
   items,
 }: {
   label: string
   href: string
-  items: ServiceLink[]
+  footerLabel?: string
+  items: MenuLink[]
 }) {
   return (
     <NavigationMenu align="start">
@@ -58,14 +63,14 @@ export function ServicesMenu({
                   </NavigationMenuLink>
                 </li>
               ))}
-              <li className="mt-1 border-t border-hairline-soft pt-1">
-                <NavigationMenuLink
-                  href={href}
-                  className="rounded-md p-3 hover:bg-surface-soft focus:bg-surface-soft"
-                >
-                  <span className="label text-ink">All capabilities</span>
-                </NavigationMenuLink>
-              </li>
+                <li className="mt-1 border-t border-hairline-soft pt-1">
+                  <NavigationMenuLink
+                    href={href}
+                    className="rounded-md p-3 hover:bg-surface-soft focus:bg-surface-soft"
+                  >
+                    <span className="label text-ink">{footerLabel}</span>
+                  </NavigationMenuLink>
+                </li>
             </ul>
           </NavigationMenuContent>
         </NavigationMenuItem>

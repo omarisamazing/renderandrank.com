@@ -56,6 +56,7 @@ Cloudflare D1 database that is surfaced through an internal admin dashboard.
 ## Directory map
 
 - `src/pages` — Astro routes/pages for the public site.
+- `src/content/blog/` — MDX editorial collection (`src/content.config.ts`, Astro 6+ `glob` loader — `type: 'content'` alone silently yields zero entries); rendered by `src/pages/blog/index.astro` + `src/pages/blog/[...slug].astro`, author at `src/pages/author/omar-ali.astro`, feed at `src/pages/rss.xml.ts`.
 - `src/components` — UI components, including React islands (ChatWidget, AuditForm) and the Cal.com embed pieces (`CalScript.astro` bootstrap + `CalInline.astro` inline scheduler).
 - `src/layouts` — shared page layouts/shells.
 - `src/lib/visitorClient.ts` — client-side visitor metadata collection (language, referrer, landing page, UTM params) sent to override/enrich server data.

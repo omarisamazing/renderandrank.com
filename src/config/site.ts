@@ -8,6 +8,12 @@ export interface SiteConfig {
     name: string;
     role: string;
     bio: string;
+    /** Author credential line shown on article bylines. */
+    credentials: string;
+    /** Author profile + publication URLs for Person sameAs. */
+    sameAs: string[];
+    /** Topics the author covers (knowsAbout). */
+    knowsAbout: string[];
     /**
      * NOTE: No longer used for rendering. The founder portrait is now imported
      * as an optimized asset via `astro:assets` (see FounderSection.astro and
@@ -76,6 +82,19 @@ export const siteConfig: SiteConfig = {
     name: "Omar Ali",
     role: "Founder & Lead Search Engineer",
     bio: "Obsessed with algorithmic search, entity graphs, and generative AI engines. I work directly with business owners to build high-converting local monopolies without agency bloat or junior account managers.",
+    credentials: "10+ years driving organic growth for local businesses across the US, UK & Europe",
+    sameAs: [
+      "https://x.com/renderandrank",
+      "https://linkedin.com/company/renderandrank",
+      "https://youtube.com/@renderandrank",
+    ],
+    knowsAbout: [
+      "Local SEO",
+      "Google Business Profile",
+      "Generative Engine Optimization",
+      "Answer Engine Optimization",
+      "Schema.org structured data",
+    ],
     avatar: "/Omar Ali's Facebook Profile cropped.png",
   },
   calCom: {
@@ -112,7 +131,22 @@ export const siteConfig: SiteConfig = {
   },
 };
 
-export const navLinks = [
+export interface NavChild {
+  name: string;
+  description: string;
+  href: string;
+  tag?: string;
+}
+
+export interface NavLink {
+  name: string;
+  href: string;
+  /** Footer row label when this entry renders as a dropdown menu. */
+  footerLabel?: string;
+  children?: NavChild[];
+}
+
+export const navLinks: NavLink[] = [
   { name: "Home", href: "/" },
   {
     name: "Services",
@@ -143,10 +177,31 @@ export const navLinks = [
       },
     ],
   },
-  { name: "AI Checker", href: "/check" },
+  {
+    name: "Resources",
+    href: "/blog",
+    footerLabel: "All resources",
+    children: [
+      {
+        name: "Blog",
+        description: "Search engineering notes on Maps, schema, and AI visibility.",
+        href: "/blog",
+        tag: "New",
+      },
+      {
+        name: "AI Checker",
+        description: "See if AI answer engines recommend your business.",
+        href: "/check",
+      },
+      {
+        name: "ROI Calculator",
+        description: "What missing the top 3 costs, in dollars.",
+        href: "/calculator",
+      },
+    ],
+  },
   { name: "Portfolio", href: "/portfolio" },
   { name: "Pricing", href: "/pricing" },
-  { name: "ROI Calculator", href: "/calculator" },
   { name: "About", href: "/about" },
   { name: "Contact", href: "/contact" },
 ];

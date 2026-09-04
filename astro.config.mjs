@@ -4,6 +4,7 @@ import tailwindcss from '@tailwindcss/vite';
 
 import react from '@astrojs/react';
 import sitemap from '@astrojs/sitemap';
+import mdx from '@astrojs/mdx';
 
 // https://astro.build/config
 export default defineConfig({
@@ -19,11 +20,19 @@ export default defineConfig({
 
   integrations: [
     react(),
+    mdx(),
     sitemap({
-      // Emit a lastmod date and a sensible default priority for every page.
       changefreq: 'weekly',
       priority: 0.7,
-      lastmod: new Date(),
+      // No global lastmod: stamping every URL with the build time is a false
+      // freshness signal. Blog posts expose publishDate/updatedDate in-page
+      // (BlogPosting datePublished/dateModified) instead.
+      serialize(item) {
+        if (/\/blog\/[^/]+\/?$/.test(item.url)) {
+          return { ...item, priority: 0.8 };
+        }
+        return item;
+      },
     }),
   ],
 });

@@ -3,7 +3,7 @@ import { navLinks, siteConfig } from '../config/site';
 import BrandLogo from './ui/BrandLogo.astro';
 import Button from './ui/Button.astro';
 import BookCallButton from './BookCallButton.astro';
-import { ServicesMenu } from './nav/ServicesMenu';
+import { NavMenu } from './nav/ServicesMenu';
 import { MobileNav } from './nav/MobileNav';
 import { getLangFromUrl, useTranslations } from '../i18n/utils';
 
@@ -41,10 +41,11 @@ const isActive = (href: string) =>
       {
         navLinks.map((link) =>
           link.children ? (
-            <ServicesMenu
+            <NavMenu
               client:idle
               label={navLabel(link.name)}
               href={link.href}
+              footerLabel={link.footerLabel ?? 'All capabilities'}
               items={link.children}
             />
           ) : (

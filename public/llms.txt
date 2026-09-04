@@ -27,3 +27,8 @@ Render and Rank helps local service companies and multi-location businesses outr
 - [Case Studies & Results](https://renderandrank.com/portfolio)
 - [Published Pricing](https://renderandrank.com/pricing)
 - [Book a Strategy Call](https://renderandrank.com/book-a-call)
+
+## Blog — Search Engineering Notes
+- [Blog index](https://renderandrank.com/blog)
+- [How ChatGPT Finds Local Businesses: The 4 Pathways of AI Information](https://renderandrank.com/blog/ai-visibility-local-business-chatgpt-gemini-perplexity/)
+- [RSS feed](https://renderandrank.com/rss.xml)
