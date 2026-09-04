@@ -7,7 +7,8 @@
  * The grid is a hardcoded rank pattern rather than randomised so the build is
  * reproducible and the composition never lands on an ugly arrangement.
  * Living details: numbered dots (Whitespark-style), center-out scan wave,
- * pin pulse, radius-ring draw, and count-up readouts. All motion is
+ * pin pulse, radius-ring draw, count-up readouts, and a Today / With-us
+ * before-after toggle that swaps rank data in place. All motion is
  * transform/opacity only and gated by prefers-reduced-motion.
  */
 import Eyebrow from './ui/Eyebrow.astro';
@@ -23,6 +24,19 @@ const ranks = [
   8, 5, 3, 1, 1, 2, 4, 7, 11,
   0, 8, 5, 3, 2, 4, 6, 10, 0,
   0, 0, 9, 6, 5, 7, 11, 0, 0,
+];
+
+// The "after" state — same footprint, tightened toward the pin. Coverage is
+// derived with the same methodology as the before state (non-zero points,
+// pin excluded): 50 of 63 in the top 3, 2.1 average.
+const AFTER = [
+  0, 4, 3, 2, 2, 2, 3, 4, 0,
+  4, 3, 2, 1, 1, 1, 2, 3, 4,
+  3, 2, 1, 1, 1, 1, 1, 2, 3,
+  2, 1, 1, 1, 1, 1, 1, 1, 2,
+  3, 2, 1, 1, 1, 1, 1, 2, 3,
+  4, 3, 2, 1, 1, 1, 2, 3, 4,
+  0, 4, 3, 2, 2, 2, 3, 4, 0,
 ];
 
 const centre = 3 * 9 + 4; // the pin sits at the middle of row four
@@ -53,10 +67,15 @@ const legend = [
 ];
 
 const coverage = [
-  { label: 'Grid points in the top 3', display: '31 of 63', countTo: 31, decimals: 0, suffix: ' of 63' },
-  { label: 'Average rank', display: '4.2', countTo: 4.2, decimals: 1, suffix: '' },
-  { label: 'Radius audited', display: '4.5 mi', countTo: null as number | null, decimals: 0, suffix: '' },
+  { label: 'Grid points in the top 3', before: '13 of 63', after: '50 of 63', countTo: 13, decimals: 0, suffix: ' of 63' },
+  { label: 'Average rank', before: '6.2', after: '2.1', countTo: 6.2, decimals: 1, suffix: '' },
+  { label: 'Radius audited', before: '4.5 mi', after: '4.5 mi', countTo: null as number | null, decimals: 0, suffix: '' },
 ];
+
+const ariaBefore =
+  'Geo-grid showing rank position across 63 sample points around the business, surrounded by a 4.5 mile audit radius. 13 points rank in the top three.';
+const ariaAfter =
+  'Geo-grid showing rank position across 63 sample points around the business, surrounded by a 4.5 mile audit radius. 50 points rank in the top three.';
 
 // Center-out scan wave: delay grows with Euclidean distance from the pin.
 // 60ms per grid unit caps the far corners at ~0.35s — a scan, not a curtain.
@@ -77,9 +96,10 @@ const tip = (i: number, rank: number) => {
 };
 ---
 
-<div
+  <div
   class="mx-auto max-w-5xl overflow-hidden rounded-xl border border-hairline bg-surface-soft"
   data-geo-panel
+  data-geo-centre={centre}
 >
   <!-- Panel header -->
   <div
@@ -98,10 +118,39 @@ const tip = (i: number, rank: number) => {
   <div class="grid gap-8 p-5 md:grid-cols-5 md:gap-10 md:p-8">
     <!-- The grid itself -->
     <div class="md:col-span-3">
+      <!-- Before / after comparison toggle -->
+      <div class="mb-5 flex justify-center" data-reveal data-reveal-delay="0.05s">
+        <div
+          role="group"
+          aria-label="Compare the grid today versus with Render and Rank"
+          class="inline-flex rounded-pill border border-hairline bg-canvas p-1"
+        >
+          <button
+            type="button"
+            data-geo-state="before"
+            aria-pressed="true"
+            class="caption rounded-pill bg-ink px-4 py-1.5 text-canvas"
+          >
+            Today
+          </button>
+          <button
+            type="button"
+            data-geo-state="after"
+            aria-pressed="false"
+            class="caption rounded-pill px-4 py-1.5 text-ink"
+          >
+            With us
+          </button>
+        </div>
+      </div>
+
       <div
         class="relative mx-auto aspect-9/7 w-full max-w-lg"
         role="img"
-        aria-label="Geo-grid showing rank position across 63 sample points around the business, surrounded by a 4.5 mile audit radius. 31 points rank in the top three."
+        aria-label={ariaBefore}
+        data-geo-grid
+        data-aria-before={ariaBefore}
+        data-aria-after={ariaAfter}
       >
         <!-- Coordinate grid + radius ring overlay (decorative, behind points) -->
         <svg
@@ -175,12 +224,17 @@ const tip = (i: number, rank: number) => {
                   title={tip(i, rank)}
                   data-reveal
                   data-reveal-delay={waveDelay(i)}
+                  data-geo-dot={i}
                 >
-                  {rank === 0 ? null : (
-                    <span class="text-[9px] leading-none font-semibold tabular-nums sm:text-[11px]">
-                      {rank}
-                    </span>
-                  )}
+                  <span
+                    data-geo-num
+                    class:list={[
+                      'text-[9px] leading-none font-semibold tabular-nums sm:text-[11px]',
+                      rank === 0 && 'hidden',
+                    ]}
+                  >
+                    {rank === 0 ? '' : rank}
+                  </span>
                 </div>
               );
             })
@@ -240,8 +294,10 @@ const tip = (i: number, rank: number) => {
               data-count-to={row.countTo ?? undefined}
               data-decimals={row.decimals}
               data-suffix={row.suffix}
+              data-before={row.before}
+              data-after={row.after}
             >
-              {row.display}
+              {row.before}
             </dd>
           </div>
         ))
@@ -250,8 +306,10 @@ const tip = (i: number, rank: number) => {
   </div>
 </div>
 
+<script type="application/json" data-geo-data set:html={JSON.stringify({ before: ranks, after: AFTER })} />
+
 <script>
-  import { animate, inView } from 'motion';
+  import { animate, inView, stagger } from 'motion';
 
   const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -282,7 +340,7 @@ const tip = (i: number, rank: number) => {
       );
     }
 
-    // Readout count-up: 31 → "31 of 63", 4.2 average. Static text is the
+    // Readout count-up: 13 → "13 of 63", 6.2 average. Static text is the
     // server-rendered fallback, so a JS failure still shows correct values.
     document.querySelectorAll<HTMLElement>('[data-countup]').forEach((el) => {
       const target = Number(el.dataset.countTo);
@@ -308,5 +366,100 @@ const tip = (i: number, rank: number) => {
         { amount: 0.6 }
       );
     });
+  }
+
+  // Before / after toggle — swaps rank data in place so the same dots morph
+  // from "today" to "with us". Works with or without motion; the pop is skipped
+  // under prefers-reduced-motion and the swap is instant.
+  const BANDS: Record<string, string[]> = {
+    top: ['bg-ink', 'text-canvas'],
+    mid: ['bg-block-lime', 'border', 'border-black/10', 'text-ink'],
+    low: ['bg-canvas', 'border', 'border-hairline', 'text-ink'],
+    risk: ['bg-block-coral', 'border', 'border-black/10', 'text-ink'],
+    empty: ['bg-transparent', 'border', 'border-dashed', 'border-hairline'],
+  };
+  const ALL_BAND_CLASSES = [...new Set(Object.values(BANDS).flat())];
+  const bandFor = (rank: number) =>
+    rank === 0 ? 'empty' : rank <= 3 ? 'top' : rank <= 10 ? 'mid' : rank <= 12 ? 'low' : 'risk';
+
+  const panel = document.querySelector<HTMLElement>('[data-geo-panel]');
+  const centreIdx = Number(panel?.dataset.geoCentre ?? 31);
+  const centreCol = centreIdx % 9;
+  const centreRow = Math.floor(centreIdx / 9);
+  const gridRegion = document.querySelector<HTMLElement>('[data-geo-grid]');
+  const dotEls = Array.from(document.querySelectorAll<HTMLElement>('[data-geo-dot]'));
+  const stateButtons = Array.from(
+    document.querySelectorAll<HTMLButtonElement>('[data-geo-state]')
+  );
+  const readoutEls = Array.from(document.querySelectorAll<HTMLElement>('[data-before]'));
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  let geoStates: { before: number[]; after: number[] } | null = null;
+  try {
+    const raw = document.querySelector('[data-geo-data]')?.textContent ?? '';
+    geoStates = JSON.parse(raw);
+  } catch {
+    geoStates = null;
+  }
+
+  let geoState: 'before' | 'after' = 'before';
+
+  function renderGeoState(next: 'before' | 'after') {
+    if (!geoStates || next === geoState) return;
+    geoState = next;
+    const values = geoStates[next];
+
+    for (const dot of dotEls) {
+      const i = Number(dot.dataset.geoDot);
+      if (!Number.isFinite(i) || i === centreIdx) continue;
+      const rank = values[i] ?? 0;
+      dot.classList.remove(...ALL_BAND_CLASSES);
+      dot.classList.add(...BANDS[bandFor(rank)]);
+      const num = dot.querySelector('[data-geo-num]');
+      if (num) {
+        num.textContent = rank === 0 ? '' : String(rank);
+        num.classList.toggle('hidden', rank === 0);
+      }
+      const dx = (i % 9) - centreCol;
+      const dy = Math.floor(i / 9) - centreRow;
+      dot.setAttribute(
+        'title',
+        rank === 0
+          ? 'Outside the top 20'
+          : `Rank ${rank} · ${(Math.sqrt(dx * dx + dy * dy) * 1.8).toFixed(1)} mi from business`
+      );
+    }
+
+    for (const btn of stateButtons) {
+      const active = btn.dataset.geoState === next;
+      btn.setAttribute('aria-pressed', String(active));
+      btn.classList.toggle('bg-ink', active);
+      btn.classList.toggle('text-canvas', active);
+      btn.classList.toggle('text-ink', !active);
+    }
+
+    for (const el of readoutEls) {
+      el.textContent = next === 'after' ? (el.dataset.after ?? '') : (el.dataset.before ?? '');
+    }
+
+    if (gridRegion) {
+      const label =
+        next === 'after' ? gridRegion.dataset.ariaAfter : gridRegion.dataset.ariaBefore;
+      if (label) gridRegion.setAttribute('aria-label', label);
+    }
+
+    if (!reduceMotion && dotEls.length) {
+      animate(
+        dotEls,
+        { transform: ['scale(0.55)', 'scale(1)'], opacity: [0.3, 1] },
+        { duration: 0.4, delay: stagger(0.02, { from: centreIdx }), ease: EASE }
+      );
+    }
+  }
+
+  for (const btn of stateButtons) {
+    btn.addEventListener('click', () =>
+      renderGeoState(btn.dataset.geoState === 'after' ? 'after' : 'before')
+    );
   }
 </script>

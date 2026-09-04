@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Hero geo-grid gains a Today / With-us before-after toggle** (`src/components/GeoGridPanel.astro`): a pill segmented control above the grid swaps rank data in place (same dots morph, center-out pop via Motion `stagger(from: centre)`), updates readout stats, tooltips, and the screen-reader label, with `aria-pressed` state. Works without motion (instant swap under `prefers-reduced-motion`); both datasets ship as inline JSON with server-rendered "Today" as the no-JS fallback.
 - **Hero geo-grid is now a living product mock** (`src/components/GeoGridPanel.astro`, `src/styles/global.css`): numbered rank dots (Whitespark-style) with a 4-band scale (Top 3 ink / 4–10 lime / 11–12 canvas / 13+ coral, all existing DESIGN.md tokens), a keyword-pill + date header chrome, hover tooltips per point (`Rank X · Y mi`), a center-out scan wave (delay by distance from the pin instead of by row), a looping pin pulse, a radius-ring scale-in, and count-up readouts. All motion is transform/opacity only via Motion (`animate`/`inView`), gated by `prefers-reduced-motion`, with server-rendered values as the no-JS fallback.
 - **Voice assistant now remembers prior voice turns as context within the page session** (`src/lib/voiceSession.ts`, `src/components/ChatWidget.astro`): finalized Talk turns (user + assistant) are retained in an in-memory `voiceTurns` array for the page load — mirroring the typed-text `messages` array — and persist across Stop/Start and Type↔Talk toggles, resetting only on a full page reload (consistent with the transcript retention from commit aeb4fbb). When a new Live session connects, the retained turns are seeded into the Gemini Live session as `clientContent` conversation history (with `turnComplete: false`, before the greeting) so the assistant actually recalls earlier Talk exchanges rather than only visually retaining the transcript. No change to what is sent to `/api/chat` or `/api/voice-transcript`, and the token-minting flow is untouched.
 - Talk (voice) transcript now persists on screen after stopping a conversation (temporary in-session memory), instead of being cleared on Stop. It resets on page reload.
@@ -20,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Geo-grid coverage stats now match the mock data** (`src/components/GeoGridPanel.astro`): the readouts previously claimed "31 of 63 / 4.2" but the hardcoded pattern only has 13 top-3 points at a 6.2 average (same methodology: non-zero points, pin excluded). Both states now report honest derived numbers — Today 13 of 63 / 6.2, With us 50 of 63 / 2.1.
 - Suggestion pills now show whenever the Type chat panel opens before the first message, no longer gated behind the daily-greeting flag.
 - **Omli chat: Talk voice transcripts no longer overlap the Text chat** (`src/components/ChatWidget.astro`): voice transcripts now render in a separate `#rr-chat-voicelog` surface, and `switchMode` shows only the active mode's log so Talk and Text messages never stack.
 
