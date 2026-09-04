@@ -1,6 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getClientVisitorData, getVisitorId } from '../lib/visitorClient';
 import { buttonVariants } from '../lib/button-variants';
+import {
+  GAP_SHARE,
+  bucketForCategory,
+  runFunnel,
+  type RankTier,
+} from '../data/assumptions';
 
 interface EngineResult {
   engine: string;
@@ -8,6 +14,13 @@ interface EngineResult {
   status: 'mentioned' | 'not_mentioned' | 'error' | 'not_configured';
   snippet: string | null;
   details?: string;
+  citation?: 'verified' | 'mention' | 'none';
+}
+
+interface KeySignal {
+  name: string;
+  status: 'good' | 'missing' | 'warning';
+  label: string;
 }
 
 interface CheckResponse {
@@ -21,6 +34,7 @@ interface CheckResponse {
   rankPosition?: string;
   diagnosticSummary?: string;
   competitorsFound?: string[];
+  keySignals?: KeySignal[];
   recommendedDealValue?: number;
   recommendedMinDeal?: number;
   recommendedMaxDeal?: number;
@@ -28,6 +42,9 @@ interface CheckResponse {
   recommendedRank?: 'invisible' | 'mid' | 'top3';
   totalEngines?: number;
   mentionedCount?: number;
+  verifiedCount?: number;
+  confidence?: 'high' | 'medium' | 'low';
+  confidenceNote?: string;
   results?: EngineResult[];
 }
 
@@ -38,6 +55,12 @@ export interface AiVisibilityCheckerProps {
    * standalone calculator.
    */
   resultHref?: string;
+  /**
+   * Public Cloudflare Turnstile site key. When set, the widget renders above
+   * the submit button and its token is sent with the scan request. When empty
+   * the form renders exactly as before.
+   */
+  turnstileSiteKey?: string;
 }
 
 /**
@@ -67,8 +90,21 @@ const SCAN_STEPS = [
 const FIELD_CLASS =
   'h-12 w-full rounded-md border border-hairline bg-canvas px-3.5 text-[1.0625rem] text-ink placeholder:text-muted-foreground transition-[border-color] duration-200 focus-visible:border-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ink disabled:opacity-60';
 
+declare global {
+  interface Window {
+    turnstile?: { reset: (widgetId?: string) => void };
+  }
+}
+
+function readTurnstileToken(): string | undefined {
+  if (typeof document === 'undefined') return undefined;
+  const input = document.querySelector<HTMLInputElement>('[name="cf-turnstile-response"]');
+  return input?.value || undefined;
+}
+
 export default function AiVisibilityChecker({
   resultHref = '/calculator',
+  turnstileSiteKey = '',
 }: AiVisibilityCheckerProps = {}) {
   const [businessName, setBusinessName] = useState('');
   const [category, setCategory] = useState('');
@@ -76,12 +112,17 @@ export default function AiVisibilityChecker({
   const [loading, setLoading] = useState(false);
   const [scanStep, setScanStep] = useState(0);
   const [progress, setProgress] = useState(0);
+  const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [rateLimited, setRateLimited] = useState(false);
   const [data, setData] = useState<CheckResponse | null>(null);
 
   const businessRef = useRef<HTMLInputElement>(null);
   const categoryRef = useRef<HTMLInputElement>(null);
   const cityRef = useRef<HTMLInputElement>(null);
+  const resultHeadingRef = useRef<HTMLHeadingElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const startedAtRef = useRef(0);
 
   const market = city.trim() || 'your market';
   const steps = SCAN_STEPS.map((step) => ({
@@ -93,6 +134,7 @@ export default function AiVisibilityChecker({
     if (!loading) {
       setProgress(0);
       setScanStep(0);
+      setElapsed(0);
       return;
     }
 
@@ -109,17 +151,23 @@ export default function AiVisibilityChecker({
       setProgress(Math.round(95 * (1 - Math.exp(-tick / 9))));
     }, 240);
 
+    const elapsedInterval = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - startedAtRef.current) / 1000));
+    }, 500);
+
     return () => {
       clearInterval(stepInterval);
       clearInterval(progressInterval);
+      clearInterval(elapsedInterval);
     };
   }, [loading]);
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: { preventDefault: () => void }) {
     e.preventDefault();
 
     if (!businessName.trim() || !category.trim() || !city.trim()) {
       setError('Add your business name, category and city so we know what to look for.');
+      setRateLimited(false);
       const firstEmpty = !businessName.trim()
         ? businessRef
         : !category.trim()
@@ -130,8 +178,13 @@ export default function AiVisibilityChecker({
     }
 
     setError(null);
+    setRateLimited(false);
     setLoading(true);
     setData(null);
+    startedAtRef.current = Date.now();
+
+    const controller = new AbortController();
+    abortRef.current = controller;
 
     try {
       const visitor = getClientVisitorData();
@@ -140,11 +193,13 @@ export default function AiVisibilityChecker({
       const res = await fetch('/api/check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify({
           businessName: businessName.trim(),
           category: category.trim(),
           city: city.trim(),
           visitorId,
+          turnstileToken: readTurnstileToken(),
           ...visitor,
         }),
       });
@@ -153,6 +208,7 @@ export default function AiVisibilityChecker({
 
       if (!res.ok || !json.ok) {
         setError(json.error || 'The scan could not finish. Try again, or book a call and we will run it for you.');
+        setRateLimited(Boolean(json.rateLimited));
         setLoading(false);
         return;
       }
@@ -161,54 +217,105 @@ export default function AiVisibilityChecker({
       setTimeout(() => {
         setData(json);
         setLoading(false);
+        // Move focus to the verdict so keyboard and screen-reader users land
+        // on the result instead of the (now unmounted) form.
+        requestAnimationFrame(() => resultHeadingRef.current?.focus());
       }, 400);
 
-      // Save handoff data to sessionStorage for the ROI Calculator
-      if (typeof window !== 'undefined' && window.sessionStorage) {
+      persistHandoff(json);
+    } catch (err) {
+      if (controller.signal.aborted) {
+        setError('Scan cancelled. Your inputs are kept — run it again whenever you are ready.');
+      } else {
+        console.error('AI check request failed:', err);
+        setError('Could not reach the diagnostic server. Check your connection and try again.');
+      }
+      setRateLimited(false);
+      setLoading(false);
+    } finally {
+      abortRef.current = null;
+      if (typeof window !== 'undefined' && window.turnstile) {
         try {
-          window.sessionStorage.setItem(
-            'rr_handoff',
-            JSON.stringify({
-              businessName: json.businessName,
-              category: json.category,
-              city: json.city,
-              visibilityScore: json.visibilityScore ?? 20,
-              rankPosition: json.rankPosition ?? 'Displaced',
-              diagnosticSummary: json.diagnosticSummary,
-              competitorsFound: json.competitorsFound || [],
-              recommendedDealValue: json.recommendedDealValue ?? 1200,
-              recommendedMinDeal: json.recommendedMinDeal ?? 200,
-              recommendedMaxDeal: json.recommendedMaxDeal ?? 15000,
-              recommendedSearchVolume: json.recommendedSearchVolume ?? 2500,
-              recommendedRank: json.recommendedRank ?? 'invisible',
-              totalEngines: json.totalEngines ?? 0,
-              mentionedCount: json.mentionedCount ?? 0,
-              timestamp: Date.now(),
-            })
-          );
+          window.turnstile.reset();
         } catch {
-          // ignore storage error
+          // ignore widget reset failure
         }
       }
-    } catch (err) {
-      console.error('AI check request failed:', err);
-      setError('Could not reach the diagnostic server. Check your connection and try again.');
-      setLoading(false);
     }
+  }
+
+  /** Save handoff data for the ROI calculator: sessionStorage (primary) plus
+   *  URL params (fallback for new tabs, expired storage, or shared links). */
+  function persistHandoff(json: CheckResponse) {
+    if (typeof window === 'undefined') return;
+    const handoff = {
+      businessName: json.businessName,
+      category: json.category,
+      city: json.city,
+      visibilityScore: json.visibilityScore ?? 20,
+      rankPosition: json.rankPosition ?? 'Displaced',
+      diagnosticSummary: json.diagnosticSummary,
+      competitorsFound: json.competitorsFound || [],
+      recommendedDealValue: json.recommendedDealValue ?? 1200,
+      recommendedMinDeal: json.recommendedMinDeal ?? 200,
+      recommendedMaxDeal: json.recommendedMaxDeal ?? 15000,
+      recommendedSearchVolume: json.recommendedSearchVolume ?? 2500,
+      recommendedRank: json.recommendedRank ?? 'invisible',
+      totalEngines: json.totalEngines ?? 0,
+      mentionedCount: json.mentionedCount ?? 0,
+      timestamp: Date.now(),
+    };
+    try {
+      window.sessionStorage?.setItem('rr_handoff', JSON.stringify(handoff));
+    } catch {
+      // ignore storage error
+    }
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('biz', String(json.businessName ?? ''));
+      url.searchParams.set('cat', String(json.category ?? ''));
+      url.searchParams.set('city', String(json.city ?? ''));
+      window.history.replaceState(null, '', url);
+    } catch {
+      // ignore history error
+    }
+  }
+
+  function handleCancel() {
+    abortRef.current?.abort();
   }
 
   function handleCheckAnother() {
     setData(null);
     setError(null);
+    setRateLimited(false);
     setBusinessName('');
-    setCategory('');
-    setCity('');
-    // The panel has just swapped back to the form, so the first field is the
-    // only sensible place for focus to land.
+    // Category and city are kept so a retry is one field, not three. The
+    // shared URL params are left intact so the calculator handoff survives.
     requestAnimationFrame(() => businessRef.current?.focus());
   }
 
   const cited = (data?.mentionedCount ?? 0) > 0;
+  const competitors = data?.competitorsFound ?? [];
+  const engines = (data?.results ?? []).filter((r) => r.available);
+  const signals = data?.keySignals ?? [];
+
+  // Inline revenue preview, using the same sourced math as the ROI calculator
+  // (base case of the estimate range for this category).
+  const inlineBucket = bucketForCategory(data?.category ?? '');
+  const inlineTier: RankTier =
+    data?.recommendedRank === 'mid' || data?.recommendedRank === 'top3'
+      ? data.recommendedRank
+      : 'invisible';
+  const inlineFigure = runFunnel({
+    searchVolume: data?.recommendedSearchVolume ?? 2500,
+    gapShare: GAP_SHARE[inlineTier].mid,
+    callRate: inlineBucket.call.mid,
+    closeRate: inlineBucket.close.mid,
+    dealValue: data?.recommendedDealValue ?? 1200,
+  });
+  const inlineCalls = inlineFigure.calls;
+  const inlineMonthly = inlineFigure.monthly;
 
   /**
    * One persistent status line for assistive tech. A live region that is
@@ -249,6 +356,8 @@ export default function AiVisibilityChecker({
               maxLength={120}
               value={businessName}
               onChange={(e) => setBusinessName(e.target.value)}
+              aria-invalid={Boolean(error && !businessName.trim())}
+              aria-describedby={error ? 'check-form-error' : undefined}
               className={`mt-2 ${FIELD_CLASS}`}
             />
           </div>
@@ -270,6 +379,8 @@ export default function AiVisibilityChecker({
                 maxLength={120}
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
+                aria-invalid={Boolean(error && !category.trim())}
+                aria-describedby={error ? 'check-form-error' : undefined}
                 className={`mt-2 ${FIELD_CLASS}`}
               />
             </div>
@@ -291,6 +402,8 @@ export default function AiVisibilityChecker({
                 maxLength={120}
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
+                aria-invalid={Boolean(error && !city.trim())}
+                aria-describedby={error ? 'check-form-error' : undefined}
                 className={`mt-2 ${FIELD_CLASS}`}
               />
             </div>
@@ -298,11 +411,21 @@ export default function AiVisibilityChecker({
 
           {error && (
             <p
+              id="check-form-error"
               className="body-sm rounded-md border border-destructive bg-canvas p-3.5 text-destructive"
               role="alert"
             >
-              {error}
+              {error}{' '}
+              {rateLimited && (
+                <a href="/book-a-call" className="underline underline-offset-2">
+                  Book a call and we will run the full audit for you.
+                </a>
+              )}
             </p>
+          )}
+
+          {turnstileSiteKey && (
+            <div className="cf-turnstile" data-sitekey={turnstileSiteKey} />
           )}
 
           <div>
@@ -317,7 +440,7 @@ export default function AiVisibilityChecker({
               Run the check
             </button>
             <p className="caption mt-3 text-center text-ink">
-              Free live scan &middot; three checks per day &middot; no pitch attached.
+              Free live scan &middot; about 15 seconds &middot; three checks per day &middot; no pitch attached.
             </p>
           </div>
         </form>
@@ -338,6 +461,9 @@ export default function AiVisibilityChecker({
               style={{ transform: `scaleX(${progress / 100})` }}
             />
           </div>
+          <p className="caption text-ink">
+            {elapsed}s elapsed &middot; usually about 15 seconds. You can cancel any time — your inputs are kept.
+          </p>
 
           <ul className="mt-2 flex flex-col gap-3.5">
             {steps.map((step, idx) => {
@@ -379,6 +505,16 @@ export default function AiVisibilityChecker({
               );
             })}
           </ul>
+
+          <div>
+            <button
+              type="button"
+              onClick={handleCancel}
+              className={buttonVariants({ variant: 'secondary', size: 'md' })}
+            >
+              Cancel scan
+            </button>
+          </div>
         </div>
       )}
 
@@ -390,15 +526,52 @@ export default function AiVisibilityChecker({
             className={`rounded-lg p-5 md:p-6 ${cited ? 'bg-block-lime' : 'bg-block-pink'}`}
           >
             <span className="eyebrow block text-ink">
-              {data.businessName} &middot; {data.city}
+              {data.businessName} &middot; {data.category} &middot; {data.city}
             </span>
-            <h3 className="card-title mt-2.5 text-ink">
+            <h3 ref={resultHeadingRef} tabIndex={-1} className="card-title mt-2.5 text-ink outline-none">
               {cited
                 ? 'Recommended in AI search answers'
                 : 'Not cited in top AI recommendations'}
             </h3>
+            {typeof data.visibilityScore === 'number' && (
+              <div className="mt-4">
+                <div className="flex items-baseline justify-between gap-4">
+                  <span className="eyebrow text-ink">Visibility score</span>
+                  <span className="label numeric text-ink">{data.visibilityScore}/100</span>
+                </div>
+                <div className="mt-2 h-2 w-full overflow-hidden rounded-pill border border-black/10 bg-canvas/60">
+                  <div
+                    className="h-full origin-left bg-ink"
+                    style={{ transform: `scaleX(${(data.visibilityScore ?? 0) / 100})` }}
+                  />
+                </div>
+                {data.rankPosition && (
+                  <p className="caption mt-2 text-ink">{data.rankPosition}</p>
+                )}
+              </div>
+            )}
             {data.diagnosticSummary && (
               <p className="body-sm mt-2.5 text-ink">{data.diagnosticSummary}</p>
+            )}
+            {data.confidence && (
+              <p className="caption mt-3 inline-flex items-center gap-2 text-ink">
+                <span
+                  className={`size-2 shrink-0 rounded-full ${
+                    data.confidence === 'high'
+                      ? 'bg-success'
+                      : data.confidence === 'medium'
+                        ? 'bg-ink'
+                        : 'bg-destructive'
+                  }`}
+                  aria-hidden="true"
+                />
+                {data.confidence === 'high'
+                  ? 'High confidence'
+                  : data.confidence === 'medium'
+                    ? 'Medium confidence'
+                    : 'Limited evidence'}
+                {data.confidenceNote ? ` — ${data.confidenceNote}` : ''}
+              </p>
             )}
           </div>
 
@@ -416,10 +589,8 @@ export default function AiVisibilityChecker({
 
             <div className="min-w-0 rounded-md border border-hairline bg-surface-soft p-3.5">
               <dt className="eyebrow text-ink">Competitors cited</dt>
-              <dd className="label mt-2 line-clamp-1 text-ink">
-                {data.competitorsFound && data.competitorsFound.length > 0
-                  ? data.competitorsFound.slice(0, 2).join(', ')
-                  : 'Local competitors'}
+              <dd className="label mt-2 text-ink">
+                {competitors.length > 0 ? competitors.join(', ') : 'Local competitors'}
               </dd>
             </div>
 
@@ -430,6 +601,94 @@ export default function AiVisibilityChecker({
               </dd>
             </div>
           </dl>
+
+          {/* Authority signals the backend already computes. */}
+          {signals.length > 0 && (
+            <ul className="flex flex-col gap-2.5">
+              {signals.map((signal) => (
+                <li
+                  key={signal.name}
+                  className="flex items-start gap-2.5 rounded-md border border-hairline bg-canvas p-3.5"
+                >
+                  <span
+                    className={`mt-1.5 size-2 shrink-0 rounded-full ${
+                      signal.status === 'good'
+                        ? 'bg-success'
+                        : signal.status === 'warning'
+                          ? 'bg-ink'
+                          : 'bg-destructive'
+                    }`}
+                    aria-hidden="true"
+                  />
+                  <span>
+                    <span className="body-sm block font-medium text-ink">{signal.name}</span>
+                    <span className="caption block text-ink">{signal.label}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {/* Per-engine evidence. */}
+          {engines.length > 0 && (
+            <div className="rounded-md border border-hairline bg-canvas">
+              <p className="eyebrow border-b border-hairline px-3.5 py-3 text-ink">
+                Checked across {data.totalEngines ?? engines.length} sample{(data.totalEngines ?? engines.length) === 1 ? '' : 's'}
+              </p>
+              <ul className="flex flex-col divide-y divide-hairline">
+                {engines.map((engine) => (
+                  <li key={engine.engine} className="px-3.5 py-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="body-sm font-medium text-ink">{engine.engine}</span>
+                      <span className="caption inline-flex shrink-0 items-center gap-1.5 text-ink">
+                        <span
+                          className={`size-2 rounded-full ${
+                            engine.citation === 'verified'
+                              ? 'bg-success'
+                              : engine.status === 'mentioned'
+                                ? 'bg-success'
+                                : engine.status === 'error'
+                                  ? 'bg-destructive'
+                                  : 'bg-ink'
+                          }`}
+                          aria-hidden="true"
+                        />
+                        {engine.citation === 'verified'
+                          ? 'Verified by Google Search'
+                          : engine.status === 'mentioned'
+                            ? 'Cited you'
+                            : engine.status === 'error'
+                              ? 'Check failed'
+                              : 'Did not cite'}
+                      </span>
+                    </div>
+                    {engine.snippet && (
+                      <details className="mt-2">
+                        <summary className="caption cursor-pointer text-ink underline underline-offset-2">
+                          What the engine returned
+                        </summary>
+                        <p className="body-sm mt-2 text-ink">{engine.snippet}</p>
+                      </details>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Inline revenue preview — same math as the calculator deep-dive. */}
+          <p className="body-sm rounded-md border border-hairline bg-surface-soft p-3.5 text-ink">
+            Estimated{' '}
+            <strong>
+              {inlineMonthly.toLocaleString('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                maximumFractionDigits: 0,
+              })}
+              /mo
+            </strong>{' '}
+            going to competitors on ~{inlineCalls.toLocaleString('en-US')} missed calls. Fine-tune it below.
+          </p>
 
           <div className="flex flex-col gap-3 sm:flex-row">
             <a

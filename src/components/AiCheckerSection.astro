@@ -2,6 +2,7 @@
 import Section from './ui/Section.astro';
 import Eyebrow from './ui/Eyebrow.astro';
 import AiVisibilityChecker from './AiVisibilityChecker';
+import { siteConfig } from '../config/site';
 import { Check, Clock } from '@lucide/astro';
 
 interface Props {
@@ -16,6 +17,8 @@ interface Props {
 }
 
 const { tone = 'mint', showPitch = true, resultHref } = Astro.props;
+
+const turnstileSiteKey = siteConfig.turnstileSiteKey;
 
 const included = [
   'Live search-grounded citation test across major AI models',
@@ -40,7 +43,7 @@ const included = [
             <p class="body mt-5 text-ink" data-reveal>
               When local customers ask ChatGPT, Gemini, or AI assistants for the top
               provider in your city, does AI cite you or send high-intent buyers to
-              competitors? Run a free 10-second check.
+              competitors? Run a free ~15-second check.
             </p>
 
             <ul class="mt-8 flex flex-col gap-3" data-reveal>
@@ -54,19 +57,19 @@ const included = [
 
             <p class="caption mt-8 inline-flex items-center gap-2 text-ink" data-reveal>
               <Clock class="size-4 shrink-0" aria-hidden="true" />
-              Real-time live query &middot; instant 10-second results.
+              Real-time live query &middot; results in about 15 seconds.
             </p>
           </div>
 
           <!-- Checker island -->
           <div class="lg:col-span-7" data-reveal data-reveal-delay="0.1">
-            <AiVisibilityChecker client:visible resultHref={resultHref} />
+            <AiVisibilityChecker client:visible resultHref={resultHref} turnstileSiteKey={turnstileSiteKey} />
           </div>
         </div>
       ) : (
         <div class="mx-auto max-w-2xl">
           <div data-reveal>
-            <AiVisibilityChecker client:visible resultHref={resultHref} />
+            <AiVisibilityChecker client:visible resultHref={resultHref} turnstileSiteKey={turnstileSiteKey} />
           </div>
 
           <!-- The three bullets stay, as a row under the form rather than a rail. -->
@@ -86,3 +89,5 @@ const included = [
     }
   </div>
 </Section>
+
+{turnstileSiteKey && <script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>}
