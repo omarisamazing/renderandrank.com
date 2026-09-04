@@ -12,7 +12,6 @@ export interface PricingTier {
   period: string
   delivery: string
   description: string
-  idealFor?: string
   features: string[]
   ctaText: string
   ctaHref: string
@@ -36,11 +35,8 @@ export function PricingTabs({
 }) {
   return (
     <Tabs defaultValue="one-time" className="gap-0">
-      <div className="flex flex-col items-center gap-3">
-        <TabsList
-          aria-label="Billing period"
-          className="h-auto gap-1 rounded-pill border border-hairline bg-canvas p-1.5"
-        >
+      <div className="flex justify-center">
+        <TabsList className="h-auto gap-1 rounded-pill border border-hairline bg-canvas p-1.5">
           <TabsTrigger
             value="one-time"
             className="h-10 rounded-pill px-5 text-[0.9375rem] font-medium tracking-[-0.006em] text-ink after:hidden data-active:bg-ink data-active:text-canvas data-active:shadow-none hover:text-ink"
@@ -54,9 +50,6 @@ export function PricingTabs({
             Monthly retainer
           </TabsTrigger>
         </TabsList>
-        <p className="caption text-center text-ink">
-          Start with a one-time cleanup, keep the gains with a retainer.
-        </p>
       </div>
 
       <TabsContent value="one-time" className="mt-12 md:mt-14">
@@ -87,7 +80,6 @@ function TierGrid({
       {tiers.map((tier) => (
         <article
           key={tier.id}
-          aria-label={tier.isPopular ? `${tier.name}, most chosen` : tier.name}
           className={cn(
             "relative flex flex-col rounded-lg bg-canvas p-6 md:p-7",
             tier.isPopular
@@ -99,20 +91,10 @@ function TierGrid({
             <span className="eyebrow absolute -top-3 left-6 rounded-pill bg-ink px-3 py-1 text-canvas">
               Most chosen
             </span>
-          ) : tier.badge ? (
-            <span className="eyebrow absolute -top-3 left-6 rounded-pill bg-block-lime px-3 py-1 text-ink">
-              {tier.badge}
-            </span>
           ) : null}
 
           <h3 className="card-title text-ink">{tier.name}</h3>
           <p className="body-sm mt-2.5 text-ink">{tier.description}</p>
-          {tier.idealFor ? (
-            <p className="body-sm mt-2 text-ink">
-              <span className="font-medium">Ideal for: </span>
-              {tier.idealFor}
-            </p>
-          ) : null}
 
           <div className="mt-6 flex items-baseline gap-2 border-y border-hairline py-5">
             <span className="stat numeric text-ink">{tier.price}</span>
@@ -125,22 +107,13 @@ function TierGrid({
           </p>
 
           <ul className="mt-6 flex flex-1 flex-col gap-3">
-            {tier.features.map((feature, i) => (
+            {tier.features.map((feature) => (
               <li key={feature} className="flex gap-2.5">
                 <CheckIcon
                   className="mt-0.5 size-4 shrink-0 text-success"
                   aria-hidden="true"
                 />
-                <span
-                  className={cn(
-                    "body-sm text-ink",
-                    i === 0 &&
-                      feature.startsWith("Everything in") &&
-                      "font-medium"
-                  )}
-                >
-                  {feature}
-                </span>
+                <span className="body-sm text-ink">{feature}</span>
               </li>
             ))}
           </ul>

@@ -56,7 +56,7 @@ Cloudflare D1 database that is surfaced through an internal admin dashboard.
 ## Directory map
 
 - `src/pages` — Astro routes/pages for the public site.
-- `src/components` — UI components, including React islands (ChatWidget, AuditForm) and the Cal.com embed pieces (`CalScript.astro` bootstrap + `CalInline.astro` inline scheduler). Pricing (`src/components/pricing/PricingTabs.tsx`) follows 21st-inspired card patterns (badge pill, "Ideal for" selector line, emphasized lead feature) re-skinned to DESIGN.md tokens — pills, hairlines, existing pastel/ink surfaces only.
+- `src/components` — UI components, including React islands (ChatWidget, AuditForm) and the Cal.com embed pieces (`CalScript.astro` bootstrap + `CalInline.astro` inline scheduler).
 - `src/layouts` — shared page layouts/shells.
 - `src/lib/visitorClient.ts` — client-side visitor metadata collection (language, referrer, landing page, UTM params) sent to override/enrich server data.
 - `src/data/legal.ts` — legal copy (privacy policy, terms) rendered on the site.
