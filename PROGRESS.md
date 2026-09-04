@@ -14,7 +14,7 @@ AI Visibility Checker (free-tier Google Gemini + Cloudflare Workers AI) and conn
 
 ## Done
 
-- **Blog discovery (UNCOMMITTED)**: homepage `BlogStrip` + per-service `relatedPosts` cross-links, verified live with screenshot. Next: topic pages at 10+ posts, freshness passes.
+- **Blog discovery (committed 426caef, pushed)**: homepage `BlogStrip` + per-service `relatedPosts` cross-links, verified live with screenshot. Next: topic pages at 10+ posts, freshness passes.
 - **Blog drafts 2–5 (committed e8e7247, pushed)**: all four adapted and live (Maps guide, citations guide, reviews pipeline, pricing/ROI) with FAQ schema + related wiring + per-post CTAs. Verified 0 errors, all routes 200. Topic pages deferred until 10+ posts.
 - **Blog launch (committed 9a75fd6, pushed)**: Resources dropdown nav, MDX collection + index + post template + author page + RSS, SEO plumbing (Article/FAQ/Breadcrumb schema, og:article, honest sitemap, llms.txt), 1 adapted pilot post. Debugging lesson: Astro 6+ needs `loader: glob(...)` or collections silently stay empty. Verified 0 errors, 18 pages, all routes live. Remaining drafts 2–5 queued (slugs/link maps in plan).
 - **ROI calculator declutter (committed a16d368, pushed)**: result card 6 text blocks → figure + merged range + 4-chip trace strip + disclosure + one CTA ("Book a 30-min call to win it back"); banner 2 lines; short input labels; min/max captions dropped; radio focus ring; legacy label keys documented. Verified 1440px + 390px screenshots, typecheck clean, build clean.
