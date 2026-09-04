@@ -10,7 +10,7 @@
 
 ## Current status
 
-AI Visibility Checker (free-tier Google Gemini + Cloudflare Workers AI) and connected conversion funnel implemented, fully verified in local development with live queries, and migrations 0003 & 0004 applied to both local and remote D1 databases. `GEMINI_API_KEY` secret is active. The voice assistant now has both a token endpoint (`/api/voice-token`) and a transcript-persistence endpoint (`/api/voice-transcript`); migration 0005 (adds `messages.channel`) is created but NOT yet applied — see "Unapplied migrations / manual steps".
+AI Visibility Checker (free-tier Google Gemini + Cloudflare Workers AI) and connected conversion funnel implemented, fully verified in local development with live queries, and migrations 0003, 0004 & 0005 applied to both local and remote D1 databases. `GEMINI_API_KEY` secret is active. The voice assistant now has both a token endpoint (`/api/voice-token`) and a transcript-persistence endpoint (`/api/voice-transcript`); migration 0005 (adds `messages.channel`) is created but NOT yet applied — see "Unapplied migrations / manual steps".
 
 ## Done
 
@@ -47,18 +47,13 @@ AI Visibility Checker (free-tier Google Gemini + Cloudflare Workers AI) and conn
 
 ## In progress / Next up
 
-- **Apply migration `0005_add_messages_channel.sql` to both local and remote D1** (see "Unapplied migrations / manual steps" below) so the new `channel` column exists before `/api/voice-transcript` and the updated `chat.ts` `insertMessage` run against those databases.
 - Click through `/admin` in `astro dev` to verify the navbar section links (Leads, AI Checker, Conversations, Bookings) scroll to the right anchors and that Conversations expand/collapse still works. Type/diagnostic verification is now available via `npm run typecheck` (`astro check && tsc --noEmit`).
 - Set `CALCOM_API_KEY` secret (local `.dev.vars` + remote via `npx wrangler pages secret put CALCOM_API_KEY`) and test a real booking end-to-end.
 - Optional: Set `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` secrets whenever ready to expand to paid ChatGPT / Claude checks.
 
 ## Unapplied migrations / manual steps
 
-- **`0005_add_messages_channel.sql`** — adds the `channel TEXT NOT NULL DEFAULT 'text'` column to `messages`. NOT yet applied. Apply to **both** local and remote D1:
-  - `npm run db:migrate:local`
-  - `npm run db:migrate:remote`
-  - apply migration `0005_add_messages_channel.sql`
+- None — migrations 0001–0005 are applied to both local and remote D1 databases (0005 verified: `channel` column present on both, no pending migrations).
 - **Set `GEMINI_API_KEY` as a Cloudflare Pages secret** (required for the voice mode `/api/voice-token` token minting in production).
-- Migrations 0001–0004 are applied to both local and remote D1 databases.
 
 
