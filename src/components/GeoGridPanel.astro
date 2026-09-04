@@ -8,14 +8,15 @@
  * reproducible and the composition never lands on an ugly arrangement.
  * Living details: numbered dots (Whitespark-style), center-out scan wave,
  * pin pulse, radius-ring draw, count-up readouts, a procedural street-map
- * etch behind the dots, a click-to-inspect point popup (MarkerPopup pattern:
- * category, rank + distance, audit date, CTA), a metric list with trend pills
- * (hexagon-card pattern, native count-up — no reaviz/react-countup), and a
- * Today / With-us before-after toggle that swaps rank data in place. All
- * motion is transform/opacity only and gated by prefers-reduced-motion.
+ * etch behind the dots, and a Today / With-us before-after toggle that swaps
+ * rank data in place. A Grid / Live-map toggle swaps the mock for a real
+ * MapLibre audit map (`GeoLiveMap`, CARTO light basemap) where each sample
+ * point is a marker with a hover tooltip and a click-to-open rank card.
+ * All motion is transform/opacity only and gated by prefers-reduced-motion.
  */
 import Eyebrow from './ui/Eyebrow.astro';
-import { MapPin, Star, Clock, Navigation, X, TrendingUp, TrendingDown } from '@lucide/astro';
+import GeoLiveMap from './GeoLiveMap';
+import { MapPin } from '@lucide/astro';
 
 // Rank at each sample point of a 9x7 grid, read left-to-right, top-to-bottom.
 // Lower is better; 0 means "not in the top 20".
@@ -75,14 +76,6 @@ const coverage = [
   { label: 'Radius audited', before: '4.5 mi', after: '4.5 mi', countTo: null as number | null, decimals: 0, suffix: '' },
 ];
 
-// Metric list (hexagon-card pattern, native): each row swaps with the
-// Today / With-us toggle via data-before / data-after, same as the readouts.
-const metrics = [
-  { id: 'top3', label: 'Points in the top 3', before: '13', after: '50', delta: '+37 pts', good: true },
-  { id: 'mean', label: 'Mean rank in radius', before: '6.2', after: '2.1', delta: '−4.1 avg', good: true },
-  { id: 'blind', label: 'Points outside top 20', before: '12', after: '4', delta: '−8 blind spots', good: true },
-];
-
 const ariaBefore =
   'Geo-grid showing rank position across 63 sample points around the business, surrounded by a 4.5 mile audit radius. 13 points rank in the top three.';
 const ariaAfter =
@@ -129,8 +122,35 @@ const tip = (i: number, rank: number) => {
   <div class="grid gap-8 p-5 md:grid-cols-5 md:gap-10 md:p-8">
     <!-- The grid itself -->
     <div class="md:col-span-3">
+      <!-- Grid / Live-map view toggle -->
+      <div class="mb-5 flex justify-center">
+        <div
+          role="group"
+          aria-label="Switch between the rank grid mock and the live audit map"
+          class="inline-flex rounded-pill border border-hairline bg-canvas p-1"
+        >
+          <button
+            type="button"
+            data-geo-view="grid"
+            aria-pressed="true"
+            class="caption rounded-pill bg-ink px-4 py-1.5 text-canvas transition-colors"
+          >
+            Rank grid
+          </button>
+          <button
+            type="button"
+            data-geo-view="map"
+            aria-pressed="false"
+            class="caption rounded-pill px-4 py-1.5 text-ink transition-colors hover:bg-surface-soft"
+          >
+            Live map
+          </button>
+        </div>
+      </div>
+
+      <div data-geo-view-grid>
       <!-- Before / after comparison toggle -->
-      <div class="mb-5 flex justify-center" data-reveal data-reveal-delay="0.05s">
+      <div class="mb-5 flex justify-center" data-reveal data-reveal-delay="0.05s" data-geo-today-toggle>
         <div
           role="group"
           aria-label="Compare the grid today versus with Render and Rank"
@@ -157,7 +177,7 @@ const tip = (i: number, rank: number) => {
 
       <div
         class="relative mx-auto w-full max-w-lg"
-        role="img"
+        role="group"
         aria-label={ariaBefore}
         data-geo-grid
         data-aria-before={ariaBefore}
@@ -253,9 +273,7 @@ const tip = (i: number, rank: number) => {
 
         <!-- Grid points layer (above the overlay; in normal flow so every
              dot is a true square — aspect-square on the dot itself, never a
-             stretched ellipse from the old absolute-fill approach).
-             Dots are buttons that open the shared point popup below
-             (MarkerPopup pattern); the pin carries a MarkerLabel. -->
+             stretched ellipse from the old absolute-fill approach) -->
         <div
           class="relative grid grid-cols-9 gap-1.5 sm:gap-2"
         >
@@ -263,7 +281,7 @@ const tip = (i: number, rank: number) => {
             ranks.map((rank, i) => {
               return i === centre ? (
                 <div
-                  class="relative flex aspect-square w-full flex-col items-center justify-center"
+                  class="relative flex aspect-square w-full items-center justify-center"
                   data-reveal
                   data-reveal-delay={waveDelay(i)}
                 >
@@ -277,18 +295,15 @@ const tip = (i: number, rank: number) => {
                   >
                     <MapPin class="size-3 sm:size-3.5" aria-hidden="true" />
                   </span>
-                  <span class="caption absolute -bottom-5 rounded-pill border border-hairline bg-canvas px-2 py-px whitespace-nowrap text-ink">
-                    Your business
-                  </span>
                 </div>
               ) : (
-                <button
-                  type="button"
+                <div
                   class:list={[
-                    'flex aspect-square w-full cursor-pointer items-center justify-center rounded-full transition-transform hover:scale-110 focus-visible:scale-110',
+                    'flex aspect-square w-full items-center justify-center rounded-full',
                     bandClass[band(rank)],
                   ]}
-                  aria-label={tip(i, rank)}
+                  aria-hidden="true"
+                  title={tip(i, rank)}
                   data-reveal
                   data-reveal-delay={waveDelay(i)}
                   data-geo-dot={i}
@@ -299,11 +314,10 @@ const tip = (i: number, rank: number) => {
                       'text-[9px] leading-none font-semibold tabular-nums sm:text-[11px]',
                       rank === 0 && 'hidden',
                     ]}
-                    aria-hidden="true"
                   >
                     {rank === 0 ? '' : rank}
                   </span>
-                </button>
+                </div>
               );
             })
           }
@@ -321,7 +335,7 @@ const tip = (i: number, rank: number) => {
         </div>
       </div>
 
-      <ul class="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
+      <ul class="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2" data-geo-legend>
         {
           legend.map((item) => (
             <li class="flex items-center gap-2">
@@ -349,65 +363,23 @@ const tip = (i: number, rank: number) => {
           <span class="caption text-ink">Audit radius</span>
         </li>
       </ul>
+      </div><!-- /data-geo-view-grid -->
 
-      <!-- Point popup (MarkerPopup pattern, native): one shared card fed by
-           the clicked dot. Flat canvas surface, no photo — a band swatch
-           carries the rank colour so the hero stays fast (no Unsplash LCP).
-           Hidden until a dot is picked; server renders the fallback copy. -->
-      <div
-        data-geo-popup
-        hidden
-        class="mx-auto mt-6 w-full max-w-md rounded-md border border-hairline bg-canvas p-4 text-left"
-        role="status"
-      >
-        <div class="flex items-start justify-between gap-3">
-          <div>
-            <p class="caption text-ink" data-geo-popup-kw>&ldquo;emergency plumber near me&rdquo;</p>
-            <h3 class="body-sm mt-1 font-semibold text-ink" data-geo-popup-title>Grid point · Rank 1 · 0.0 mi</h3>
-          </div>
-          <button
-            type="button"
-            data-geo-popup-close
-            class="flex size-8 shrink-0 items-center justify-center rounded-full bg-surface-soft text-ink transition-transform hover:scale-105"
-            aria-label="Close point details"
-          >
-            <X class="size-4" aria-hidden="true" />
-          </button>
+      <!-- Live audit map (MapLibre + CARTO light basemap). Hydrates on view
+           so the hero stays fast; hover a dot for its rank, select one for
+           the full rank card. -->
+      <div data-geo-view-map hidden>
+        <div class="overflow-hidden rounded-md border border-hairline">
+          <GeoLiveMap client:visible />
         </div>
-        <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5">
-          <span class="flex items-center gap-1.5 text-sm text-ink">
-            <Star class="size-3.5 fill-ink text-ink" aria-hidden="true" />
-            <span class="font-medium" data-geo-popup-rank>Rank 1</span>
-            <span class="caption" data-geo-popup-band>Top 3 — in the pack</span>
-          </span>
-          <span class="flex items-center gap-1.5 text-sm text-ink">
-            <Clock class="size-3.5" aria-hidden="true" />
-            <span data-geo-popup-dist>0.0 mi from business · Jul 2025</span>
-          </span>
-        </div>
-        <div class="mt-3 flex gap-2">
-          <a
-            href="#free-audit"
-            class="caption inline-flex flex-1 items-center justify-center gap-1.5 rounded-pill bg-ink px-4 py-2 text-canvas"
-          >
-            <Navigation class="size-3.5" aria-hidden="true" />
-            Get this coverage
-          </a>
-          <button
-            type="button"
-            data-geo-popup-close
-            class="caption inline-flex items-center justify-center rounded-pill border border-hairline bg-canvas px-4 py-2 text-ink"
-          >
-            Keep exploring
-          </button>
-        </div>
+        <p class="caption mt-4 text-center text-ink">
+          Hover a dot for its rank · select one for the full card. Live map shows the Today state.
+        </p>
       </div>
-      <p class="caption mt-4 text-center text-ink" data-geo-hint>Tip: select any dot to inspect that block.</p>
     </div>
 
     <!-- Readout -->
-    <div class="flex flex-col justify-center gap-5 md:col-span-2">
-      <dl class="flex flex-col justify-center gap-5">
+    <dl class="flex flex-col justify-center gap-5 md:col-span-2">
       {
         coverage.map((row) => (
           <div class="rounded-md border border-hairline bg-canvas p-4">
@@ -426,37 +398,7 @@ const tip = (i: number, rank: number) => {
           </div>
         ))
       }
-      </dl>
-
-      <!-- Metric list (hexagon-card pattern, native): trend pills use
-           DESIGN.md tokens — lime for gains, ink for the mark. -->
-      <ul class="divide-y divide-hairline rounded-md border border-hairline bg-canvas">
-        {
-          metrics.map((m) => (
-            <li class="flex items-center justify-between gap-3 p-4">
-              <span class="body-sm text-ink">{m.label}</span>
-              <span class="flex items-center gap-2">
-                <span
-                  class="stat numeric text-ink"
-                  data-before={m.before}
-                  data-after={m.after}
-                >
-                  {m.before}
-                </span>
-                <span class="caption inline-flex items-center gap-1 rounded-pill bg-block-lime px-2.5 py-1 text-ink">
-                  {m.id === 'mean' || m.id === 'blind' ? (
-                    <TrendingDown class="size-3.5" aria-hidden="true" />
-                  ) : (
-                    <TrendingUp class="size-3.5" aria-hidden="true" />
-                  )}
-                  {m.delta}
-                </span>
-              </span>
-            </li>
-          ))
-        }
-      </ul>
-    </div>
+    </dl>
   </div>
 </div>
 
@@ -541,60 +483,43 @@ const tip = (i: number, rank: number) => {
   const centreCol = centreIdx % 9;
   const centreRow = Math.floor(centreIdx / 9);
   const gridRegion = document.querySelector<HTMLElement>('[data-geo-grid]');
-  const dotEls = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-geo-dot]'));
+  const dotEls = Array.from(document.querySelectorAll<HTMLElement>('[data-geo-dot]'));
   const stateButtons = Array.from(
     document.querySelectorAll<HTMLButtonElement>('[data-geo-state]')
   );
   const readoutEls = Array.from(document.querySelectorAll<HTMLElement>('[data-before]'));
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  // Shared point popup (MarkerPopup pattern): one card fed by the clicked dot.
-  const popup = document.querySelector<HTMLElement>('[data-geo-popup]');
-  const popupTitle = popup?.querySelector<HTMLElement>('[data-geo-popup-title]');
-  const popupRank = popup?.querySelector<HTMLElement>('[data-geo-popup-rank]');
-  const popupBand = popup?.querySelector<HTMLElement>('[data-geo-popup-band]');
-  const popupDist = popup?.querySelector<HTMLElement>('[data-geo-popup-dist]');
-  let popupIdx: number | null = null;
+  // Grid / Live-map view toggle. The map island hydrates on view (it sits
+  // behind `client:visible`, which fires once the container is shown).
+  const viewButtons = Array.from(
+    document.querySelectorAll<HTMLButtonElement>('[data-geo-view]')
+  );
+  const gridView = document.querySelector<HTMLElement>('[data-geo-view-grid]');
+  const mapView = document.querySelector<HTMLElement>('[data-geo-view-map]');
+  const todayToggle = document.querySelector<HTMLElement>('[data-geo-today-toggle]');
+  const legend = document.querySelector<HTMLElement>('[data-geo-legend]');
 
-  const BAND_LABEL: Record<string, string> = {
-    top: 'Top 3 — in the pack',
-    mid: 'Rank 4–10',
-    low: 'Rank 11–12',
-    risk: 'Rank 13+',
-    empty: 'Outside the top 20',
-  };
-
-  const milesFor = (i: number) => {
-    const dx = (i % 9) - centreCol;
-    const dy = Math.floor(i / 9) - centreRow;
-    return (Math.sqrt(dx * dx + dy * dy) * 1.8).toFixed(1);
-  };
-
-  function showPopup(i: number) {
-    if (!popup || !geoStates) return;
-    const rank = geoStates[geoState][i] ?? 0;
-    popupIdx = i;
-    const band = bandFor(rank);
-    if (popupTitle) {
-      popupTitle.textContent =
-        rank === 0 ? `Grid point · Outside top 20` : `Grid point · Rank ${rank} · ${milesFor(i)} mi`;
-    }
-    if (popupRank) popupRank.textContent = rank === 0 ? 'Not ranked' : `Rank ${rank}`;
-    if (popupBand) popupBand.textContent = BAND_LABEL[band] ?? '';
-    if (popupDist) popupDist.textContent = `${milesFor(i)} mi from business · Jul 2025`;
-    popup.hidden = false;
-    if (!reduceMotion) {
-      animate(
-        popup,
-        { opacity: [0, 1], transform: ['translateY(6px)', 'translateY(0)'] },
-        { duration: 0.3, ease: EASE }
-      );
+  function renderView(next: 'grid' | 'map') {
+    gridView?.toggleAttribute('hidden', next !== 'grid');
+    mapView?.toggleAttribute('hidden', next !== 'map');
+    // The Today toggle + legend describe the grid mock only.
+    todayToggle?.toggleAttribute('hidden', next !== 'grid');
+    legend?.toggleAttribute('hidden', next !== 'grid');
+    for (const btn of viewButtons) {
+      const active = btn.dataset.geoView === next;
+      btn.setAttribute('aria-pressed', String(active));
+      btn.classList.toggle('bg-ink', active);
+      btn.classList.toggle('text-canvas', active);
+      btn.classList.toggle('text-ink', !active);
+      btn.classList.toggle('hover:bg-surface-soft', !active);
     }
   }
 
-  function hidePopup() {
-    popupIdx = null;
-    popup?.setAttribute('hidden', '');
+  for (const btn of viewButtons) {
+    btn.addEventListener('click', () =>
+      renderView(btn.dataset.geoView === 'map' ? 'map' : 'grid')
+    );
   }
 
   let geoStates: { before: number[]; after: number[] } | null = null;
@@ -626,15 +551,12 @@ const tip = (i: number, rank: number) => {
       const dx = (i % 9) - centreCol;
       const dy = Math.floor(i / 9) - centreRow;
       dot.setAttribute(
-        'aria-label',
+        'title',
         rank === 0
           ? 'Outside the top 20'
           : `Rank ${rank} · ${(Math.sqrt(dx * dx + dy * dy) * 1.8).toFixed(1)} mi from business`
       );
     }
-
-    // Keep the open popup in sync when the Today / With-us data swaps.
-    if (popupIdx !== null && popup && !popup.hidden) showPopup(popupIdx);
 
     for (const btn of stateButtons) {
       const active = btn.dataset.geoState === next;
@@ -669,23 +591,4 @@ const tip = (i: number, rank: number) => {
       renderGeoState(btn.dataset.geoState === 'after' ? 'after' : 'before')
     );
   }
-
-  for (const dot of dotEls) {
-    dot.addEventListener('click', () => {
-      const i = Number(dot.dataset.geoDot);
-      if (!Number.isFinite(i)) return;
-      if (popupIdx === i && popup && !popup.hidden) {
-        hidePopup();
-      } else {
-        showPopup(i);
-      }
-    });
-  }
-
-  document.querySelectorAll('[data-geo-popup-close]').forEach((btn) => {
-    btn.addEventListener('click', hidePopup);
-  });
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') hidePopup();
-  });
 </script>

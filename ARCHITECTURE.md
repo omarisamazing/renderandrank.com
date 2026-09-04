@@ -57,6 +57,8 @@ Cloudflare D1 database that is surfaced through an internal admin dashboard.
 
 - `src/pages` — Astro routes/pages for the public site.
 - `src/components` — UI components, including React islands (ChatWidget, AuditForm) and the Cal.com embed pieces (`CalScript.astro` bootstrap + `CalInline.astro` inline scheduler).
+- `src/components/ui/map.tsx` — MapLibre GL primitive (`Map`, `MapMarker`, `MarkerContent`, `MarkerTooltip`, `MarkerPopup`, `MarkerLabel`) on the CARTO light basemap; light-only and SSR-safe (markers/popups are created in effects).
+- `src/components/GeoLiveMap.tsx` — `client:visible` hero island rendering the Austin audit map (business pin + rank-point markers with tooltips and rank-card popups), toggled from `GeoGridPanel.astro` (Rank grid / Live map).
 - `src/layouts` — shared page layouts/shells.
 - `src/lib/visitorClient.ts` — client-side visitor metadata collection (language, referrer, landing page, UTM params) sent to override/enrich server data.
 - `src/data/legal.ts` — legal copy (privacy policy, terms) rendered on the site.
