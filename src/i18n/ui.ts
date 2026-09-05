@@ -58,6 +58,12 @@ export const ui = {
     "bookcall.hero.title": "{duration} with the person doing the work",
     "bookcall.hero.sub":
       "Pick a time that suits you. We pull your live geo-grid on the call, test your AI visibility, and you leave with the plan.",
+    "about.hero.eyebrow": "About",
+    "about.hero.title": "A search engineer, not an agency",
+    "about.hero.sub":
+      "Local owners are competing against national brands with real budgets. The way to win is technical precision, applied consistently, by someone who answers the phone.",
+    "about.principles.eyebrow": "How we work",
+    "about.principles.title": "Three things we hold to",
     "hero.proof.calls": "More inbound calls",
     "hero.proof.clicks": "Of local clicks go top-3",
     "hero.proof.audit": "Audit turnaround",
@@ -145,6 +151,12 @@ export const ui = {
     "bookcall.hero.title": "{duration} con la persona que hace el trabajo",
     "bookcall.hero.sub":
       "Elige la hora que te convenga. Analizamos tu geo-grid en vivo en la llamada, probamos tu visibilidad en IA y te llevas el plan.",
+    "about.hero.eyebrow": "Nosotros",
+    "about.hero.title": "Un ingeniero de búsqueda, no una agencia",
+    "about.hero.sub":
+      "Los negocios locales compiten contra marcas nacionales con presupuestos reales. La forma de ganar es la precisión técnica, aplicada con constancia, por alguien que contesta el teléfono.",
+    "about.principles.eyebrow": "Cómo trabajamos",
+    "about.principles.title": "Tres principios que cumplimos",
     "hero.proof.calls": "Más llamadas entrantes",
     "hero.proof.clicks": "De los clics locales van al top-3",
     "hero.proof.audit": "Tiempo de auditoría",
@@ -232,6 +244,12 @@ export const ui = {
     "bookcall.hero.title": "{duration} avec la personne qui fait le travail",
     "bookcall.hero.sub":
       "Choisissez l'horaire qui vous convient. Nous analysons votre géo-grid en direct pendant l'appel, testons votre visibilité IA, et vous repartez avec le plan.",
+    "about.hero.eyebrow": "À propos",
+    "about.hero.title": "Un ingénieur de recherche, pas une agence",
+    "about.hero.sub":
+      "Les entreprises locales affrontent des marques nationales aux vrais budgets. Pour gagner : la précision technique, appliquée avec constance, par quelqu'un qui décroche le téléphone.",
+    "about.principles.eyebrow": "Notre méthode",
+    "about.principles.title": "Trois principes auxquels nous tenons",
     "hero.proof.calls": "Plus d'appels entrants",
     "hero.proof.clicks": "Des clics locaux vont au top-3",
     "hero.proof.audit": "Délai d'audit",
@@ -319,6 +337,12 @@ export const ui = {
     "bookcall.hero.title": "{duration} mit der Person, die die Arbeit macht",
     "bookcall.hero.sub":
       "Wähl einen Termin, der dir passt. Wir ziehen dein Live-Geo-Grid im Gespräch, testen deine KI-Sichtbarkeit — und du gehst mit dem Plan.",
+    "about.hero.eyebrow": "Über uns",
+    "about.hero.title": "Ein Search Engineer, keine Agentur",
+    "about.hero.sub":
+      "Lokale Betriebe konkurrieren mit nationalen Marken mit echten Budgets. Der Weg zum Sieg: technische Präzision, konsequent umgesetzt, von jemandem, der ans Telefon geht.",
+    "about.principles.eyebrow": "So arbeiten wir",
+    "about.principles.title": "Drei Grundsätze, an die wir uns halten",
     "hero.proof.calls": "Mehr eingehende Anrufe",
     "hero.proof.clicks": "Der lokalen Klicks gehen in die Top 3",
     "hero.proof.audit": "Audit-Bearbeitungszeit",
@@ -406,6 +430,12 @@ export const ui = {
     "bookcall.hero.title": "{duration} con la persona che fa il lavoro",
     "bookcall.hero.sub":
       "Scegli l'orario che preferisci. Analizziamo il tuo geo-grid live durante la chiamata, testiamo la tua visibilità AI e te ne vai con il piano.",
+    "about.hero.eyebrow": "Chi siamo",
+    "about.hero.title": "Un search engineer, non un'agenzia",
+    "about.hero.sub":
+      "Le attività locali competono contro brand nazionali con budget veri. Per vincere servono precisione tecnica, applicata con costanza, da qualcuno che risponde al telefono.",
+    "about.principles.eyebrow": "Come lavoriamo",
+    "about.principles.title": "Tre principi che rispettiamo",
     "hero.proof.calls": "Più chiamate in entrata",
     "hero.proof.clicks": "Dei clic locali va nella top-3",
     "hero.proof.audit": "Tempi dell'audit",
@@ -493,6 +523,12 @@ export const ui = {
     "bookcall.hero.title": "{duration} com a pessoa que faz o trabalho",
     "bookcall.hero.sub":
       "Escolha o horário que for melhor para você. Analisamos seu geo-grid ao vivo na chamada, testamos sua visibilidade em IA e você sai com o plano.",
+    "about.hero.eyebrow": "Sobre",
+    "about.hero.title": "Um engenheiro de busca, não uma agência",
+    "about.hero.sub":
+      "Negócios locais competem contra marcas nacionais com orçamentos reais. O caminho para vencer é precisão técnica, aplicada com consistência, por alguém que atende o telefone.",
+    "about.principles.eyebrow": "Como trabalhamos",
+    "about.principles.title": "Três princípios que seguimos",
     "hero.proof.calls": "Mais chamadas recebidas",
     "hero.proof.clicks": "Dos cliques locais vão para o top-3",
     "hero.proof.audit": "Prazo da auditoria",
@@ -580,6 +616,12 @@ export const ui = {
     "bookcall.hero.title": "{duration} met de persoon die het werk doet",
     "bookcall.hero.sub":
       "Kies een tijd die je schikt. We trekken je live geo-grid erbij tijdens het gesprek, testen je AI-zichtbaarheid en je gaat weg met het plan.",
+    "about.hero.eyebrow": "Over ons",
+    "about.hero.title": "Een search engineer, geen bureau",
+    "about.hero.sub":
+      "Lokale bedrijven concurreren tegen nationale merken met echte budgetten. De manier om te winnen is technische precisie, consequent toegepast, door iemand die de telefoon opneemt.",
+    "about.principles.eyebrow": "Zo werken wij",
+    "about.principles.title": "Drie dingen waar we ons aan houden",
     "hero.proof.calls": "Meer inkomende oproepen",
     "hero.proof.clicks": "Van de lokale klikken gaat naar top-3",
     "hero.proof.audit": "Doorlooptijd audit",

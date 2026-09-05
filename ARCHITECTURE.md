@@ -420,8 +420,8 @@ locales live under prefix subdirectories (`/es/ /fr/ /de/ /it/ /pt/ /nl/`).
   `site` from `PUBLIC_SITE_URL` (default `https://renderandrank.com`).
 - `src/config/site.ts` owns `localeMeta`, `canonicalUrlFor()` (always
   root-anchored), `localizedPath()`, `LOCALIZED_ROUTES` (`/`, `/pricing`,
-  `/services` + 3 detail slugs, `/contact`, `/book-a-call` — every path with
-  full 7-locale coverage), and `STAGING_HOST_SUFFIX`.
+  `/services` + 3 detail slugs, `/contact`, `/book-a-call`, `/about` — every
+  path with full 7-locale coverage), and `STAGING_HOST_SUFFIX`.
 - `src/layouts/Layout.astro` renders per-locale `<html lang>`, canonical, the
   full hreflang cluster + `x-default` on `LOCALIZED_ROUTES` (self-referential
   hreflang elsewhere), `og:locale` + alternates, dynamic schema `inLanguage`,

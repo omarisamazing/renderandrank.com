@@ -14,6 +14,7 @@ AI Visibility Checker (free-tier Google Gemini + Cloudflare Workers AI) and conn
 
 ## Done
 
+- **Multilingual batch 5: about in 7 locales (committed, pushed)**: shared AboutPage component (localized hero + principles headers via `about.*` keys), 6 locale wrappers with transcreated meta, `LOCALIZED_ROUTES` extended to `/about`. Verified: typecheck 0 errors, 76-page build, EN + 6/6 locale head tags + 7/7 sitemap entries asserted, entity tests 21/21. Principle cards/Founder/Testimonials/CtaBanner bodies English until phase 3.
 - **Multilingual batch 4: book-a-call in 7 locales (committed, pushed)**: shared BookCallPage component (localized hero via `bookcall.hero.*` keys with `{duration}` placeholder), 6 locale wrappers with transcreated meta, `LOCALIZED_ROUTES` extended to `/book-a-call`. Verified: typecheck 0 errors, 70-page build, EN/ES/DE head tags + 6/6 H1s + 7/7 sitemap entries asserted, entity tests 21/21. Agenda/host-card/guarantee/Cal embed English until phase 3.
 - **Multilingual batch 3: contact in 7 locales (committed, pushed)**: shared ContactPage component (localized hero/aside-talk/form-chrome via `contact.*` keys), 6 locale wrappers with transcreated meta, `LOCALIZED_ROUTES` extended to `/contact`. Verified: typecheck 0 errors, 64-page build, EN/ES/DE head tags + 7/7 sitemap entries asserted, entity tests 21/21. Field labels/validation/success copy English until phase 3. OpenSEO `whoami` still blocked — no openseo tools exposed in the agent env; needs client-side OAuth/API-key auth before project setup + keyword runs.
 - **Multilingual batch 2: pricing + services in 7 locales (committed, pushed)**: shared PricingPage/ServicesPage/ServiceDetailPage components, 30 locale wrappers (`/pricing`, `/services`, 3 detail slugs × 6 locales) with transcreated meta, localized heroes/CTAs, `LOCALIZED_ROUTES` extended. Verified: typecheck 0 errors, 58-page build, head tags + sitemap asserted. Detail H1s/body English until phase 3.
@@ -60,7 +61,7 @@ AI Visibility Checker (free-tier Google Gemini + Cloudflare Workers AI) and conn
 
 ## In progress / Next up
 
-- **i18n page rollout** (order per `docs/i18n.md`): `/about`, then `/blog`; phase 3 = body-copy dictionaries (`src/data/services.ts`, matrix/timeline sections, detail H1s, contact form labels/validation, book-a-call agenda/guarantee). Each step adds locale wrappers + `LOCALIZED_ROUTES` entry + head-tag assertions.
+- **i18n page rollout** (order per `docs/i18n.md`): `/blog` (index + per-slug wrappers); phase 3 = body-copy dictionaries (`src/data/services.ts`, matrix/timeline sections, detail H1s, contact form labels/validation, book-a-call agenda/guarantee, about principle cards + shared Founder/Testimonials/CtaBanner sections). Each step adds locale wrappers + `LOCALIZED_ROUTES` entry + head-tag assertions.
 - **OpenSEO MCP runs** (needs client-side auth: OAuth login or `oseo_` key): `whoami` → project setup → `research_keywords` per locale (seeds in `docs/keyword-map.md`) → `keyword-clustering` → `seo-audit` verification pass.
 - Type/diagnostic verification is available via `npm run typecheck` (`astro check && tsc --noEmit`).
 - Set `CALCOM_API_KEY` secret (local `.dev.vars` + remote via `npx wrangler pages secret put CALCOM_API_KEY`) and test a real booking end-to-end.
