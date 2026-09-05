@@ -123,6 +123,10 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
       <span class="rr-chat__voicebar-anim" aria-hidden="true"><i></i><i></i><i></i></span>
       <span class="rr-chat__voicebar-label" id="rr-chat-voicebar-label">Listening…</span>
       <button type="button" class="rr-chat__voicebar-stop" id="rr-chat-voice-stop">Stop</button>
+      <!-- Idle-phase action: Start talking after a user Stop, Reconnect after
+           a drop/error. Shown only when no session is live (see showTalkIdle /
+           showVoiceError); the Stop button shows only while live. -->
+      <button type="button" class="rr-chat__voicebar-start" id="rr-chat-voice-start" hidden>Start talking</button>
     </div>
 
     <form id="rr-chat-form" class="rr-chat__form">
@@ -528,6 +532,52 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
     outline-offset: 2px;
   }
 
+  /* Idle-phase action (Start talking / Reconnect): inverted pill — only one
+     of Stop / Start is ever visible (toggled via hidden). */
+  .rr-chat__voicebar-start {
+    flex-shrink: 0;
+    padding: 0.3125rem 0.75rem;
+    border: 1px solid var(--color-ink, #000);
+    border-radius: var(--radius-pill, 50px);
+    background-color: var(--color-canvas, #fff);
+    color: var(--color-ink, #000);
+    font-family: inherit;
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: -0.006em;
+    cursor: pointer;
+    transition: opacity 160ms var(--ease-brand, cubic-bezier(0.22, 1, 0.36, 1));
+  }
+
+  .rr-chat__voicebar-start:hover { opacity: 0.85; }
+
+  .rr-chat__voicebar-start:focus-visible {
+    outline: 2px solid var(--color-ink, #000);
+    outline-offset: 2px;
+  }
+
+  /* Idle phase: freeze + dim the equalizer so the bar reads "off", and hide
+     the animation from nothing (it carries no information when idle). */
+  .rr-chat__voicebar[data-phase='idle'] .rr-chat__voicebar-anim i {
+    background-color: var(--color-ink, #000);
+    opacity: 0.3;
+    animation: none;
+  }
+
+  /* First-visit Talk hint: one-line explainer shown once above the idle bar
+     when the Talk log is still empty. */
+  :global(.rr-chat__voice-hint) {
+    align-self: stretch;
+    margin: 0;
+    padding: 0.625rem 0.875rem;
+    border-radius: var(--radius-lg, 24px);
+    background-color: var(--color-surface-soft, #f7f7f5);
+    color: #55554f;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    letter-spacing: -0.004em;
+  }
+
   /* ---- Message log ------------------------------------------------------ */
   .rr-chat__log {
     flex: 1;
@@ -867,6 +917,9 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
   const voicebar = document.getElementById('rr-chat-voicebar') as HTMLElement | null;
   const voicebarLabel = document.getElementById('rr-chat-voicebar-label') as HTMLElement | null;
   const voiceStopBtn = document.getElementById('rr-chat-voice-stop') as HTMLButtonElement | null;
+  // Idle-phase action button (Start talking / Reconnect). Visible only when
+  // no session is live; Stop shows only while live. See showTalkIdle.
+  const voiceStartBtn = document.getElementById('rr-chat-voice-start') as HTMLButtonElement | null;
   const greeting = document.getElementById('rr-chat-greeting') as HTMLElement | null;
   const greetingCloseBtn = document.getElementById('rr-chat-greeting-close') as HTMLButtonElement | null;
 
@@ -955,6 +1008,9 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
       }
       // Move focus into the input on open (only relevant in Type mode).
       if (currentMode === 'type') window.setTimeout(() => input!.focus(), 50);
+      // Reopening on Talk with no live session restores the idle panel
+      // (transcript retained, Start talking available).
+      if (currentMode === 'talk' && !voice) showTalkIdle();
     }
 
     function closePanel() {
@@ -1260,6 +1316,12 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
     // text/SSE path above is completely untouched — voice only activates when
     // the user taps the Talk tab.
     let voice: VoiceSession | null = null;
+    // True when the most recent session end was the user's own Stop press
+    // (vs an unexpected drop). Drives the idle panel wording; never switches
+    // modes — Talk stays put in every case.
+    let userStoppedVoice = false;
+    // First-visit Talk hint is rendered once per page load.
+    let talkHintShown = false;
 
     // Live transcript bubbles for the in-flight turn (replaced in place until
     // finalized, so the user sees words appear as they are spoken).
@@ -1271,15 +1333,21 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
     }
 
     // Prominent voice status bar: show while connecting/live, hide otherwise.
+    // The Stop / Start action buttons are mutually exclusive: Stop only
+    // while a session is live, Start (talking/Reconnect) only when idle.
     function setVoiceUI(state: VoiceState) {
       if (!voicebar) return;
       if (state === 'requesting-token' || state === 'connecting') {
         if (voicebarLabel) voicebarLabel.textContent = 'Connecting…';
         voicebar.setAttribute('data-phase', 'connecting');
+        if (voiceStopBtn) voiceStopBtn.hidden = false;
+        if (voiceStartBtn) voiceStartBtn.hidden = true;
         voicebar.hidden = false;
       } else if (state === 'live') {
         if (voicebarLabel) voicebarLabel.textContent = 'Listening…';
         voicebar.setAttribute('data-phase', 'live');
+        if (voiceStopBtn) voiceStopBtn.hidden = false;
+        if (voiceStartBtn) voiceStartBtn.hidden = true;
         voicebar.hidden = false;
       } else if (state === 'error') {
         // Keep the bar visible on error so the Talk-only message (set by
@@ -1330,6 +1398,7 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
 
     function startVoice() {
       removeSuggestions();
+      userStoppedVoice = false;
       liveUserEl = null;
       liveAssistantEl = null;
       // Fresh Talk session: clear any lingering error phase from a prior attempt.
@@ -1352,13 +1421,11 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
           setLiveIndicator(state === 'live');
           // Drive the prominent voice status bar (connecting/listening/Stop).
           setVoiceUI(state);
-          // If the session ends on its own (goAway/socket close/error), fall
-          // back to Type mode so the composer is usable again.
-          // Only auto-fall back to Type on a clean idle end. On 'error' we
-          // stay in Talk so the mic/voice error stays on the Talk-only voice
-          // bar (see showVoiceError) and never leaks into the text chat.
+          // Session ended (user Stop OR unexpected drop/error): stay on Talk
+          // in every case. The idle panel takes over — a Stop shows Start
+          // talking, a drop shows Reconnect. Nothing here switches modes.
           if (state === 'idle') {
-            if (currentMode === 'talk') switchMode('type');
+            if (currentMode === 'talk') showTalkIdle({ action: userStoppedVoice ? 'start' : 'reconnect' });
           }
         },
         onUserTranscript: renderUserTranscript,
@@ -1382,19 +1449,60 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
       voice.start();
     }
 
-    // Surface a mic/voice error on the Talk-only voice bar (never in the shared
-    // text chat log). Keeps the current mode as-is (Talk) so switching to Type
-    // doesn't leak the error into the text composer. If the voice bar isn't
-    // available for some reason, we still avoid touching #rr-chat-log.
+    // Talk idle panel: voicebar becomes the "off" state with a Start talking /
+    // Reconnect action. Talk-only (never touches Type), transcript retained.
+    // Focus moves to the action only on explicit user paths (Stop press, tab
+    // entry) — never on an async drop, which must not steal focus.
+    function showTalkIdle(opts: { focusStart?: boolean; action?: 'start' | 'reconnect' } = {}) {
+      if (!voicebar || currentMode !== 'talk') return;
+      const action = opts.action ?? 'start';
+      voicebar.removeAttribute('data-phase');
+      voicebar.setAttribute('data-phase', 'idle');
+      if (voicebarLabel) voicebarLabel.textContent = 'Voice off';
+      if (voiceStopBtn) voiceStopBtn.hidden = true;
+      if (voiceStartBtn) {
+        voiceStartBtn.textContent = action === 'reconnect' ? 'Reconnect' : 'Start talking';
+        voiceStartBtn.hidden = false;
+      }
+      voicebar.hidden = false;
+      // First visit: one-line explainer above the idle bar (once per load).
+      if (!talkHintShown && voicelog && voicelog.childElementCount === 0) {
+        talkHintShown = true;
+        const hint = document.createElement('p');
+        hint.className = 'rr-chat__voice-hint';
+        hint.textContent = 'Talk with Omli by voice. Press Start talking, then allow the microphone when asked.';
+        voicelog.prepend(hint);
+      }
+      scrollToBottom();
+      if (opts.focusStart && voiceStartBtn && panelIsOpen()) voiceStartBtn.focus();
+    }
+
+    // Surface a mic/voice error on the Talk-only voice bar (never in the
+    // shared text chat log) with a Reconnect action. Stays on Talk — the
+    // error and transcript are preserved for the retry.
     function showVoiceError(message: string) {
       if (voicebar && voicebarLabel) {
-        voicebarLabel.textContent = message;
+        // Mic-denied gets explicit next-step guidance; other errors keep the
+        // server-provided text and lean on the adjacent Reconnect button.
+        const micDenied = /microphone|permission|not-allowed|notfound/i.test(message);
+        voicebarLabel.textContent = micDenied
+          ? 'Microphone access was blocked. Allow it in the browser address bar, then press Reconnect.'
+          : message;
         voicebar.setAttribute('data-phase', 'error');
+        if (voiceStopBtn) voiceStopBtn.hidden = true;
+        if (voiceStartBtn) {
+          voiceStartBtn.textContent = 'Reconnect';
+          voiceStartBtn.hidden = false;
+        }
         voicebar.hidden = false;
       }
     }
 
     function stopVoice() {
+      // User-initiated stop: the idle panel takes over on Talk (never a mode
+      // switch). userStoppedVoice marks the intent; the async 'idle' event
+      // re-renders the same panel idempotently via onState.
+      userStoppedVoice = true;
       setLiveIndicator(false);
       // Clear any error phase and hide the voice status bar immediately.
       voicebar?.removeAttribute('data-phase');
@@ -1405,6 +1513,7 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
         voice.stop();
         voice = null;
       }
+      if (currentMode === 'talk') showTalkIdle({ focusStart: true, action: 'start' });
     }
 
     function switchMode(mode: 'type' | 'talk') {
@@ -1415,9 +1524,13 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
       selectModeButton(mode);
       // Keep the now-active log scrolled to the latest message.
       scrollToBottom();
-      if (mode === 'talk') startVoice();
-      else {
-        stopVoice();
+      if (mode === 'talk') {
+        // Entering Talk never auto-starts the mic: the tab is a place you can
+        // stay with voice off. Listening begins only via Start talking /
+        // Reconnect. Focus moves there so keyboard users can start immediately.
+        if (!voice) showTalkIdle({ focusStart: true, action: 'start' });
+      } else {
+        if (voice) stopVoice();
         // Back in Type mode: show the starter pills again until the user's
         // first message. Voice/Talk still clears them via startVoice.
         if (!userHasMessaged) renderSuggestions();
@@ -1427,12 +1540,16 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
     modeTypeBtn.addEventListener('click', () => switchMode('type'));
     modeTalkBtn.addEventListener('click', () => switchMode('talk'));
 
-    // Stop button on the voice bar: end voice and fall back to Type mode.
-    // stopVoice() clears any error phase, so switching to Type here does not
-    // carry a voice error into the text chat.
+    // Stop button on the voice bar: end voice and stay on Talk — the idle
+    // panel (Start talking) takes over. stopVoice() clears any error phase.
     voiceStopBtn?.addEventListener('click', () => {
       stopVoice();
-      switchMode('type');
+    });
+
+    // Idle-phase action: Start talking after a Stop, Reconnect after a drop
+    // or error. startVoice() resets the bar via the state machine.
+    voiceStartBtn?.addEventListener('click', () => {
+      startVoice();
     });
 
     // Tear the voice session down if the panel closes or the page unloads.
