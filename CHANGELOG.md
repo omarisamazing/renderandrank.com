@@ -140,6 +140,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Verified
 
+- **Unified chat thread, ChatGPT-style (new)** (`src/components/ChatWidget.astro`): Type/Talk tabs removed — one shared `#rr-chat-log`, composer mic toggle to start/stop voice mid-thread, finalized voice turns join the shared `messages[]` history (plus Live-seeding `voiceTurns[]`); voicebar keeps status + Stop + Start/Reconnect, idle-hidden leak class eliminated by construction. Verified live (no tabs, mic error + Reconnect, mixed typed reply in shared log, screenshot); typecheck 0 errors.
+
 - **Talk stays on Talk + idle panel (new)** (`src/components/ChatWidget.astro`): pressing Stop or losing the voice session no longer yanks the visitor to Type — Talk persists with transcript retained and a Start talking / Reconnect action (mic-denied gets address-bar guidance). Entering Talk never auto-starts the mic. Verified live (idle panel, mic-denied error + Reconnect, arrow-key tab walk both directions, roving tabindex, focus); typecheck 0 errors.
 - **Talk accessibility** (`src/components/ChatWidget.astro`): arrow-key/Home/End tab pattern with `aria-controls`, screen-reader text for the live dot, focus to the idle action on explicit paths only, finalized voice transcripts reuse the escape-first rich renderer.
 

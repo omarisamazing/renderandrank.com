@@ -17,11 +17,16 @@ reaches the DOM).
 Talk mode never forces a mode switch: entering the tab does not auto-start
 the mic (listening begins only via Start talking), pressing Stop or losing
 the session leaves you on Talk with the transcript retained and a Start
-talking / Reconnect action in the voice status bar. Tabs support arrow-key
-navigation with roving tabindex and `aria-controls`, focus moves to the
-idle-panel action on explicit entry/Stop (never on async drops), the live
-dot has a screen-reader text equivalent, and finalized voice transcripts get
-the same rich rendering as typed replies.
+talking / Reconnect action in the voice status bar. There are no separate
+Type/Talk threads: typed turns and voice transcripts render into one shared
+`#rr-chat-log` (ChatGPT-style), the composer mic button starts/stops voice
+from anywhere in the thread, and finalized voice turns join the same
+`messages[]` history the `/api/chat` calls send (plus the `voiceTurns[]`
+Live-seeding memory). Tabs support arrow-key navigation with roving tabindex
+and `aria-controls`, focus moves to the idle-panel action on explicit entry
+/ Stop (never on async drops), the live dot has a screen-reader text
+equivalent, and finalized voice transcripts get the same rich rendering as
+typed replies.
 
 ## Backend
 

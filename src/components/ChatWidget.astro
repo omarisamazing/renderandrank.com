@@ -10,7 +10,7 @@
  *
  * Dependency-free: vanilla JS in the module <script> below.
  */
-import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
+import { MessageCircle, X, ArrowUp, Mic } from '@lucide/astro';
 ---
 
 <div id="rr-chat" class="rr-chat" data-open="false">
@@ -62,42 +62,8 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
       </button>
     </header>
 
-    <!-- Type / Talk mode toggle. Type is the default; Talk starts a Gemini
-         Live voice session. A dot on the Talk tab lights up while recording. -->
-    <div
-      id="rr-chat-modes"
-      class="rr-chat__modes"
-      role="tablist"
-      aria-label="Chat mode"
-    >
-      <button
-        type="button"
-        id="rr-chat-mode-type"
-        class="rr-chat__mode rr-chat__mode--active"
-        role="tab"
-        aria-selected="true"
-        aria-controls="rr-chat-log"
-        data-mode="type"
-      >
-        <Keyboard class="rr-chat__mode-icon" aria-hidden="true" />
-        <span>Type</span>
-      </button>
-      <button
-        type="button"
-        id="rr-chat-mode-talk"
-        class="rr-chat__mode"
-        role="tab"
-        aria-selected="false"
-        aria-controls="rr-chat-voicelog"
-        tabindex="-1"
-        data-mode="talk"
-      >
-        <Mic class="rr-chat__mode-icon" aria-hidden="true" />
-        <span>Talk</span>
-        <span class="rr-chat__mode-dot" id="rr-chat-live-dot" aria-hidden="true"></span>
-        <span class="sr-only" id="rr-chat-live-text"></span>
-      </button>
-    </div>
+    <!-- Unified thread: no mode tabs. Voice starts from the composer mic
+         button below; voice state shows in the status bar. -->
 
     <div
       id="rr-chat-log"
@@ -107,17 +73,9 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
       aria-relevant="additions text"
     ></div>
 
-    <!-- Talk-mode message surface. Kept parallel to (and separate from)
-         #rr-chat-log so voice/Talk transcripts never bleed into the Text
-         chat. Only one of the two logs is visible at a time (toggled in
-         switchMode); hidden by default since Type is the default mode. -->
-    <div
-      id="rr-chat-voicelog"
-      class="rr-chat__log rr-chat__log--hidden"
-      role="log"
-      aria-live="polite"
-      aria-relevant="additions text"
-    ></div>
+    <!-- Single shared message thread: typed turns and voice transcripts
+         render together, ChatGPT-style. Voice state lives in the status bar
+         below; there are no per-mode logs. -->
 
     <!-- Prominent voice status bar: shown while a voice session is connecting
          or live. Animated equalizer + label + a Stop button to end voice.
@@ -142,6 +100,15 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
         placeholder="Ask us anything…"
         autocomplete="off"
       ></textarea>
+      <button
+        type="button"
+        id="rr-chat-mic"
+        class="rr-chat__mic"
+        aria-label="Talk with your voice"
+        aria-pressed="false"
+      >
+        <Mic class="rr-chat__mic-icon" aria-hidden="true" />
+      </button>
       <button
         type="submit"
         id="rr-chat-send"
@@ -275,76 +242,41 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
   .rr-chat__close:hover { background-color: var(--color-hairline, #e6e6e6); }
   .rr-chat__close-icon { width: 1rem; height: 1rem; }
 
-  /* ---- Type / Talk mode toggle ------------------------------------------ */
-  .rr-chat__modes {
+  /* ---- Composer mic toggle (voice) -------------------------------------- */
+  /* ChatGPT-style: 40px circle beside Send. Filled ink while voice is
+     active (mirrors the send chrome); surface-soft at rest. */
+  .rr-chat__mic {
     display: flex;
-    gap: 0.25rem;
-    padding: 0.5rem 0.75rem;
-    border-bottom: 1px solid var(--color-hairline, #e6e6e6);
-    background-color: var(--color-canvas, #fff);
-  }
-
-  .rr-chat__mode {
-    position: relative;
-    display: inline-flex;
     align-items: center;
-    gap: 0.375rem;
-    flex: 1;
     justify-content: center;
-    padding: 0.4375rem 0.625rem;
+    flex-shrink: 0;
+    width: 2.5rem;
+    height: 2.5rem;
     border: 1px solid var(--color-hairline, #e6e6e6);
-    border-radius: var(--radius-pill, 50px);
-    background-color: var(--color-canvas, #fff);
+    border-radius: var(--radius-full, 9999px);
+    background-color: var(--color-surface-soft, #f7f7f5);
     color: var(--color-ink, #000);
-    font-family: inherit;
-    font-size: 0.8125rem;
-    font-weight: 460;
-    letter-spacing: -0.006em;
     cursor: pointer;
     transition:
       background-color 160ms var(--ease-brand, cubic-bezier(0.22, 1, 0.36, 1)),
-      border-color 160ms var(--ease-brand, cubic-bezier(0.22, 1, 0.36, 1)),
-      color 160ms var(--ease-brand, cubic-bezier(0.22, 1, 0.36, 1));
+      color 160ms var(--ease-brand, cubic-bezier(0.22, 1, 0.36, 1)),
+      border-color 160ms var(--ease-brand, cubic-bezier(0.22, 1, 0.36, 1));
   }
 
-  .rr-chat__mode:hover { background-color: var(--color-surface-soft, #f7f7f5); }
+  .rr-chat__mic:hover { border-color: var(--color-ink, #000); }
 
-  /* Active tab reads as a filled ink pill (matches the send button chrome). */
-  .rr-chat__mode--active {
+  .rr-chat__mic:focus-visible {
+    outline: 2px solid var(--color-ink, #000);
+    outline-offset: 2px;
+  }
+
+  .rr-chat__mic.is-live {
     background-color: var(--color-ink, #000);
     border-color: var(--color-ink, #000);
     color: var(--color-inverse-ink, #fff);
   }
 
-  .rr-chat__mode--active:hover { background-color: var(--color-ink, #000); }
-
-  .rr-chat__mode:focus-visible {
-    outline: 2px solid var(--color-ink, #000);
-    outline-offset: 2px;
-  }
-
-  .rr-chat__mode-icon { width: 0.9375rem; height: 0.9375rem; }
-
-  /* Recording/live indicator dot on the Talk tab; only shown while live. */
-  .rr-chat__mode-dot {
-    width: 0.5rem;
-    height: 0.5rem;
-    border-radius: 50%;
-    background-color: var(--color-block-pink, #efd4d4);
-    opacity: 0;
-    transition: opacity 160ms var(--ease-brand, cubic-bezier(0.22, 1, 0.36, 1));
-  }
-
-  .rr-chat__modes[data-live='true'] .rr-chat__mode-dot {
-    opacity: 1;
-    background-color: #e5484d; /* live-red; distinct from the muted pink block */
-    animation: rr-chat-pulse 1.4s ease-in-out infinite;
-  }
-
-  @keyframes rr-chat-pulse {
-    0%, 100% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.35); opacity: 0.55; }
-  }
+  .rr-chat__mic-icon { width: 1.125rem; height: 1.125rem; }
 
   /* ---- Launcher greeting popup ------------------------------------------ */
   /* Small speech bubble anchored above the launcher; matches widget chrome. */
@@ -593,20 +525,6 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
     background-color: var(--color-canvas, #fff);
   }
 
-  /* Only one message surface (#rr-chat-log or #rr-chat-voicelog) is visible at
-     a time — switchMode toggles this class so the two logs never stack or
-     overlap. Use display:none so the hidden log takes no layout space. */
-  .rr-chat__log--hidden {
-    display: none;
-  }
-
-  /* Divider between retained Talk sessions (temp in-session transcript memory). */
-  .rr-chat__voice-divider {
-    border-top: 1px solid var(--color-hairline, #e6e6e6);
-    margin: 8px 0;
-    opacity: 0.5;
-  }
-
   :global(.rr-chat__msg) {
     max-width: 85%;
     padding: 0.625rem 0.875rem;
@@ -843,13 +761,11 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
     .rr-chat__panel,
     .rr-chat__close,
     .rr-chat__send,
-    .rr-chat__mode,
-    .rr-chat__mode-dot,
+    .rr-chat__mic,
     :global(.rr-chat__chip) {
       transition: none !important;
     }
     .rr-chat__launcher:hover { transform: none; }
-    .rr-chat__modes[data-live='true'] .rr-chat__mode-dot { animation: none; }
     .rr-chat__greeting,
     .rr-chat__voicebar,
     .rr-chat__voicebar-stop {
@@ -876,7 +792,8 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
   // Conversation id, threaded across requests within a session.
   let conversationId: string | null = sessionStorage.getItem(CID_KEY);
 
-  // In-memory transcript sent to the API on every turn.
+  // In-memory transcript sent to the API on every turn. Voice turns join it
+  // via onTurnFinalized so typed follow-ups carry voice context and back.
   const messages: { role: 'user' | 'assistant'; content: string }[] = [];
 
   // In-session voice memory: finalized Talk turns for this page load. Mirrors
@@ -896,26 +813,24 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
   // Last sent user text — powers the error-bubble Retry without echoing a
   // duplicate user bubble or re-pushing history.
   let lastUserText = '';
-  // Active input mode: text/SSE ('type', default) or Gemini Live voice ('talk').
-  let currentMode: 'type' | 'talk' = 'type';
+  // Single source of truth for "a voice session is up" (the VoiceSession
+  // object may outlive a failure in 'error' state, so nullness lies).
+  // Drives the composer mic toggle. No modes — one unified thread.
+  let voiceActive = false;
 
   const root = document.getElementById('rr-chat');
   const launcher = document.getElementById('rr-chat-launcher') as HTMLButtonElement | null;
   const panel = document.getElementById('rr-chat-panel') as HTMLElement | null;
   const closeBtn = document.getElementById('rr-chat-close') as HTMLButtonElement | null;
   const log = document.getElementById('rr-chat-log');
-  // Separate Talk-mode message surface so voice transcripts never bleed into
-  // the Text chat log. Only one of the two is visible at a time (switchMode).
-  const voicelog = document.getElementById('rr-chat-voicelog');
   const form = document.getElementById('rr-chat-form') as HTMLFormElement | null;
   const input = document.getElementById('rr-chat-input') as HTMLTextAreaElement | null;
   const sendBtn = document.getElementById('rr-chat-send') as HTMLButtonElement | null;
   // Original send-button markup (server-rendered ArrowUp icon), restored by
   // setStreaming(false) after each stream.
   const SEND_ICON_HTML: string = sendBtn ? sendBtn.innerHTML : '';
-  const modes = document.getElementById('rr-chat-modes') as HTMLElement | null;
-  const modeTypeBtn = document.getElementById('rr-chat-mode-type') as HTMLButtonElement | null;
-  const modeTalkBtn = document.getElementById('rr-chat-mode-talk') as HTMLButtonElement | null;
+  // Composer mic toggle (ChatGPT-style voice entry). Driven by setLiveIndicator.
+  const micBtn = document.getElementById('rr-chat-mic') as HTMLButtonElement | null;
   // Voice status bar (visible listening/connecting indicator + Stop) and the
   // dismissible launcher greeting popup. Optional — guarded before use.
   const voicebar = document.getElementById('rr-chat-voicebar') as HTMLElement | null;
@@ -926,16 +841,12 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
   const voiceStartBtn = document.getElementById('rr-chat-voice-start') as HTMLButtonElement | null;
   const greeting = document.getElementById('rr-chat-greeting') as HTMLElement | null;
   const greetingCloseBtn = document.getElementById('rr-chat-greeting-close') as HTMLButtonElement | null;
-  // Screen-reader "live" announcement for the Talk tab dot (the dot itself
-  // is aria-hidden). Updated by setLiveIndicator.
-  const liveText = document.getElementById('rr-chat-live-text') as HTMLElement | null;
 
-  if (root && launcher && panel && closeBtn && log && voicelog && form && input && sendBtn && modes && modeTypeBtn && modeTalkBtn) {
-    // Scroll whichever log is currently active to the bottom. Type mode uses
-    // #rr-chat-log; Talk mode uses #rr-chat-voicelog.
+  if (root && launcher && panel && closeBtn && log && form && input && sendBtn && micBtn) {
+    // Single shared thread: #rr-chat-log holds typed turns and voice
+    // transcripts together. Always scroll it to the bottom.
     function scrollToBottom() {
-      const active = currentMode === 'talk' && voicelog ? voicelog : log!;
-      active.scrollTop = active.scrollHeight;
+      log!.scrollTop = log!.scrollHeight;
     }
 
     // Generic bubble creator: appends into an explicit container so text and
@@ -1005,19 +916,14 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
       // records today's date so the once-per-day popup won't reappear today.
       markGreetingShownToday();
       hideGreeting();
-      // The Talk (voice) path speaks its own spoken greeting via voiceSession.ts.
-      // The Type panel no longer renders a text greeting bubble; it opens with
-      // just the suggestion pills. We still set greeted=true so the separate
+      // The panel opens with just the suggestion pills until the first
+      // message in EITHER modality (typed or voice turns set
+      // userHasMessaged). We still set greeted=true so the separate
       // daily-greeting bookkeeping continues to behave.
-      if (currentMode === 'type') {
-        greeted = true;
-        if (!userHasMessaged) renderSuggestions();
-      }
-      // Move focus into the input on open (only relevant in Type mode).
-      if (currentMode === 'type') window.setTimeout(() => input!.focus(), 50);
-      // Reopening on Talk with no live session restores the idle panel
-      // (transcript retained, Start talking available).
-      if (currentMode === 'talk' && !voice) showTalkIdle();
+      greeted = true;
+      if (!userHasMessaged && log!.childElementCount === 0) renderSuggestions();
+      // Move focus into the input on open.
+      window.setTimeout(() => input!.focus(), 50);
     }
 
     function closePanel() {
@@ -1291,10 +1197,7 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
     launcher.addEventListener('click', togglePanel);
     closeBtn.addEventListener('click', closePanel);
 
-    // Re-open in Type mode: the composer starts visible; the text path is
-    // active unless the user explicitly taps Talk.
-    selectModeButton('type');
-
+    // Re-open: the composer is always visible in the unified thread.
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       handleComposerSubmit();
@@ -1318,16 +1221,14 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
       }
     });
 
-    // ---- Voice mode (Talk) ----------------------------------------------
-    // Wired here so it shares addBubble/scrollToBottom and the same panel. The
-    // text/SSE path above is completely untouched — voice only activates when
-    // the user taps the Talk tab.
+    // ---- Voice (unified thread) -----------------------------------------
+    // Voice transcripts render into the same #rr-chat-log as typed turns.
+    // The composer mic button (not a mode tab) starts/stops the session.
     let voice: VoiceSession | null = null;
     // True when the most recent session end was the user's own Stop press
-    // (vs an unexpected drop). Drives the idle panel wording; never switches
-    // modes — Talk stays put in every case.
+    // (vs an unexpected drop). Drives the idle panel wording.
     let userStoppedVoice = false;
-    // First-visit Talk hint is rendered once per page load.
+    // First-visit voice hint is rendered once per page load.
     let talkHintShown = false;
 
     // Live transcript bubbles for the in-flight turn (replaced in place until
@@ -1335,10 +1236,15 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
     let liveUserEl: HTMLElement | null = null;
     let liveAssistantEl: HTMLElement | null = null;
 
+    // Composer mic-button live state (replaces the old Talk-tab dot): filled
+    // ink + pressed while voice is active (connecting or live), with a label
+    // that always announces the action. Also the screen-reader equivalent —
+    // no separate live text needed.
     function setLiveIndicator(on: boolean) {
-      modes!.setAttribute('data-live', on ? 'true' : 'false');
-      // Text equivalent of the pulsing Talk-tab dot for screen readers.
-      if (liveText) liveText.textContent = on ? 'live' : '';
+      if (!micBtn) return;
+      micBtn.classList.toggle('is-live', on);
+      micBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      micBtn.setAttribute('aria-label', on ? 'Stop voice chat' : 'Talk with your voice');
     }
 
     // Prominent voice status bar: show while connecting/live, hide otherwise.
@@ -1369,30 +1275,11 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
       }
     }
 
-    function selectModeButton(mode: 'type' | 'talk') {
-      const isType = mode === 'type';
-      modeTypeBtn!.classList.toggle('rr-chat__mode--active', isType);
-      modeTalkBtn!.classList.toggle('rr-chat__mode--active', !isType);
-      modeTypeBtn!.setAttribute('aria-selected', isType ? 'true' : 'false');
-      modeTalkBtn!.setAttribute('aria-selected', !isType ? 'true' : 'false');
-      // Roving tabindex: only the selected tab is in the Tab order (arrows
-      // move between tabs — see the modes keydown handler below).
-      modeTypeBtn!.tabIndex = isType ? 0 : -1;
-      modeTalkBtn!.tabIndex = isType ? -1 : 0;
-      // Hide the text composer while talking; it stays available in Type mode.
-      form!.style.display = isType ? '' : 'none';
-      // Segregate the message surface: show only the active mode's log so
-      // Talk transcripts and Text chat never stack or overlap.
-      log!.classList.toggle('rr-chat__log--hidden', !isType);
-      voicelog?.classList.toggle('rr-chat__log--hidden', isType);
-    }
-
     function renderUserTranscript(text: string, final: boolean) {
-      // Voice transcripts go to the Talk-only surface (#rr-chat-voicelog),
-      // never the shared Text chat log. Interim bubbles stay plain text
-      // (cheap repaint); finalized ones get the same rich rendering as Type.
-      const target = voicelog ?? log!;
-      if (!liveUserEl) liveUserEl = addBubbleTo(target, 'user', text);
+      // Voice transcripts render into the shared thread. Interim bubbles
+      // stay plain text (cheap repaint); finalized ones get the same rich
+      // rendering as Type.
+      if (!liveUserEl) liveUserEl = addBubbleTo(log!, 'user', text);
       else {
         liveUserEl.textContent = text;
         scrollToBottom();
@@ -1404,8 +1291,7 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
     }
 
     function renderAssistantTranscript(text: string, final: boolean) {
-      const target = voicelog ?? log!;
-      if (!liveAssistantEl) liveAssistantEl = addBubbleTo(target, 'assistant', text);
+      if (!liveAssistantEl) liveAssistantEl = addBubbleTo(log!, 'assistant', text);
       else {
         liveAssistantEl.textContent = text;
         scrollToBottom();
@@ -1419,42 +1305,50 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
     function startVoice() {
       removeSuggestions();
       userStoppedVoice = false;
+      voiceActive = true;
+      // Instant mic-button feedback; the state machine confirms/retracts it
+      // (mic denial lands on 'error' → mic back to idle).
+      setLiveIndicator(true);
       liveUserEl = null;
       liveAssistantEl = null;
-      // Fresh Talk session: clear any lingering error phase from a prior attempt.
+      // Fresh session: clear any lingering error phase from a prior attempt.
       voicebar?.removeAttribute('data-phase');
-
-      // Temp in-session memory: keep prior Talk transcript visible. If there's
-      // already history, add a subtle divider before the new session's bubbles.
-      if (voicelog && voicelog.childElementCount > 0) {
-        const divider = document.createElement('div');
-        divider.className = 'rr-chat__voice-divider';
-        divider.setAttribute('role', 'separator');
-        voicelog.appendChild(divider);
-      }
 
       voice = new VoiceSession({
         // Feed the finalized turns retained across this page session into the
         // new Live session so the assistant remembers earlier Talk exchanges
         // (in-session voice memory), not just the visible transcript.
         onState: (state: VoiceState) => {
-          setLiveIndicator(state === 'live');
-          // Drive the prominent voice status bar (connecting/listening/Stop).
+          // Mic button is live through connecting AND live; drops/errors/idle
+          // release it.
+          setLiveIndicator(
+            state === 'live' || state === 'connecting' || state === 'requesting-token'
+          );
+          // Drive the voice status bar (connecting/listening/Stop).
           setVoiceUI(state);
-          // Session ended (user Stop OR unexpected drop/error): stay on Talk
-          // in every case. The idle panel takes over — a Stop shows Start
-          // talking, a drop shows Reconnect. Nothing here switches modes.
+          // Session ended (user Stop OR unexpected drop): the idle panel
+          // takes over — a Stop shows Start talking, a drop shows Reconnect.
+          // (Failures settle in 'error' with the message + Reconnect kept.)
           if (state === 'idle') {
-            if (currentMode === 'talk') showTalkIdle({ action: userStoppedVoice ? 'start' : 'reconnect' });
+            voiceActive = false;
+            voice = null;
+            showTalkIdle({ action: userStoppedVoice ? 'start' : 'reconnect' });
           }
         },
         onUserTranscript: renderUserTranscript,
         onAssistantTranscript: renderAssistantTranscript,
         // Retain every finalized voice turn for this page session so the next
-        // Live session can be seeded with it (in-session voice memory). Same
-        // pattern as the typed-text `messages.push(...)` calls.
+        // Live session can be seeded with it (in-session voice memory). The
+        // same turn also joins the shared thread history so typed follow-ups
+        // carry voice context and vice versa (VoiceTurn uses 'model' where
+        // the thread uses 'assistant').
         onTurnFinalized: (turn: VoiceTurn) => {
           voiceTurns.push(turn);
+          messages.push({
+            role: turn.role === 'model' ? 'assistant' : 'user',
+            content: turn.text,
+          });
+          userHasMessaged = true;
         },
         // Mic/voice errors belong to the Talk section only — never surface them
         // in the shared text chat (#rr-chat-log). Show them on the Talk-only
@@ -1470,11 +1364,11 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
     }
 
     // Talk idle panel: voicebar becomes the "off" state with a Start talking /
-    // Reconnect action. Talk-only (never touches Type), transcript retained.
-    // Focus moves to the action only on explicit user paths (Stop press, tab
-    // entry) — never on an async drop, which must not steal focus.
+    // Reconnect action. Transcript retained. Focus moves to the action only
+    // on explicit user paths (Stop press, mic toggle) — never on an async
+    // drop, which must not steal focus.
     function showTalkIdle(opts: { focusStart?: boolean; action?: 'start' | 'reconnect' } = {}) {
-      if (!voicebar || currentMode !== 'talk') return;
+      if (!voicebar) return;
       const action = opts.action ?? 'start';
       voicebar.removeAttribute('data-phase');
       voicebar.setAttribute('data-phase', 'idle');
@@ -1486,20 +1380,20 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
       }
       voicebar.hidden = false;
       // First visit: one-line explainer above the idle bar (once per load).
-      if (!talkHintShown && voicelog && voicelog.childElementCount === 0) {
+      if (!talkHintShown && log && log.childElementCount === 0) {
         talkHintShown = true;
         const hint = document.createElement('p');
         hint.className = 'rr-chat__voice-hint';
-        hint.textContent = 'Talk with Omli by voice. Press Start talking, then allow the microphone when asked.';
-        voicelog.prepend(hint);
+        hint.textContent = 'Talk with Omli by voice — press the microphone in the message box, then allow the microphone when asked.';
+        log.prepend(hint);
       }
       scrollToBottom();
       if (opts.focusStart && voiceStartBtn && panelIsOpen()) voiceStartBtn.focus();
     }
 
-    // Surface a mic/voice error on the Talk-only voice bar (never in the
-    // shared text chat log) with a Reconnect action. Stays on Talk — the
-    // error and transcript are preserved for the retry.
+    // Surface a mic/voice error on the voice bar (never in the shared chat
+    // log) with a Reconnect action. The error and transcript are preserved
+    // for the retry.
     function showVoiceError(message: string) {
       if (voicebar && voicebarLabel) {
         // Mic-denied gets explicit next-step guidance; other errors keep the
@@ -1519,10 +1413,11 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
     }
 
     function stopVoice() {
-      // User-initiated stop: the idle panel takes over on Talk (never a mode
+      // User-initiated stop: the idle panel takes over (never a mode
       // switch). userStoppedVoice marks the intent; the async 'idle' event
       // re-renders the same panel idempotently via onState.
       userStoppedVoice = true;
+      voiceActive = false;
       setLiveIndicator(false);
       // Clear any error phase and hide the voice status bar immediately.
       voicebar?.removeAttribute('data-phase');
@@ -1533,50 +1428,18 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
         voice.stop();
         voice = null;
       }
-      if (currentMode === 'talk') showTalkIdle({ focusStart: true, action: 'start' });
+      showTalkIdle({ focusStart: true, action: 'start' });
     }
 
-    function switchMode(mode: 'type' | 'talk') {
-      if (mode === currentMode) return;
-      currentMode = mode;
-      // selectModeButton toggles the visible message surface so only the active
-      // mode's log shows (Type → #rr-chat-log, Talk → #rr-chat-voicelog).
-      selectModeButton(mode);
-      // Keep the now-active log scrolled to the latest message.
-      scrollToBottom();
-      if (mode === 'talk') {
-        // Entering Talk never auto-starts the mic: the tab is a place you can
-        // stay with voice off. Listening begins only via Start talking /
-        // Reconnect. Focus moves there so keyboard users can start immediately.
-        if (!voice) showTalkIdle({ focusStart: true, action: 'start' });
-      } else {
-        if (voice) stopVoice();
-        // Back in Type mode: show the starter pills again until the user's
-        // first message. Voice/Talk still clears them via startVoice.
-        if (!userHasMessaged) renderSuggestions();
-      }
-    }
-
-    modeTypeBtn.addEventListener('click', () => switchMode('type'));
-    modeTalkBtn.addEventListener('click', () => switchMode('talk'));
-
-    // Tabs keyboard pattern: arrows move between Type/Talk (automatic
-    // activation), Home/End jump to the ends. Focus follows the selected tab.
-    modes.addEventListener('keydown', (e: KeyboardEvent) => {
-      const keys = ['ArrowLeft', 'ArrowRight', 'Home', 'End'];
-      if (!keys.includes(e.key)) return;
-      e.preventDefault();
-      let next: 'type' | 'talk';
-      if (e.key === 'Home') next = 'type';
-      else if (e.key === 'End') next = 'talk';
-      else if (e.key === 'ArrowRight') next = currentMode === 'type' ? 'talk' : 'type';
-      else next = currentMode === 'type' ? 'talk' : 'type'; // ArrowLeft wraps the two tabs
-      switchMode(next);
-      (next === 'type' ? modeTypeBtn : modeTalkBtn)?.focus();
+    // Composer mic toggle (ChatGPT-style voice entry): tap to talk, tap
+    // again to stop. voiceActive is the single source of truth.
+    micBtn?.addEventListener('click', () => {
+      if (voiceActive) stopVoice();
+      else startVoice();
     });
 
-    // Stop button on the voice bar: end voice and stay on Talk — the idle
-    // panel (Start talking) takes over. stopVoice() clears any error phase.
+    // Stop button on the voice bar: end voice — the idle panel (Start
+    // talking) takes over. stopVoice() clears any error phase.
     voiceStopBtn?.addEventListener('click', () => {
       stopVoice();
     });
