@@ -1,9 +1,9 @@
 ---
 /**
  * ServicesPage — shared services-overview body for `/services` and every
- * locale wrapper (`/es/services/` …). Hero and button strings resolve via
- * `useTranslations` from the URL locale; service data (titles, deliverables,
- * metrics) is phase-3 (tracked in docs/i18n.md).
+ * locale wrapper (`/es/services/` …). Hero, button strings and the full
+ * service records resolve via `useTranslations` / `servicesDict` from the
+ * URL locale (EN stays canonical in `src/data/services.ts`).
  */
 import Section from './ui/Section.astro';
 import Eyebrow from './ui/Eyebrow.astro';
@@ -12,6 +12,7 @@ import EcosystemSection from './EcosystemSection.astro';
 import FaqSection from './FaqSection.astro';
 import CtaBanner from './CtaBanner.astro';
 import { services } from '../data/services';
+import { servicesDict } from '../i18n/servicesDict';
 import { ArrowRight, Check } from '@lucide/astro';
 import { getLangFromUrl, useTranslations } from '../i18n/utils';
 
@@ -23,7 +24,8 @@ const localize = (href: string) =>
 
 // Only the services with a dedicated page get a card here.
 const routed = new Set(['local-seo', 'aeo-geo', 'google-maps']);
-const listed = services.filter((s) => routed.has(s.slug));
+const source = lang === 'en' ? services : (servicesDict[lang] ?? services);
+const listed = source.filter((s) => routed.has(s.slug));
 ---
 
 <div class="border-b border-hairline bg-canvas py-16 md:py-20">

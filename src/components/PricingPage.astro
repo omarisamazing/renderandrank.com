@@ -1,9 +1,10 @@
 ---
 /**
  * PricingPage — shared pricing body for `/pricing` and every locale wrapper
- * (`/es/pricing/` …). Page-hero strings resolve via `useTranslations` from
- * the URL locale; comparison-matrix and timeline content is phase-3
- * (tracked in docs/i18n.md).
+ * (`/es/pricing/` …). Page-hero strings resolve via `useTranslations` and the
+ * comparison matrix + onboarding timeline via `pricingDict` from the URL
+ * locale (EN mirrors the original inline data verbatim). Tier names and
+ * prices stay product facts.
  */
 import Section from './ui/Section.astro';
 import Eyebrow from './ui/Eyebrow.astro';
@@ -12,39 +13,16 @@ import FaqSection from './FaqSection.astro';
 import CtaBanner from './CtaBanner.astro';
 import { Check, Minus } from '@lucide/astro';
 import { getLangFromUrl, useTranslations } from '../i18n/utils';
+import { pricingDict } from '../i18n/pricingDict';
 
 const lang = getLangFromUrl(Astro.url);
 const t = useTranslations(lang);
+const copy = pricingDict[lang] ?? pricingDict.en;
 
 const tiers = ['Growth Core', 'Lead Machine', 'Market Dominator'];
 const prices = ['$149', '$249', '$349'];
 
-const matrix = [
-  {
-    label: 'Business Profile management',
-    values: ['Weekly posts', 'Twice weekly + Q&A', 'Daily, multi-profile'],
-  },
-  {
-    label: 'Manual tier-1 and tier-2 citations',
-    values: ['Health check and sync', 'Expanded sync', 'Maximum coverage'],
-  },
-  {
-    label: 'Generative schema and LLM calibration',
-    values: [false, true, 'Priority entity graph'],
-  },
-  {
-    label: 'Live spreadsheet and logins',
-    values: [true, true, true],
-  },
-  {
-    label: 'Support channel',
-    values: ['Email', 'Monthly call', 'Private Slack'],
-  },
-  {
-    label: 'Commitment',
-    values: ['Month to month', 'Month to month', 'Month to month'],
-  },
-];
+const matrix = copy.matrix;
 ---
 
 <div class="border-b border-hairline bg-canvas py-16 md:py-20">
@@ -66,16 +44,16 @@ const matrix = [
 <!-- Retainer comparison -->
 <Section divider>
   <div class="mx-auto max-w-2xl text-center" data-reveal-group>
-    <Eyebrow data-reveal>Retainers side by side</Eyebrow>
-    <h2 class="display-md mt-4 text-ink" data-reveal>What each tier includes</h2>
+    <Eyebrow data-reveal>{copy.matrixEyebrow}</Eyebrow>
+    <h2 class="display-md mt-4 text-ink" data-reveal>{copy.matrixTitle}</h2>
   </div>
 
   <div class="mx-auto mt-12 max-w-4xl overflow-x-auto" data-reveal>
     <table class="w-full min-w-3xl border-collapse text-left">
-      <caption class="sr-only">Monthly retainer deliverables by tier</caption>
+      <caption class="sr-only">{copy.matrixCaption}</caption>
       <thead>
         <tr class="border-b border-hairline">
-          <th scope="col" class="eyebrow px-4 pb-4 text-ink">Deliverable</th>
+          <th scope="col" class="eyebrow px-4 pb-4 text-ink">{copy.matrixCol}</th>
           {
             tiers.map((tier, i) => (
               <th scope="col" class="px-4 pb-4 text-center">
@@ -103,12 +81,12 @@ const matrix = [
                         class="mx-auto size-4 text-success"
                         aria-hidden="true"
                       />
-                      <span class="sr-only">Included</span>
+                      <span class="sr-only">{copy.srIncluded}</span>
                     </>
                   ) : value === false ? (
                     <>
                       <Minus class="mx-auto size-4 text-ink" aria-hidden="true" />
-                      <span class="sr-only">Not included</span>
+                      <span class="sr-only">{copy.srNotIncluded}</span>
                     </>
                   ) : (
                     value
@@ -126,40 +104,24 @@ const matrix = [
 <!-- What happens after you start timeline -->
 <Section divider>
   <div class="mx-auto max-w-2xl text-center" data-reveal-group>
-    <Eyebrow data-reveal>Onboarding</Eyebrow>
-    <h2 class="display-md mt-4 text-ink" data-reveal>What happens after you start</h2>
+    <Eyebrow data-reveal>{copy.timelineEyebrow}</Eyebrow>
+    <h2 class="display-md mt-4 text-ink" data-reveal>{copy.timelineTitle}</h2>
     <p class="subhead mt-4 text-ink" data-reveal>
-      No multi-week onboarding lag. Here is how your first 30 days run.
+      {copy.timelineSub}
     </p>
   </div>
 
   <div class="mx-auto mt-12 grid max-w-4xl gap-6 md:grid-cols-3" data-reveal-group>
-    <div class="rounded-lg border border-hairline bg-canvas p-6 flex flex-col justify-between" data-reveal>
-      <div>
-        <span class="numeric flex size-9 items-center justify-center rounded-full bg-surface-soft text-[0.9375rem] font-medium text-ink">01</span>
-        <h3 class="card-title mt-4 text-ink">Day 1: Audit & Access</h3>
-        <p class="body-sm mt-2.5 text-ink">Omar pulls your baseline geo-grid and citation health. You grant Google Business Profile manager access in 2 clicks.</p>
+    {copy.timeline.map((step) => (
+      <div class="rounded-lg border border-hairline bg-canvas p-6 flex flex-col justify-between" data-reveal>
+        <div>
+          <span class="numeric flex size-9 items-center justify-center rounded-full bg-surface-soft text-[0.9375rem] font-medium text-ink">{step.n}</span>
+          <h3 class="card-title mt-4 text-ink">{step.title}</h3>
+          <p class="body-sm mt-2.5 text-ink">{step.body}</p>
+        </div>
+        <p class="caption text-ink/60 mt-6 pt-4 border-t border-hairline">{step.foot}</p>
       </div>
-      <p class="caption text-ink/60 mt-6 pt-4 border-t border-hairline">Turnaround: 24 hours</p>
-    </div>
-
-    <div class="rounded-lg border border-hairline bg-canvas p-6 flex flex-col justify-between" data-reveal>
-      <div>
-        <span class="numeric flex size-9 items-center justify-center rounded-full bg-surface-soft text-[0.9375rem] font-medium text-ink">02</span>
-        <h3 class="card-title mt-4 text-ink">Day 7: Schema & Sync</h3>
-        <p class="body-sm mt-2.5 text-ink">LocalBusiness Schema.org JSON-LD and tier-1 citations are deployed and syndicated to major AI entity graphs.</p>
-      </div>
-      <p class="caption text-ink/60 mt-6 pt-4 border-t border-hairline">Foundation complete</p>
-    </div>
-
-    <div class="rounded-lg border border-hairline bg-canvas p-6 flex flex-col justify-between" data-reveal>
-      <div>
-        <span class="numeric flex size-9 items-center justify-center rounded-full bg-surface-soft text-[0.9375rem] font-medium text-ink">03</span>
-        <h3 class="card-title mt-4 text-ink">Day 30: Rank Report</h3>
-        <p class="body-sm mt-2.5 text-ink">You receive your first 30-day geo-grid movement report, showing exact radius expansion and call lift.</p>
-      </div>
-      <p class="caption text-ink/60 mt-6 pt-4 border-t border-hairline">First milestone report</p>
-    </div>
+    ))}
   </div>
 </Section>
 
