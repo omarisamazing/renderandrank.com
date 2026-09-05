@@ -995,6 +995,179 @@ function renderConvoThread(messages: MessageRow[]): string {
   return `<details class="rr-thread"><summary>${esc(label)}</summary><div class="rr-msglist">${bubbles}</div></details>`;
 }
 
+// ---------------------------------------------------------------------------
+// Funnel story strip (data-storytelling: one-page dashboard story — HEADLINE
+// → KEY METRICS → CONVERSIONS, with the takeaway front-loaded).
+// ---------------------------------------------------------------------------
+
+/** One funnel stage over a 14-day window: the last 7 days, the prior 7, and
+ * the daily buckets (oldest → newest) behind the sparkbars. */
+interface FunnelWindow {
+  last7: number;
+  prev7: number;
+  days: number[];
+}
+
+/** The three funnel stages, in story order: enquiry → chat → booked call. */
+interface FunnelStats {
+  leads: FunnelWindow;
+  convos: FunnelWindow;
+  bookings: FunnelWindow;
+}
+
+/** Day keys (YYYY-MM-DD, UTC) for the last 7 days, oldest first. */
+function last7DayKeys(): string[] {
+  const keys: string[] = [];
+  const now = Date.now();
+  for (let i = 6; i >= 0; i--) {
+    keys.push(new Date(now - i * 86400000).toISOString().slice(0, 10));
+  }
+  return keys;
+}
+
+/** Bucket GROUP BY day-count rows into a FunnelWindow. Missing days read as
+ * zero — honest gaps, never interpolation. Rows older than 14 days are
+ * ignored so the prior-7d comparison stays exact. */
+function bucketDays(counts: Record<string, number>): FunnelWindow {
+  const keys = last7DayKeys();
+  const bag: Record<string, number> = {};
+  for (const [d, n] of Object.entries(counts)) {
+    if (typeof n === 'number' && Number.isFinite(n) && n > 0) bag[d] = (bag[d] || 0) + n;
+  }
+  const days = keys.map((k) => bag[k] || 0);
+  const last7 = days.reduce((a, b) => a + b, 0);
+  let prev7 = 0;
+  const cutoff = keys[0];
+  for (const [d, n] of Object.entries(bag)) {
+    if (d < cutoff) prev7 += n;
+  }
+  return { last7, prev7, days };
+}
+
+/** One GROUP BY query per funnel table over the last 14 days (UTC, via
+ * datetime() so legacy space-separated timestamps compare correctly). Table
+ * names come from a const tuple — never user input. Any failure → null and
+ * the strip is omitted; the dashboard still renders (same fail-soft pattern
+ * as the conversations / bookings / ai-check loaders). */
+async function loadFunnelStats(db: D1Database): Promise<FunnelStats | null> {
+  try {
+    const tables = ['submissions', 'conversations', 'bookings'] as const;
+    const windows: FunnelWindow[] = [];
+    for (const table of tables) {
+      const res = await db
+        .prepare(
+          `SELECT date(datetime(created_at)) AS d, COUNT(*) AS n FROM ${table} WHERE datetime(created_at) >= datetime('now','-14 days') GROUP BY d`
+        )
+        .all<{ d: string | null; n: number }>();
+      const counts: Record<string, number> = {};
+      for (const row of res.results || []) {
+        if (row.d) counts[row.d] = (counts[row.d] || 0) + (row.n || 0);
+      }
+      windows.push(bucketDays(counts));
+    }
+    return { leads: windows[0], convos: windows[1], bookings: windows[2] };
+  } catch (err) {
+    console.error('D1 funnel stats query failed', String(err));
+    return null;
+  }
+}
+
+/** Delta chip vs the prior 7 days: ▲/▼ + pct, "New" when only the current
+ * window has data, "—" when both are empty. Ink mono — the headline carries
+ * the attention color, not every chip. */
+function deltaChip(last7: number, prev7: number): string {
+  const style = `display:inline-flex;align-items:center;height:22px;padding:0 10px;border-radius:9999px;border:1px solid ${HAIRLINE};background:${CANVAS};font-family:${FONT_MONO};font-size:11px;font-weight:500;letter-spacing:0.04em;color:${INK};font-variant-numeric:tabular-nums;`;
+  if (prev7 > 0) {
+    const pct = Math.round(((last7 - prev7) / prev7) * 100);
+    if (pct === 0) return `<span style="${style}">— flat vs prior 7d</span>`;
+    const arrow = pct > 0 ? '▲' : '▼';
+    return `<span style="${style}">${arrow} ${Math.abs(pct)}% vs prior 7d</span>`;
+  }
+  if (last7 > 0) return `<span style="${style}">New in last 7d</span>`;
+  return `<span style="${style}">—</span>`;
+}
+
+/** 7-bar sparkbar as server-rendered divs (zero JS, CSP-safe). Heights
+ * normalise to the week's max; zero days render as 2px stubs so gaps stay
+ * visible instead of vanishing. role="img" + aria-label keeps the story for
+ * screen readers; title gives the exact count on hover. */
+function sparkbars(days: number[], label: string): string {
+  const max = Math.max(1, ...days);
+  const bars = days
+    .map((n) => {
+      const bar =
+        n > 0
+          ? `<span style="display:block;width:100%;height:${Math.max(
+              12,
+              Math.round((n / max) * 100)
+            )}%;border-radius:2px;background:${INK};"></span>`
+          : `<span style="display:block;width:100%;height:2px;border-radius:2px;background:${HAIRLINE};"></span>`;
+      return `<span title="${n}" style="flex:1 1 0;display:flex;align-items:flex-end;min-width:0;height:36px;">${bar}</span>`;
+    })
+    .join('');
+  return `<div role="img" aria-label="${esc(label)}: ${esc(
+    days.join(', ')
+  )}" style="display:flex;align-items:flex-end;gap:3px;margin-top:10px;">${bars}</div>`;
+}
+
+/** One funnel-stage card: eyebrow label, big tabular value, delta chip,
+ * sparkbar. Same card DNA as the AI Checker statCard (unit 2 aligns them). */
+function funnelCard(label: string, w: FunnelWindow, noun: string): string {
+  return `<div style="box-sizing:border-box;background:${CANVAS};border:1px solid ${HAIRLINE};border-radius:16px;padding:16px 18px;display:flex;flex-direction:column;">
+<div style="font-family:${FONT_MONO};font-size:10px;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:#55554f;">${esc(label)}</div>
+<div style="display:flex;align-items:baseline;gap:10px;margin-top:6px;flex-wrap:wrap;"><span style="font-size:34px;font-weight:450;line-height:1;letter-spacing:-0.02em;color:${INK};font-variant-numeric:tabular-nums;">${w.last7}</span><span style="font-size:12px;font-weight:350;color:#6b6b66;">${esc(noun)}</span></div>
+<div style="margin-top:8px;">${deltaChip(w.last7, w.prev7)}</div>
+${sparkbars(w.days, `${label} daily counts, last 7 days`)}
+</div>`;
+}
+
+/** Conversion rate with a divide-by-zero guard (— when there is no base). */
+function funnelRate(num: number, den: number): string {
+  if (den <= 0) return '—';
+  return `${Math.round((num / den) * 100)}%`;
+}
+
+/** The story strip: takeaway headline ([number] + [impact] + [context]),
+ * conversion line, three stage cards. Destructive is reserved for the two
+ * attention states (empty pipeline, nothing converting) — otherwise ink. */
+function renderFunnelStrip(f: FunnelStats): string {
+  const { leads, convos, bookings } = f;
+  const leadWord = leads.last7 === 1 ? 'lead' : 'leads';
+  const chatWord = convos.last7 === 1 ? 'chat' : 'chats';
+  const bookWord = bookings.last7 === 1 ? 'call' : 'calls';
+
+  let headline: string;
+  let headlineColor = INK;
+  if (leads.last7 === 0 && convos.last7 === 0 && bookings.last7 === 0) {
+    headline = 'Quiet week — nothing new in the last 7 days';
+    headlineColor = DESTRUCTIVE;
+  } else if (bookings.last7 === 0 && (leads.last7 > 0 || convos.last7 > 0)) {
+    headline = `${leads.last7} new ${leadWord}, ${convos.last7} ${chatWord} — but nothing booked yet`;
+    headlineColor = DESTRUCTIVE;
+  } else {
+    headline = `${leads.last7} new ${leadWord} in 7 days — ${convos.last7} ${chatWord}, ${bookings.last7} booked ${bookWord}`;
+  }
+
+  const convLine = `<p style="font-family:${FONT_MONO};font-size:12px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;color:#6b6b66;margin:10px 0 0;">Leads → chats ${esc(
+    funnelRate(convos.last7, leads.last7)
+  )} · Chats → booked ${esc(funnelRate(bookings.last7, convos.last7))}</p>`;
+
+  return `<section aria-label="Last 7 days" style="background:${CANVAS};border:1px solid ${HAIRLINE};border-radius:24px;padding:28px clamp(20px,4vw,40px);margin:0 0 8px;box-sizing:border-box;">
+<p style="${EYEBROW_STYLE}margin:0 0 10px;">Last 7 days</p>
+<h2 style="font-size:clamp(1.5rem,3vw,2.25rem);font-weight:450;line-height:1.12;letter-spacing:-0.017em;margin:0;text-wrap:balance;color:${headlineColor};">${esc(headline)}</h2>
+${convLine}
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:18px;">${funnelCard(
+    'New leads',
+    leads,
+    'in 7 days'
+  )}${funnelCard('Conversations', convos, 'active in 7 days')}${funnelCard(
+    'Booked calls',
+    bookings,
+    'in 7 days'
+  )}</div>
+</section>`;
+}
+
 /**
  * Render the AI Checker section: a summary matrix of stat cards followed by a
  * detailed table of the most recent checks. Rows are the raw funnel_events
@@ -1184,7 +1357,8 @@ function renderDashboard(
   bookings: BookingRow[] = [],
   bookingsError = false,
   aiChecks: Array<{ created_at: string | null; payload: AiCheckPayload }> = [],
-  aiChecksError = false
+  aiChecksError = false,
+  funnel: FunnelStats | null = null
 ): string {
   const headerCells = TABLE_HEADERS.map((label) => `<th scope="col">${esc(label)}</th>`).join('');
 
@@ -1350,6 +1524,9 @@ function renderDashboard(
 
   // AI Checker section — built by the dedicated renderer (summary matrix +
   // detailed table). Sits between Leads and Conversations in the layout.
+  // Funnel story strip — rendered first so the takeaway precedes the tables.
+  const funnelStrip = funnel ? renderFunnelStrip(funnel) : '';
+
   const aiCheckSection = renderAiCheckSection(aiChecks, aiChecksError);
 
   const inner = `
@@ -1368,7 +1545,8 @@ function renderDashboard(
   </div>
 </header>
 <main style="max-width:1280px;margin:0 auto;padding:24px 32px;box-sizing:border-box;">
-  <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:0 0 6px;">
+  ${funnelStrip}
+  <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:24px 0 6px;">
     <h1 id="leads" style="font-size:clamp(1.75rem,3.5vw,2.75rem);font-weight:400;line-height:1.06;letter-spacing:-0.017em;margin:0;text-wrap:balance;">Leads</h1>
     ${countBadge}
   </div>
@@ -1509,6 +1687,13 @@ async function renderDashboardResponse(env: Env): Promise<Response> {
     }
   }
 
+  // Funnel story-strip stats (last 7d vs prior 7d per stage). Own loader with
+  // fail-soft null so a missing table never breaks the dashboard.
+  let funnel: FunnelStats | null = null;
+  if (env.DB) {
+    funnel = await loadFunnelStats(env.DB);
+  }
+
   return html(
     renderDashboard(
       rows,
@@ -1518,7 +1703,8 @@ async function renderDashboardResponse(env: Env): Promise<Response> {
       bookings,
       bookingsError,
       aiChecks,
-      aiChecksError
+      aiChecksError,
+      funnel
     )
   );
 }

@@ -352,7 +352,14 @@ Unapplied migrations cause runtime errors.
 renders four sections from D1: **Leads** (from `submissions`),
 **Conversations** (the AI chat, `conversations` + `messages`),
 **Bookings** (from `bookings`), and the **AI Visibility Checks** summary (from
-`funnel_events` rows of `event_type='ai_check'`). Visitor metadata lines use
+`funnel_events` rows of `event_type='ai_check'`). A **funnel story strip**
+sits above the sections: last-7-days KPIs for each stage (New leads,
+Conversations, Booked calls) with prior-7d delta chips, server-rendered
+7-bar sparkbars (zero JS, CSP-safe), Leads → chats / Chats → booked
+conversion rates, and a computed takeaway headline (destructive only when the
+pipeline is empty or nothing converts). Stats come from three 14-day
+`GROUP BY date(datetime(created_at))` queries (`loadFunnelStats`, fail-soft —
+the strip is omitted if any stage query fails). Visitor metadata lines use
 plain text labels (`Location:`, `Device:`, `Language:`, `Source:`) — no emojis.
 
 ### AI-check summary UI

@@ -140,4 +140,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Verified
 
+- **Admin funnel story strip (new)** (`functions/admin/index.ts`): the dashboard now opens with a last-7-days story — takeaway headline, New leads / Conversations / Booked calls cards with prior-7d delta chips and server-rendered sparkbars, plus Leads → chats / Chats → booked conversion rates. Three 14-day GROUP BY queries, fail-soft. Verified live on local pages dev (headline, deltas, sparkbar aria-labels, conversion line all render; typecheck 0 errors).
+
 - **Admin dashboard verification pass (local pages dev `:8788`, read-only, no code changes)**: login works; all 4 sections render with seeded rows (Leads, AI Checker incl. live scans, expandable Conversations, Bookings with filters). Conversations `<details>` toggle verified expand and collapse (collapse requires clicking the `<summary>` — clicking message body does nothing, native behavior). Navbar anchors verified (`#bookings` scrolled into view, `#leads`).
