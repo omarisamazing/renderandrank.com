@@ -14,6 +14,7 @@ AI Visibility Checker (free-tier Google Gemini + Cloudflare Workers AI) and conn
 
 ## Done
 
+- **Custom-domain go-live runbook (committed, pushed, docs-only)**: `docs/custom-domain-go-live.md` holds the ordered production checklist (user runs it at cutover).
 - **AEO hardening: GeoCoordinates on #business entity (committed, pushed)**: triaged the automation blueprint against the repo — robots.txt (all AI bots allowed), llms.txt, helpful 404, static-HTML crawlability and hreflang were already shipped; only geo was missing. Verified in dist, tests 21/21. Dashboard-side items (Cloudflare AI toggles, GA4 AI-referrer channel, Ads $100 decision, "how did you hear about us" form field) are user-side — see session notes.
 - **3d research brief: SERP pass complete (committed, pushed, docs-only)**: 30 queries (5 topics × 6 locales) — intent/competitors/angles per market in `docs/keyword-map.md`; volumes unknown, nothing invented. Ready input for full MDX translation.
 - **i18n phase 3c: services + pricing bodies localized (committed, pushed)**: servicesDict (3 records × 6 locales), pricingDict (matrix + timeline), service.lede keys, locale related hrefs. Verified: typecheck 0 errors, 112-page build, EN-stability + 8 locale pages + no-leakage asserts, entity tests 21/21.
