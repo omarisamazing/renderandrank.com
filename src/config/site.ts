@@ -131,6 +131,55 @@ export const siteConfig: SiteConfig = {
   },
 };
 
+/**
+ * Locale metadata for the USA/Europe multilingual site.
+ * Root `/` serves en-US (and x-default); every other language lives under
+ * its prefix subdirectory (/es/ /fr/ /de/ /it/ /pt/ /nl/).
+ */
+export const localeMeta = {
+  en: { htmlLang: 'en', ogLocale: 'en_US', hreflang: 'en' },
+  es: { htmlLang: 'es', ogLocale: 'es_ES', hreflang: 'es' },
+  fr: { htmlLang: 'fr', ogLocale: 'fr_FR', hreflang: 'fr' },
+  de: { htmlLang: 'de', ogLocale: 'de_DE', hreflang: 'de' },
+  it: { htmlLang: 'it', ogLocale: 'it_IT', hreflang: 'it' },
+  pt: { htmlLang: 'pt', ogLocale: 'pt_PT', hreflang: 'pt' },
+  nl: { htmlLang: 'nl', ogLocale: 'nl_NL', hreflang: 'nl' },
+} as const;
+
+export type SiteLocale = keyof typeof localeMeta;
+
+/**
+ * Unprefixed paths with full 7-locale coverage. Layout emits the complete
+ * hreflang cluster + x-default only for these (every alternate must resolve
+ * — pointing hreflang at a 404 burns crawl budget and triggers GSC errors).
+ * All other pages emit a self-referential hreflang until their locale
+ * wrappers land. Extend this list as docs/i18n.md rollout progresses.
+ */
+export const LOCALIZED_ROUTES = ['/'];
+
+/** Host suffix for Cloudflare Pages staging — never indexed. */
+export const STAGING_HOST_SUFFIX = '.pages.dev';
+
+/**
+ * Canonical URL for a pathname, always anchored to the root production
+ * domain so staging (*.pages.dev) never creates duplicate-content
+ * canonicals. Shifting staging → root later is config-only (siteConfig.url).
+ */
+export function canonicalUrlFor(pathname: string): string {
+  const path = pathname.startsWith('/') ? pathname : `/${pathname}`;
+  return `${siteConfig.url}${path}`;
+}
+
+/**
+ * Localised path for a locale: en stays root, every other locale is
+ * prefixed (/es/..., /fr/..., ...). Feed it the *unprefixed* path.
+ */
+export function localizedPath(path: string, locale: SiteLocale): string {
+  const clean = path === '/' ? '/' : path.replace(/\/$/, '');
+  if (locale === 'en') return clean || '/';
+  return clean === '/' ? `/${locale}/` : `/${locale}${clean}`;
+}
+
 export interface NavChild {
   name: string;
   description: string;

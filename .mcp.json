@@ -16,6 +16,10 @@
       "type": "http",
       "url": "https://gemini-api-docs-mcp.dev"
     },
+    "openseo": {
+      "type": "http",
+      "url": "https://app.openseo.so/mcp"
+    },
     "21st": {
       "type": "http",
       "url": "https://21st.dev/api/mcp",

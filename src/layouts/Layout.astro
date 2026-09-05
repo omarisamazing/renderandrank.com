@@ -6,7 +6,9 @@ import CalScript from '../components/CalScript.astro';
 import FloatingCalButton from '../components/FloatingCalButton.astro';
 import Toast from '../components/Toast.astro';
 import ChatWidget from '../components/ChatWidget.astro';
-import { siteConfig } from '../config/site';
+import { siteConfig, localeMeta, canonicalUrlFor, localizedPath, LOCALIZED_ROUTES, STAGING_HOST_SUFFIX } from '../config/site';
+import type { SiteLocale } from '../config/site';
+import { getLangFromUrl, useTranslations } from '../i18n/utils';
 import '../styles/global.css';
 
 // Inter Variable, subset to latin + latin-ext only (the site's i18n is en + de,
@@ -61,7 +63,7 @@ interface Props {
 const {
   title = `${siteConfig.name} | Local SEO, AEO & Generative Search Engineering`,
   description = siteConfig.description,
-  canonical = Astro.url.href,
+  canonical: canonicalProp,
   image = "/og-cover.jpg",
   keywords = 'local SEO, Google Maps 3-pack, AEO, generative engine optimization, GEO, AI search visibility, ChatGPT SEO, Google Business Profile, citation building, local search engineering',
   showBookingPrompt = true,
@@ -72,6 +74,41 @@ const {
   modifiedTime,
   articleSection,
 } = Astro.props;
+
+// ---- Locale / hreflang core (multilingual USA/Europe) ----
+const lang = getLangFromUrl(Astro.url) as SiteLocale;
+const t = useTranslations(lang);
+const { htmlLang, ogLocale } = localeMeta[lang] ?? localeMeta.en;
+
+// Strip a leading /{locale}/ prefix so alternates stay in sync.
+const localeCodes = Object.keys(localeMeta);
+const firstSeg = Astro.url.pathname.split('/')[1] ?? '';
+const unprefixedPath = localeCodes.includes(firstSeg) && firstSeg !== 'en'
+  ? Astro.url.pathname.slice(firstSeg.length + 1) || '/'
+  : Astro.url.pathname;
+
+// Canonical always targets the root production domain (never *.pages.dev).
+const canonical = canonicalProp ?? canonicalUrlFor(Astro.url.pathname);
+// Full hreflang cluster only where every alternate resolves (see
+// LOCALIZED_ROUTES); elsewhere a self-referential tag until wrappers land.
+const normalizedUnprefixed =
+  unprefixedPath !== '/' ? unprefixedPath.replace(/\/$/, '') || '/' : '/';
+const hasFullCluster = (LOCALIZED_ROUTES as string[]).includes(normalizedUnprefixed);
+// Staging safety net: any build served from a *.pages.dev host (preview or
+// the temporary subdomain) is de-indexed at build time via meta robots.
+// Production on the root domain stays indexable. Shifting staging → root
+// later needs no code change — just point PUBLIC_SITE_URL at the domain.
+const isStagingHost =
+  Astro.url.hostname.endsWith(STAGING_HOST_SUFFIX) ||
+  canonical.includes(STAGING_HOST_SUFFIX);
+const alternates = (Object.keys(localeMeta) as SiteLocale[]).map((code) => ({
+  hreflang: localeMeta[code].hreflang,
+  href: canonicalUrlFor(localizedPath(unprefixedPath, code)),
+}));
+const xDefaultHref = canonicalUrlFor(localizedPath(unprefixedPath, 'en'));
+const ogAlternates = (Object.keys(localeMeta) as SiteLocale[]).filter(
+  (code) => code !== lang,
+);
 
 const sameAs = Object.values(siteConfig.socials).filter(Boolean);
 
@@ -125,7 +162,7 @@ const structuredData = {
       url: siteConfig.url,
       name: siteConfig.name,
       description: siteConfig.description,
-      inLanguage: 'en-US',
+      inLanguage: htmlLang,
       publisher: { '@id': `${siteConfig.url}/#business` },
     },
   ],
@@ -135,7 +172,7 @@ const socialImage = new URL(image, siteConfig.url).href;
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang={htmlLang}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -165,9 +202,19 @@ const socialImage = new URL(image, siteConfig.url).href;
     <meta name="description" content={description} />
     <meta name="keywords" content={keywords} />
     <link rel="canonical" href={canonical} />
+    {hasFullCluster ? (
+      <>
+        {alternates.map((alt) => (
+          <link rel="alternate" hreflang={alt.hreflang} href={alt.href} />
+        ))}
+        <link rel="alternate" hreflang="x-default" href={xDefaultHref} />
+      </>
+    ) : (
+      <link rel="alternate" hreflang={localeMeta[lang].hreflang} href={canonical} />
+    )}
     <meta name="generator" content={Astro.generator} />
 
-    {noindex && <meta name="robots" content="noindex, nofollow" />}
+    {(noindex || isStagingHost) && <meta name="robots" content="noindex, nofollow" />}
 
     <meta property="og:type" content={ogType} />
     <meta property="og:url" content={canonical} />
@@ -175,6 +222,10 @@ const socialImage = new URL(image, siteConfig.url).href;
     <meta property="og:description" content={description} />
     <meta property="og:image" content={socialImage} />
     <meta property="og:site_name" content={siteConfig.name} />
+    <meta property="og:locale" content={ogLocale} />
+    {ogAlternates.map((code) => (
+      <meta property="og:locale:alternate" content={localeMeta[code].ogLocale} />
+    ))}
     {ogType === 'article' && publishedTime && (
       <meta property="article:published_time" content={publishedTime} />
     )}
@@ -205,7 +256,7 @@ const socialImage = new URL(image, siteConfig.url).href;
       href="#main-content"
       class="sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:top-4 focus-visible:left-4 focus-visible:z-100 focus-visible:rounded-pill focus-visible:bg-ink focus-visible:px-5 focus-visible:py-3 focus-visible:text-canvas focus-visible:label"
     >
-      Skip to content
+      {t('a11y.skipToContent')}
     </a>
 
     <Navbar />

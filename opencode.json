@@ -40,6 +40,12 @@
       "enabled": true
     },
 
+    "openseo": {
+      "type": "remote",
+      "url": "https://app.openseo.so/mcp",
+      "enabled": true
+    },
+
     "21st": {
       "type": "remote",
       "url": "https://21st.dev/api/mcp",

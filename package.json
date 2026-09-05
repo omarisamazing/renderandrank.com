@@ -12,6 +12,7 @@
     "astro": "astro",
     "pages:dev": "wrangler pages dev dist",
     "pages:build": "astro build",
+    "pages:deploy": "astro build && wrangler pages deploy dist --project-name=renderandrank-com",
     "db:migrate:local": "wrangler d1 migrations apply renderandrank_leads --local",
     "db:migrate:remote": "wrangler d1 migrations apply renderandrank_leads --remote",
     "test:entities": "esbuild tests/entityMatch.test.mjs --bundle --platform=node --format=cjs --outfile=local/entityMatch.test.cjs && esbuild tests/assumptions.test.mjs --bundle --platform=node --format=cjs --outfile=local/assumptions.test.cjs && node --test local/entityMatch.test.cjs local/assumptions.test.cjs",
