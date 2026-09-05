@@ -14,9 +14,10 @@ AI Visibility Checker (free-tier Google Gemini + Cloudflare Workers AI) and conn
 
 ## Done
 
+- **i18n 3d: Maps post × 6 locales complete (committed, pushed)**: ES/FR/DE/IT/PT/NL siblings with brief-driven angles (Valencia benchmarks, Whitespark weights, heatmap, BR directories, Vicinity/NAW). Verified: 0 errors, 112 clean pages, 6/6 bodies + EN + no-phantom asserts, check:i18n + 21/21 tests.
 - **i18n architecture hardening (committed, pushed)**: prefix-rule hreflang (slugs removed from list), `check:i18n` guard + `docs/i18n.md` new-post checklist. Future posts: write EN md → meta rows → optional siblings. Verified green throughout.
-- **i18n 3d: flagship post × 6 locales complete (committed, pushed)**: FR/DE/IT/PT/NL AI-visibility siblings with brief-driven angles. Verified: 0 errors, 112 clean pages, 6/6 bodies + EN + no-phantom + sitemap asserts, 21/21 tests. Remaining 3d: 24 siblings (4 posts × 6 locales).
-- **i18n 3d anchor: locale-MDX mechanism + ES AI-visibility post (committed, pushed)**: `<slug>.<locale>.md` siblings, filePath-based resolution + base-only guards, crash-proof meta fallback. Survived a real phantom-route 500 (`foo.es.md` → dotless id) — fixed and documented. Verified: 0 errors, 112 clean pages, ES/FR/EN asserts, 21/21 tests. Remaining 3d: 29 siblings (4 posts × 6 locales + 1 post × 5).
+- **i18n 3d: flagship post × 6 locales complete (committed, pushed)**: FR/DE/IT/PT/NL AI-visibility siblings with brief-driven angles. Verified: 0 errors, 112 clean pages, 6/6 bodies + EN + no-phantom + sitemap asserts, 21/21 tests.
+- **i18n 3d anchor: locale-MDX mechanism + ES AI-visibility post (committed, pushed)**: `<slug>.<locale>.md` siblings, filePath-based resolution + base-only guards, crash-proof meta fallback. Survived a real phantom-route 500 (`foo.es.md` → dotless id) — fixed and documented. Verified: 0 errors, 112 clean pages, ES/FR/EN asserts, 21/21 tests.
 - **Custom-domain go-live runbook (committed, pushed, docs-only)**: `docs/custom-domain-go-live.md` holds the ordered production checklist (user runs it at cutover).
 - **AEO hardening: GeoCoordinates on #business entity (committed, pushed)**: triaged the automation blueprint against the repo — robots.txt (all AI bots allowed), llms.txt, helpful 404, static-HTML crawlability and hreflang were already shipped; only geo was missing. Verified in dist, tests 21/21. Dashboard-side items (Cloudflare AI toggles, GA4 AI-referrer channel, Ads $100 decision, "how did you hear about us" form field) are user-side — see session notes.
 - **3d suggest expansion (committed, pushed, docs-only)**: 43 keyless-suggest seeds mined per market; NL-English tool terms, FR GEO-framing, citation-term ambiguity, pricing city-modifier findings in the brief.
@@ -72,7 +73,7 @@ AI Visibility Checker (free-tier Google Gemini + Cloudflare Workers AI) and conn
 
 ## In progress / Next up
 
-- **i18n phase 3 remaining**: 3d post siblings — 24 files to go (mechanism + flagship proven, brief ready in `docs/keyword-map.md`; GSC export sharpens it when available).
+- **i18n phase 3 remaining**: 3d post siblings — 18 files to go (mechanism + 2 flagship posts proven, brief ready in `docs/keyword-map.md`; GSC export sharpens it when available).
 - **OpenSEO MCP runs** (needs client-side auth: OAuth login or `oseo_` key): `whoami` → project setup → `research_keywords` per locale (seeds in `docs/keyword-map.md`) → `keyword-clustering` → `seo-audit` verification pass.
 - Type/diagnostic verification is available via `npm run typecheck` (`astro check && tsc --noEmit`).
 - Set `CALCOM_API_KEY` secret (local `.dev.vars` + remote via `npx wrangler pages secret put CALCOM_API_KEY`) and test a real booking end-to-end.
