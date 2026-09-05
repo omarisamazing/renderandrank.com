@@ -134,6 +134,13 @@ const structuredData = {
         addressLocality: 'Dhaka',
         addressCountry: 'BD',
       },
+      // City-level granularity (Dhaka centre) — matches the stated base;
+      // service delivery is remote, see areaServed below.
+      geo: {
+        '@type': 'GeoCoordinates',
+        latitude: 23.8103,
+        longitude: 90.4125,
+      },
       areaServed: [
         { '@type': 'Country', name: 'United States' },
         { '@type': 'Country', name: 'GB' },
