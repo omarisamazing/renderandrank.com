@@ -218,21 +218,6 @@ conversation id and transcript storage.
 - **Transcript beacon.** Finalized turns are POSTed to `/api/voice-transcript`
   with `channel = 'voice'` (see (i-c)), so voice turns are persisted alongside
   typed turns in the same `messages` table.
-- **English-only + anti-hallucination hardening.** The Live native-audio model
-  auto-detects language with no server-side pin, so streamed silence or
-  background noise used to be transcribed as speech — often in Hindi for
-  English speakers. Three mitigations work together: (1) the server-minted
-  system instruction orders English-only conversation, transcription, and
-  replies, treating silence/noise as no input; (2) conservative VAD
-  (`realtimeInputConfig.automaticActivityDetection`: `START_SENSITIVITY_LOW` /
-  `END_SENSITIVITY_LOW`, `silenceDurationMs: 800`, `prefixPaddingMs: 300`) is
-  baked into the ephemeral token's `bidiGenerateContentSetup` and mirrored in
-  the client's setup frame; (3) a client-side silence gate in `sendAudioChunk`
-  drops near-silent mic blocks (normalized PCM16 peak < 0.02) before sending,
-  with a 500ms post-speech hangover so word endings survive, and emits a
-  single `realtimeInput.audioStreamEnd` after 1s of dropped silence so the
-  server flushes cached audio. Dropped silence does not reset the inactivity
-  watchdog.
 - **In-session voice memory.** Finalized voice turns (user + `model`) are also
   handed back to the widget via an `onTurnFinalized` callback and kept in an
   in-memory `voiceTurns` array for the page load — mirroring the typed-text

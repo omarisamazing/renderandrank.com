@@ -95,9 +95,6 @@ const CID_KEY = 'rr_chat_cid';
 
 // Gemini Live setup payload (dataForAgent). AUDIO out + input/output
 // transcription; the model is also pinned by the ephemeral token server-side.
-// realtimeInputConfig mirrors the token's bidiGenerateContentSetup (the token
-// locks the session config): conservative VAD so silence/background noise
-// doesn't open turns the model hallucinates transcripts for.
 const SETUP_MESSAGE = {
   setup: {
     model: 'models/gemini-2.5-flash-native-audio-preview-09-2025',
@@ -108,36 +105,11 @@ const SETUP_MESSAGE = {
     // systemInstruction is ignored/redundant.
     outputAudioTranscription: {},
     inputAudioTranscription: {},
-    realtimeInputConfig: {
-      automaticActivityDetection: {
-        disabled: false,
-        startOfSpeechSensitivity: 'START_SENSITIVITY_LOW',
-        endOfSpeechSensitivity: 'END_SENSITIVITY_LOW',
-        prefixPaddingMs: 300,
-        silenceDurationMs: 800,
-      },
-    },
   },
 };
 
 const MIC_SAMPLE_RATE = 16000; // matches the worklet's resample target.
 const OUTPUT_SAMPLE_RATE = 24000; // Gemini Live model audio rate.
-
-// Client-side silence gate: the mic worklet posts every captured block,
-// including pure silence. Streaming silence gives the model noise to
-// hallucinate transcripts from (often in the wrong language — e.g. Hindi
-// for English speech), so near-silent blocks are dropped before sending.
-//   SILENCE_PEAK_THRESHOLD — normalized PCM16 peak below this = silence.
-//     0.02 (-34 dBFS) sits well above a noise-suppressed mic's floor but far
-//     below real speech peaks, so quiet speech still passes.
-//   SPEECH_HANGOVER_MS — keep sending briefly after speech stops so word
-//     endings aren't clipped; longer pauses are then dropped as silence.
-//   STREAM_END_PAUSE_MS — after this much dropped silence, send a single
-//     audioStreamEnd so the server flushes cached audio (per the Live API
-//     VAD contract); streaming resumes transparently on the next speech block.
-const SILENCE_PEAK_THRESHOLD = 0.02;
-const SPEECH_HANGOVER_MS = 500;
-const STREAM_END_PAUSE_MS = 1000;
 
 // Auto-stop the session after this much silence/no activity. Kept as a single
 // module const so it's easy to tune.
@@ -179,12 +151,6 @@ export class VoiceSession {
   // Transcript accumulation for the in-flight turn.
   private userTurn = '';
   private assistantTurn = '';
-
-  // Silence-gate bookkeeping (see SILENCE_PEAK_THRESHOLD above). Timestamps
-  // are performance.now() millis; reset on every start().
-  private lastSpeechAt = 0;
-  private lastAudioSentAt = 0;
-  private streamEndSent = false;
 
   // TODO(session-resumption): the ephemeral token is single-use (uses: 1), so
   // this stored handle cannot be replayed with the same token today. Full
@@ -271,9 +237,6 @@ export class VoiceSession {
     this.userStopped = false;
     this.userTurn = '';
     this.assistantTurn = '';
-    this.lastSpeechAt = 0;
-    this.lastAudioSentAt = 0;
-    this.streamEndSent = false;
 
     // 1) Acquire the mic first so a permission denial fails fast and cheaply.
     let stream: MediaStream;
@@ -706,40 +669,8 @@ export class VoiceSession {
 
   private sendAudioChunk(buffer: ArrayBuffer): void {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN || !this.setupComplete) return;
-    const now =
-      typeof performance !== 'undefined' && typeof performance.now === 'function'
-        ? performance.now()
-        : Date.now();
-    const peak = peakOfPcm16(buffer);
-    if (peak < SILENCE_PEAK_THRESHOLD) {
-      // Silence: drop it so the model never hears noise to hallucinate on —
-      // unless we're inside the post-speech hangover (word endings), or it's
-      // time to flush the server's audio cache with a single audioStreamEnd.
-      // Dropped silence deliberately does NOT reset the inactivity timer.
-      if (now - this.lastSpeechAt < SPEECH_HANGOVER_MS) {
-        // Fall through and send (hangover).
-      } else {
-        if (
-          !this.streamEndSent &&
-          this.lastAudioSentAt > 0 &&
-          now - this.lastAudioSentAt > STREAM_END_PAUSE_MS
-        ) {
-          try {
-            this.ws.send(JSON.stringify({ realtimeInput: { audioStreamEnd: true } }));
-          } catch {
-            /* best-effort; next speech block resumes the stream anyway */
-          }
-          this.streamEndSent = true;
-        }
-        return;
-      }
-    } else {
-      this.lastSpeechAt = now;
-    }
     // A user mic chunk counts as activity; postpone the inactivity auto-stop.
     this.resetInactivityTimer();
-    this.lastAudioSentAt = now;
-    this.streamEndSent = false;
     const base64 = bytesToBase64(new Uint8Array(buffer));
     // Current Live API expects a single `audio` blob under realtimeInput.
     const frame = {
@@ -874,23 +805,6 @@ export class VoiceSession {
 }
 
 // ---- base64 helpers (dependency-free, binary-safe) ------------------------
-
-/**
- * Normalized peak amplitude (0..1) of a 16-bit LE PCM block. Used by the
- * silence gate to drop near-silent mic chunks before they reach the model.
- */
-function peakOfPcm16(buffer: ArrayBuffer): number {
-  if (buffer.byteLength < 2) return 0;
-  const view = new DataView(buffer);
-  const sampleCount = Math.floor(buffer.byteLength / 2);
-  let peak = 0;
-  for (let i = 0; i < sampleCount; i++) {
-    const abs = Math.abs(view.getInt16(i * 2, true /* little-endian */));
-    if (abs > peak) peak = abs;
-    if (peak >= 0x7fff) return 1; // can't get louder; early out.
-  }
-  return peak / 0x8000;
-}
 
 /** Encode raw bytes to base64 without spreading huge arrays onto the stack. */
 function bytesToBase64(bytes: Uint8Array): string {

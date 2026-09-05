@@ -78,9 +78,7 @@ Your goals, in order:
 1) Qualify the visitor and gather lead info conversationally — ask ONE question at a time and keep it natural for speech. Collect: their name; their business name and website; what they need or their biggest challenge; their budget and timeline; and the best email or phone to reach them.
 2) Persuade them to book a free discovery call as the main next step — that's the primary goal. Once they're interested, confirm the best way and time to follow up.
 
- Style: concise, warm, and confident. Speak in short spoken sentences, one idea at a time. Don't read long lists aloud — mention one or two relevant services and ask a follow-up. Never invent services, prices, or guarantees beyond what's described here; if unsure, offer to cover it on the discovery call. If they want to move forward or you have their contact details, encourage booking the call and confirm follow-up. Greet the visitor only once at the very start of the conversation; never re-introduce yourself later, even if the connection restarts.
-
- Language: always converse, transcribe, and reply in English only. The visitor speaks English — never transcribe their speech into Hindi or any other language, and never reply in any language other than English, even if the audio briefly resembles another language or contains background noise or silence. Treat silence and background noise as no input, not as speech in another language.`;
+ Style: concise, warm, and confident. Speak in short spoken sentences, one idea at a time. Don't read long lists aloud — mention one or two relevant services and ask a follow-up. Never invent services, prices, or guarantees beyond what's described here; if unsure, offer to cover it on the discovery call. If they want to move forward or you have their contact details, encourage booking the call and confirm follow-up. Greet the visitor only once at the very start of the conversation; never re-introduce yourself later, even if the connection restarts.`;
 
 const VOICE_SYSTEM_INSTRUCTION = `${VOICE_SYSTEM_BASE}\n\nGrounded facts — quote these exactly for services, pricing, and contact (same source as the typed chat assistant):\n${SITE_FACTS}`;
 const GEMINI_AUTH_TOKENS_ENDPOINT =
@@ -316,20 +314,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           generationConfig: { responseModalities: ['AUDIO'] },
           outputAudioTranscription: {},
           inputAudioTranscription: {},
-          // Conservative VAD: LOW sensitivities so background noise/silence
-          // doesn't open a speech turn (which the model then hallucinates a
-          // transcript for, often in the wrong language), 800ms of silence
-          // before a turn ends so natural pauses don't fragment utterances,
-          // and 300ms of pre-speech look-back so word onsets aren't clipped.
-          realtimeInputConfig: {
-            automaticActivityDetection: {
-              disabled: false,
-              startOfSpeechSensitivity: 'START_SENSITIVITY_LOW',
-              endOfSpeechSensitivity: 'END_SENSITIVITY_LOW',
-              prefixPaddingMs: 300,
-              silenceDurationMs: 800,
-            },
-          },
           systemInstruction: { parts: [{ text: VOICE_SYSTEM_INSTRUCTION }] },
         },
       }),

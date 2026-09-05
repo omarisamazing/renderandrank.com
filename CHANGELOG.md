@@ -48,7 +48,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Voice chat no longer hallucinates other languages (e.g. Hindi) for English speech** (`functions/api/voice-token.ts`, `src/lib/voiceSession.ts`): the Live native-audio model auto-detects language with no server-side pin, so streamed silence/background noise was transcribed as speech in random languages. Three mitigations: (1) the server-minted system instruction now orders English-only conversation/transcription/replies and treats silence/noise as no input; (2) conservative VAD baked into the token mint and mirrored in the client setup (`START_SENSITIVITY_LOW`/`END_SENSITIVITY_LOW`, 800ms end-of-speech silence, 300ms pre-speech look-back); (3) a client-side silence gate drops near-silent mic blocks (peak < 0.02) before sending — with a 500ms post-speech hangover so word endings survive — and emits a single `audioStreamEnd` after 1s of dropped silence so the server flushes cached audio. Verified: typecheck 0 errors.
 - **Geo-grid visual polish pass** (`src/components/GeoGridPanel.astro`, verified via headless-Chromium screenshots at 1440px and 390px):
   - Dots are true circles again — the grid now sizes rows from `aspect-square` dots in normal flow instead of stretching an absolute fill (which rendered ovals).
   - Rank 11–12 dots were near-invisible (white `#ffffff` on panel `#f7f7f5`, contrast 1.07); they now use a `bg-hairline` fill from the existing token set, with the legend swatch matched.
