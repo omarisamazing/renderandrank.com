@@ -306,10 +306,8 @@ const TABLE_CSS = `
   /* Thin lime accent as an eyebrow underline — colour used only as an accent. */
   box-shadow: inset 0 -3px 0 ${BLOCK_LIME};
 }
-/* Very subtle monochrome zebra + hover highlight (surface-soft). */
-.rr-table tbody tr:nth-child(even) {
-  background: #fcfcfb;
-}
+/* Hover highlight only (surface-soft) — no zebra banding: the hairline row
+   rules carry the structure, per declutter-first data-design practice. */
 .rr-table tbody tr:hover {
   background: ${SURFACE_SOFT};
 }
@@ -1183,9 +1181,11 @@ async function loadFunnelStats(db: D1Database): Promise<FunnelStats | null> {
   }
 }
 
-/** Shared mono chip shell (ink, tabular numerals) for deltas and states. */
-function monoChip(text: string): string {
-  return `<span style="display:inline-flex;align-items:center;height:22px;padding:0 10px;border-radius:9999px;border:1px solid ${HAIRLINE};background:${CANVAS};font-family:${FONT_MONO};font-size:11px;font-weight:500;letter-spacing:0.04em;color:${INK};font-variant-numeric:tabular-nums;">${esc(text)}</span>`;
+/** Shared mono chip shell (ink, tabular numerals) for deltas and states.
+ * `upper` renders taxonomy chips (statuses, event types) in the DESIGN.md
+ * eyebrow role. */
+function monoChip(text: string, upper = false): string {
+  return `<span style="display:inline-flex;align-items:center;height:22px;padding:0 10px;border-radius:9999px;border:1px solid ${HAIRLINE};background:${CANVAS};font-family:${FONT_MONO};font-size:11px;font-weight:500;letter-spacing:0.04em;color:${INK};font-variant-numeric:tabular-nums;${upper ? 'text-transform:uppercase;letter-spacing:0.06em;' : ''}">${esc(text)}</span>`;
 }
 
 function deltaChip(last7: number, prev7: number): string {
@@ -1620,7 +1620,7 @@ function renderDashboard(
     <td class="rr-received">${formatReceived(c.created_at)}</td>
     <td class="rr-received">${formatReceived(c.updated_at)}</td>
     <td class="rr-name">${emailInner}${metaLine}</td>
-    <td>${esc(c.status)}</td>
+    <td>${monoChip(c.status || '—', true)}</td>
     <td class="rr-num">${esc(String(c.msg_count))}</td>
   </tr>${threadRow}`;
     })
@@ -1660,7 +1660,7 @@ function renderDashboard(
       const nameInner = b.name && b.name.trim() !== '' ? esc(b.name) : dash;
       const tzInner = b.timezone && b.timezone.trim() !== '' ? esc(b.timezone) : dash;
       const evtInner =
-        b.event_type && b.event_type.trim() !== '' ? esc(b.event_type) : dash;
+        b.event_type && b.event_type.trim() !== '' ? monoChip(b.event_type.trim(), true) : dash;
       return `<tr>
     <td class="rr-received">${formatReceived(b.created_at)}</td>
     <td class="rr-name">${nameInner}</td>

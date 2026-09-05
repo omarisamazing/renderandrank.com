@@ -404,6 +404,8 @@ Leads (Service), Conversations (Status), and Bookings (Event type) tables,
 filtering rows on input/change and keeping the expandable Conversations detail
 rows in sync with their parent rows. The Conversations, AI Checker, and Bookings
 section subtitles are worded to describe the business decision each supports.
+Tables use hairline rules + hover highlight only (no zebra banding);
+Conversation status and Booking event type render as uppercase mono pills.
 
 ## See also
 
