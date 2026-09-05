@@ -646,6 +646,37 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
     background-color: currentColor;
   }
 
+  /* ---- Markdown-lite (assistant bubbles) -------------------------------- */
+  /* renderRichText() emits only these elements — escaped first, so no raw
+     HTML from the model ever reaches the DOM. */
+  :global(.rr-chat__link) {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    text-decoration-thickness: 1px;
+  }
+
+  :global(.rr-chat__link:hover) {
+    text-decoration-thickness: 2px;
+  }
+
+  :global(.rr-chat__list) {
+    margin: 0.375rem 0 0.125rem;
+    padding-left: 1.125rem;
+  }
+
+  :global(.rr-chat__list li) {
+    margin: 0.125rem 0;
+  }
+
+  :global(.rr-chat__msg code) {
+    font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+    font-size: 0.85em;
+    padding: 0.1em 0.3em;
+    border-radius: 4px;
+    background-color: rgba(127, 127, 127, 0.15);
+  }
+
   /* ---- Suggested prompt chips ------------------------------------------- */
   /* Lightweight pill buttons: hairline outline on a near-panel ground so they
      read as gentle suggestions, not filled blocks. Wrap naturally inside the
@@ -980,7 +1011,68 @@ import { MessageCircle, X, ArrowUp, Keyboard, Mic } from '@lucide/astro';
     // markdown-lite unit upgrades this one spot so streaming, retry, and
     // abort paths all render identically.
     function paintAssistant(el: HTMLElement, text: string) {
-      el.textContent = text;
+      el.innerHTML = renderRichText(text);
+    }
+
+    // Escape-first HTML encoder: model output is untrusted, so &<>" are
+    // encoded BEFORE any markdown transform runs. Only the whitelisted
+    // elements below (strong/code/a/ul/li/br) can appear in the output.
+    function escapeHtml(s: string): string {
+      return s
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    // Inline formatting on already-escaped text: `code`, **bold**,
+    // [label](url) links (site-relative or http(s) only), and bare site paths
+    // like /book-a-call. Anything else renders as literal text.
+    function inlineFmt(s: string): string {
+      let out = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+      out = out.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+      out = out.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_m, t: string, u: string) => {
+        if (u.startsWith('/')) {
+          return `<a class="rr-chat__link" href="${u}">${t}</a>`;
+        }
+        if (/^https?:\/\//i.test(u)) {
+          return `<a class="rr-chat__link" href="${u}" target="_blank" rel="noopener">${t}</a>`;
+        }
+        return `${t} (${u})`;
+      });
+      // Bare site paths (not already inside an href="...").
+      out = out.replace(
+        /(href="[^"]*")|(?<![\w/"'])\/(book-a-call|pricing|contact|check|calculator|services(?:\/[a-z-]+)?|blog(?:\/[a-z0-9-]+)?)(?![\w/-])/g,
+        (m: string, href: string | undefined, path: string | undefined) =>
+          href ? m : `<a class="rr-chat__link" href="/${path}">${'/' + path}</a>`
+      );
+      return out;
+    }
+
+    // Line-level rendering: "- "/"* " lines become a <ul>, everything else a
+    // <br>-separated span. Runs on every stream chunk — cheap at chat sizes.
+    function renderRichText(raw: string): string {
+      const lines = escapeHtml(raw).split('\n');
+      let html = '';
+      let inList = false;
+      for (const line of lines) {
+        const item = line.match(/^\s*[-*] +(.*)$/);
+        if (item) {
+          if (!inList) {
+            html += '<ul class="rr-chat__list">';
+            inList = true;
+          }
+          html += `<li>${inlineFmt(item[1])}</li>`;
+        } else {
+          if (inList) {
+            html += '</ul>';
+            inList = false;
+          }
+          html += `<span>${inlineFmt(line)}</span><br>`;
+        }
+      }
+      if (inList) html += '</ul>';
+      return html;
     }
 
     // Error bubble with a Retry button that resends the failed turn WITHOUT
