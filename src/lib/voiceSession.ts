@@ -66,9 +66,13 @@ export interface VoiceSessionCallbacks {
  * Optional per-session options. `priorTurns` carries finalized voice turns from
  * earlier Talk sessions in the same page load so the model actually remembers
  * them (in-session voice memory), rather than only visually retaining them.
+ * `skipGreeting` suppresses the spoken greeting — the widget sets it whenever
+ * the thread already holds voice turns, so a retry/reconnect never
+ * re-introduces the assistant mid-conversation (greet exactly once).
  */
 export interface VoiceSessionOptions {
   priorTurns?: VoiceTurn[];
+  skipGreeting?: boolean;
 }
 
 // Shape returned by POST /api/voice-token.
@@ -134,13 +138,6 @@ export class VoiceSession {
   // no activity. Handle is a browser timeout id (number).
   private inactivityTimer: ReturnType<typeof setTimeout> | null = null;
 
-  // Barge-in guard: true while the assistant is actively speaking (audio
-  // playing). When the model reports an interruption mid-utterance we do NOT
-  // cut it off immediately; instead we flag pendingFlush and flush only once
-  // the current utterance finishes (turnComplete / playback end).
-  private assistantSpeaking = false;
-  private pendingFlush = false;
-
   // Mic capture graph.
   private micStream: MediaStream | null = null;
   private inputCtx: AudioContext | null = null;
@@ -167,6 +164,9 @@ export class VoiceSession {
   // after setupComplete so the model actually remembers prior Talk exchanges.
   // Empty for a first session; the widget passes retained turns for later ones.
   private priorTurns: VoiceTurn[] = [];
+  // True when the widget asked to suppress the spoken greeting (thread
+  // already holds voice turns — re-greeting mid-conversation reads as a bug).
+  private skipGreeting = false;
 
   constructor(callbacks: VoiceSessionCallbacks = {}, options: VoiceSessionOptions = {}) {
     this.cb = callbacks;
@@ -174,6 +174,7 @@ export class VoiceSession {
       // Copy so later mutations of the caller's array don't leak in mid-session.
       this.priorTurns = options.priorTurns.slice();
     }
+    this.skipGreeting = options.skipGreeting === true;
   }
 
   getState(): VoiceState {
@@ -520,10 +521,12 @@ export class VoiceSession {
 
   /**
    * Send a one-time greeting so the assistant speaks first. Fires exactly once
-   * per connection (guarded by greetingSent) and only after setupComplete.
+   * per connection (guarded by greetingSent), only after setupComplete, and
+   * never when skipGreeting is set (retried/reconnected sessions join an
+   * already-greeted thread — greeting again reads as a bug and stacks audio).
    */
   private sendGreeting(): void {
-    if (this.greetingSent) return;
+    if (this.greetingSent || this.skipGreeting) return;
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN || !this.setupComplete) return;
     this.greetingSent = true;
     const frame = {
@@ -544,15 +547,10 @@ export class VoiceSession {
     // postpone the inactivity auto-stop.
     this.resetInactivityTimer();
 
-    // Barge-in: user interrupted. Do NOT cut the assistant off mid-utterance:
-    // if it is actively speaking, defer the flush until the utterance finishes
-    // (turnComplete / playback end). Only flush immediately when it is silent.
+    // Barge-in: the user started talking over the assistant. Cut playback
+    // immediately — finishing the old utterance first is what stacks voices.
     if (sc.interrupted === true) {
-      if (this.assistantSpeaking) {
-        this.pendingFlush = true;
-      } else {
-        this.flush();
-      }
+      this.flush();
     }
 
     // Model audio chunks arrive as inlineData parts (audio/pcm;rate=24000).
@@ -561,8 +559,6 @@ export class VoiceSession {
       for (const part of parts) {
         const inline = part?.inlineData;
         if (inline?.data && typeof inline.mimeType === 'string' && inline.mimeType.startsWith('audio/pcm')) {
-          // Assistant audio is starting to play → it is now speaking.
-          this.assistantSpeaking = true;
           this.enqueuePlayback(inline.data);
         }
       }
@@ -586,16 +582,11 @@ export class VoiceSession {
   }
 
   /**
-   * Finish the current assistant utterance: the assistant is no longer speaking
-   * (playback finished), so run the deferred barge-in flush if one is pending
-   * and finalize/beacon the turn immediately.
+   * Finish the current assistant utterance: finalize/beacon the turn
+   * immediately. (Barge-in cuts audio at interrupt time via flush() —
+   * nothing is ever deferred to utterance end.)
    */
   private completeUtterance(): void {
-    this.assistantSpeaking = false;
-    if (this.pendingFlush) {
-      this.pendingFlush = false;
-      this.flush();
-    }
     this.finalizeTurn();
   }
 
@@ -728,19 +719,6 @@ export class VoiceSession {
     const startAt = Math.max(this.playHead, ctx.currentTime);
     src.start(startAt);
     this.playHead = startAt + audioBuffer.duration;
-
-    // When this (currently last) scheduled chunk finishes and nothing newer has
-    // been queued after it, the assistant utterance has finished playing back:
-    // clear assistantSpeaking and run any deferred barge-in flush.
-    src.onended = () => {
-      if (this.outputCtx && ctx === this.outputCtx && this.playHead <= ctx.currentTime + 0.0001) {
-        this.assistantSpeaking = false;
-        if (this.pendingFlush) {
-          this.pendingFlush = false;
-          this.flush();
-        }
-      }
-    };
   }
 
   /** Barge-in: stop and discard all queued/playing model audio immediately. */
@@ -761,9 +739,6 @@ export class VoiceSession {
   private teardown(): void {
     // Stop the inactivity watchdog first so it can't fire mid-teardown.
     this.clearInactivityTimer();
-    // Reset barge-in flags so a fresh session starts clean.
-    this.assistantSpeaking = false;
-    this.pendingFlush = false;
 
     // Tell the worklet to stop, then dismantle the mic graph.
     try {

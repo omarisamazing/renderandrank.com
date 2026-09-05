@@ -22,10 +22,15 @@ composer mic button starts/stops voice from anywhere in the thread, and
 finalized voice turns join the same `messages[]` history the `/api/chat`
 calls send (plus the `voiceTurns[]` Live-seeding memory). A single restart
 owner (the widget) guarantees one Live session at a time — the session-level
-auto-reconnect was removed after it caused double-voice overlap. The composer
-mic carries `aria-pressed`/label state, focus returns to it on Stop (never
-stolen on async drops), and finalized voice transcripts get the same rich
-rendering as typed replies.
+auto-reconnect was removed after it caused double-voice overlap. The voice
+status bar carries error text only (no buttons, no animation); live status
+lives on the mic itself (pulse ring while connecting/listening, full state
+in tooltip + aria, errors included). The spoken greeting fires once per page
+load (skipped on restarts when a session already went live) with a matching
+never-re-introduce prompt rule, and barge-in cuts playback immediately so
+replies can't stack into overlap. The composer mic carries `aria-pressed`/
+label state, focus returns to it on Stop (never stolen on async drops), and
+finalized voice transcripts get the same rich rendering as typed replies.
 
 ## Backend
 

@@ -51,6 +51,7 @@ AI Visibility Checker (free-tier Google Gemini + Cloudflare Workers AI) and conn
 - **Talk stay-put + a11y (committed 2a8fe7d → fab737c, pushed)**: Stop/drops/errors no longer force-fallback to Type — Talk persists with transcript + Start talking / Reconnect idle panel, no mic auto-start on tab entry; arrow-key tab pattern with roving tabindex + aria-controls, focus management, live-dot screen-reader text, rich finalized voice transcripts, mic-denied guidance. Verified live (idle/error panels, keyboard walk, attributes); typecheck 0 errors.
 - **Unified chat thread (ChatGPT-style, pushed)**: Type/Talk tabs removed — one shared log, composer mic toggle, voice turns join the shared history; voicebar status + Stop + error-Reconnect retained. Verified live (mic error path, mixed typed reply, screenshot); typecheck 0 errors.
 - **Voice double-talk fix + idle bar removed (pushed)**: deleted the session auto-reconnect that raced widget restarts into two simultaneous Live sessions; widget is single restart owner (defensive stop, error-cleared liveness); "Voice off / Start talking" bar removed, focus returns to composer mic. Verified live; typecheck 0 errors.
+- **Voice mic-owns-everything + greet-once (pushed)**: Stop/eq/status-text deleted from the voice bar (error-text only); mic pulses + tooltip/aria own all status; greeting once per page load (skipGreeting + prompt rule) fixing restart re-greets; immediate barge-in flush. Verified live (tooltip strings, text regression, screenshots); typecheck 0 errors.
 
 ## In progress / Next up
 
