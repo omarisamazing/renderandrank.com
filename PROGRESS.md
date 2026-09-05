@@ -46,6 +46,7 @@ AI Visibility Checker (free-tier Google Gemini + Cloudflare Workers AI) and conn
 - Added the Bookings section to the admin dashboard.
 - Created the documentation system (`ARCHITECTURE.md`, `PROGRESS.md`, `CHANGELOG.md`).
 - Fixed Cal.com attendee capture: `CalScript.astro` now uses `bookingSuccessfulV2` and sends the booking `uid`; `functions/api/booking.ts` fetches `GET /v2/bookings/{uid}` (Bearer `CALCOM_API_KEY`, `cal-api-version: 2024-08-13`) best-effort and prefers the fetched attendee name/email/timezone. See `docs/bookings.md`.
+- **Admin data-storytelling redesign (committed 974c8ad → 0b858ed, pushed)**: funnel story strip (7d KPIs + prior-7d deltas + sparkbars + conversions + takeaway headline), AI Checker KPI upgrade (7d trends, takeaway, destructive attention color), ranked panels (top-6, end-values, "+ N more"), table declutter (no zebra, status/event pills), login split-card with lime brand panel. Guided by the imported `data-storytelling` skill + SWD principles. Full browser regression green (toggle, nav, login flow, 1440px + 390px logic).
 
 ## In progress / Next up
 
