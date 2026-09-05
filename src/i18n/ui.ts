@@ -33,6 +33,11 @@ export const ui = {
     "hero.cta.book": "Book a discovery call",
     "hero.cta.audit": "Get a free 24h audit",
     "hero.finePrint": "No 12-month lock-in · Month-to-month retainers · 24h audit turnaround",
+
+    "pricing.hero.eyebrow": "Pricing",
+    "pricing.hero.title": "Simple rates, published openly",
+    "pricing.hero.sub":
+      "A one-time cleanup or a monthly retainer. The same person does the work on every tier.",
     "hero.proof.calls": "More inbound calls",
     "hero.proof.clicks": "Of local clicks go top-3",
     "hero.proof.audit": "Audit turnaround",
@@ -95,6 +100,11 @@ export const ui = {
     "hero.cta.book": "Reserva una llamada de descubrimiento",
     "hero.cta.audit": "Obtén una auditoría gratis en 24h",
     "hero.finePrint": "Sin permanencia de 12 meses · Planes mes a mes · Auditoría en 24h",
+
+    "pricing.hero.eyebrow": "Precios",
+    "pricing.hero.title": "Tarifas claras, publicadas abiertamente",
+    "pricing.hero.sub":
+      "Una limpieza única o un plan mensual. La misma persona hace el trabajo en todos los planes.",
     "hero.proof.calls": "Más llamadas entrantes",
     "hero.proof.clicks": "De los clics locales van al top-3",
     "hero.proof.audit": "Tiempo de auditoría",
@@ -157,6 +167,11 @@ export const ui = {
     "hero.cta.book": "Réserver un appel de découverte",
     "hero.cta.audit": "Obtenir un audit gratuit en 24h",
     "hero.finePrint": "Sans engagement 12 mois · Formules mensuelles · Audit en 24h",
+
+    "pricing.hero.eyebrow": "Tarifs",
+    "pricing.hero.title": "Des tarifs simples, publiés ouvertement",
+    "pricing.hero.sub":
+      "Un nettoyage unique ou un abonnement mensuel. La même personne fait le travail sur chaque formule.",
     "hero.proof.calls": "Plus d'appels entrants",
     "hero.proof.clicks": "Des clics locaux vont au top-3",
     "hero.proof.audit": "Délai d'audit",
@@ -219,6 +234,11 @@ export const ui = {
     "hero.cta.book": "Kennenlerngespräch buchen",
     "hero.cta.audit": "Kostenloses 24h-Audit erhalten",
     "hero.finePrint": "Keine 12-Monats-Bindung · Monatlich kündbar · 24h-Audit",
+
+    "pricing.hero.eyebrow": "Preise",
+    "pricing.hero.title": "Einfache Preise, offen publiziert",
+    "pricing.hero.sub":
+      "Einmaliges Cleanup oder monatliches Retainer. Dieselbe Person macht die Arbeit in jeder Stufe.",
     "hero.proof.calls": "Mehr eingehende Anrufe",
     "hero.proof.clicks": "Der lokalen Klicks gehen in die Top 3",
     "hero.proof.audit": "Audit-Bearbeitungszeit",
@@ -281,6 +301,11 @@ export const ui = {
     "hero.cta.book": "Prenota una chiamata conoscitiva",
     "hero.cta.audit": "Ottieni un audit gratuito in 24h",
     "hero.finePrint": "Nessun vincolo di 12 mesi · Canoni mensili · Audit in 24h",
+
+    "pricing.hero.eyebrow": "Prezzi",
+    "pricing.hero.title": "Tariffe semplici, pubblicate apertamente",
+    "pricing.hero.sub":
+      "Una pulizia una tantum o un canone mensile. La stessa persona fa il lavoro in ogni piano.",
     "hero.proof.calls": "Più chiamate in entrata",
     "hero.proof.clicks": "Dei clic locali va nella top-3",
     "hero.proof.audit": "Tempi dell'audit",
@@ -343,6 +368,11 @@ export const ui = {
     "hero.cta.book": "Agende uma chamada de descoberta",
     "hero.cta.audit": "Obtenha uma auditoria gratuita em 24h",
     "hero.finePrint": "Sem fidelidade de 12 meses · Planos mensais · Auditoria em 24h",
+
+    "pricing.hero.eyebrow": "Preços",
+    "pricing.hero.title": "Preços simples, publicados abertamente",
+    "pricing.hero.sub":
+      "Uma limpeza única ou uma mensalidade. A mesma pessoa faz o trabalho em todos os planos.",
     "hero.proof.calls": "Mais chamadas recebidas",
     "hero.proof.clicks": "Dos cliques locais vão para o top-3",
     "hero.proof.audit": "Prazo da auditoria",
@@ -405,6 +435,11 @@ export const ui = {
     "hero.cta.book": "Plan een kennismakingsgesprek",
     "hero.cta.audit": "Ontvang een gratis 24-uurs audit",
     "hero.finePrint": "Geen 12-maandencontract · Maandelijks opzegbaar · 24-uurs audit",
+
+    "pricing.hero.eyebrow": "Prijzen",
+    "pricing.hero.title": "Eenvoudige tarieven, openlijk gepubliceerd",
+    "pricing.hero.sub":
+      "Een eenmalige opschoning of een maandelijks abonnement. Dezelfde persoon doet het werk in elke tier.",
     "hero.proof.calls": "Meer inkomende oproepen",
     "hero.proof.clicks": "Van de lokale klikken gaat naar top-3",
     "hero.proof.audit": "Doorlooptijd audit",
