@@ -126,14 +126,8 @@ export class VoiceSession {
   // One-time greeting guard (assistant speaks first, once per connection).
   private greetingSent = false;
 
-  // Single auto-reconnect guard: the socket may drop unexpectedly while the
-  // user still intends to be live (e.g. a transient network blip). We attempt
-  // exactly ONE reconnect and never again for the lifetime of this instance,
-  // so a persistent failure cannot loop.
-  private reconnectedOnce = false;
-
-  // Set true by the user-initiated stop() path so an intentional close is not
-  // mistaken for an unexpected drop and does not trigger a reconnect.
+  // Set true by the user-initiated stop() path so an intentional close
+  // settles quietly to idle instead of failing loudly like a drop.
   private userStopped = false;
 
   // Inactivity watchdog: auto-stop the session after INACTIVITY_TIMEOUT_MS of
@@ -238,9 +232,7 @@ export class VoiceSession {
     if (this.state !== 'idle' && this.state !== 'error') return;
     this.setupComplete = false;
     this.greetingSent = false;
-    // A fresh start() (not the auto-reconnect below) is a new user intent, so
-    // clear the stop flag. reconnectedOnce is intentionally NOT reset here so
-    // the guard survives across a reconnect within the same UI session.
+    // A fresh start() is a new user intent, so clear the stop flag.
     this.userStopped = false;
     this.userTurn = '';
     this.assistantTurn = '';
@@ -310,34 +302,13 @@ export class VoiceSession {
 
   /** Tear everything down cleanly: mic, worklet, sockets, audio contexts. */
   stop(): void {
-    // Mark this as a user-initiated stop so the socket's onclose does not treat
-    // the close as an unexpected drop and try to reconnect.
+    // Mark this as a user-initiated stop so the socket's onclose settles
+    // quietly to idle instead of failing loudly like a drop.
     this.userStopped = true;
     if (this.state === 'idle') return;
     if (this.state !== 'error') this.setState('closing');
     this.teardown();
     this.setState('idle');
-  }
-
-  /**
-   * Attempt a SINGLE automatic reconnect after an unexpected socket close while
-   * the user still intended to be live. Guarded by reconnectedOnce so it can
-   * never loop: a second unexpected drop (or a failed reconnect) falls through
-   * to the normal error path instead of retrying again.
-   */
-  private attemptReconnect(): void {
-    // Only reconnect once per instance, and never if the user ended the session.
-    if (this.reconnectedOnce || this.userStopped) return;
-    this.reconnectedOnce = true;
-    console.info('[voice] socket dropped unexpectedly; attempting a single reconnect.');
-
-    // Tear down the current (dead) graph, then reset to idle so start() runs.
-    this.teardown();
-    this.state = 'idle';
-
-    // start() mints a fresh token (the old one is single-use) and re-opens the
-    // socket. Any failure lands on the normal fail() error path inside start().
-    void this.start();
   }
 
   // ---- Step 1: token ------------------------------------------------------
@@ -445,18 +416,18 @@ export class VoiceSession {
           reject(new Error('socket closed before open (code ' + event.code + ')'));
           return;
         }
-        // A close after we're live/connecting means the turn/session ended.
-        if (this.state === 'live' || this.state === 'connecting') {
-          // Unexpected drop while the user still intends to be live: try a
-          // single guarded reconnect. If it's already been used (or the user
-          // ended the session), attemptReconnect() is a no-op and we just mark
-          // the session as closing as before.
-          if (!this.userStopped && !this.reconnectedOnce) {
-            this.setState('closing');
-            this.attemptReconnect();
-          } else {
-            this.setState('closing');
-          }
+        // A close after open ends the session. There is deliberately NO
+        // automatic reconnect here: a silent session-level revival racing the
+        // widget's explicit Reconnect once produced TWO simultaneous Live
+        // sessions (both hearing the mic, both speaking). The widget owns
+        // restarting — the user taps Reconnect and exactly one session starts.
+        // userStopped (own Stop press) settles quietly to idle; anything
+        // else fails loudly so the widget shows the error + Reconnect.
+        if (this.userStopped) {
+          this.teardown();
+          this.setState('idle');
+        } else {
+          this.fail('Lost connection to the voice service. Please try again.');
         }
       };
     });
@@ -851,10 +822,10 @@ export class VoiceSession {
 
     this.setupComplete = false;
     this.greetingSent = false;
-    // NOTE: reconnectedOnce and userStopped are deliberately NOT reset here.
-    // teardown() runs both for an intentional stop() and for the single
-    // auto-reconnect; the reconnect guard must survive teardown so it can only
-    // ever fire once, and userStopped is (re)set explicitly by stop()/start().
+    // NOTE: userStopped is deliberately NOT reset here. teardown() runs for
+    // an intentional stop() (which sets it) and for failure paths (where the
+    // widget reads it to word the idle panel); it is (re)set explicitly by
+    // stop()/start().
   }
 }
 

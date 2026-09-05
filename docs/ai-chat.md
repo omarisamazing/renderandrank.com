@@ -14,19 +14,18 @@ duplicating history), and escape-first markdown-lite rendering for assistant
 replies (`code`, **bold**, links, lists, bare site paths — no raw model HTML
 reaches the DOM).
 
-Talk mode never forces a mode switch: entering the tab does not auto-start
-the mic (listening begins only via Start talking), pressing Stop or losing
-the session leaves you on Talk with the transcript retained and a Start
-talking / Reconnect action in the voice status bar. There are no separate
-Type/Talk threads: typed turns and voice transcripts render into one shared
-`#rr-chat-log` (ChatGPT-style), the composer mic button starts/stops voice
-from anywhere in the thread, and finalized voice turns join the same
-`messages[]` history the `/api/chat` calls send (plus the `voiceTurns[]`
-Live-seeding memory). Tabs support arrow-key navigation with roving tabindex
-and `aria-controls`, focus moves to the idle-panel action on explicit entry
-/ Stop (never on async drops), the live dot has a screen-reader text
-equivalent, and finalized voice transcripts get the same rich rendering as
-typed replies.
+Talk mode never forces a mode switch: pressing Stop or losing the session
+leaves the transcript in place and hides the status bar — the composer mic
+button restarts. There are no separate Type/Talk threads: typed turns and
+voice transcripts render into one shared `#rr-chat-log` (ChatGPT-style), the
+composer mic button starts/stops voice from anywhere in the thread, and
+finalized voice turns join the same `messages[]` history the `/api/chat`
+calls send (plus the `voiceTurns[]` Live-seeding memory). A single restart
+owner (the widget) guarantees one Live session at a time — the session-level
+auto-reconnect was removed after it caused double-voice overlap. The composer
+mic carries `aria-pressed`/label state, focus returns to it on Stop (never
+stolen on async drops), and finalized voice transcripts get the same rich
+rendering as typed replies.
 
 ## Backend
 
