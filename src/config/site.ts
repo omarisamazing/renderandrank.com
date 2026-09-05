@@ -149,11 +149,13 @@ export const localeMeta = {
 export type SiteLocale = keyof typeof localeMeta;
 
 /**
- * Unprefixed paths with full 7-locale coverage. Layout emits the complete
- * hreflang cluster + x-default only for these (every alternate must resolve
- * — pointing hreflang at a 404 burns crawl budget and triggers GSC errors).
- * All other pages emit a self-referential hreflang until their locale
- * wrappers land. Extend this list as docs/i18n.md rollout progresses.
+ * Unprefixed static paths with full 7-locale coverage. Layout emits the
+ * complete hreflang cluster + x-default only for these (every alternate must
+ * resolve — pointing hreflang at a 404 burns crawl budget and triggers GSC
+ * errors). All other pages emit a self-referential hreflang until their
+ * locale wrappers land.
+ *
+ * NOTE: blog posts are NOT listed here — see hasFullHreflangCluster().
  */
 export const LOCALIZED_ROUTES = [
   '/',
@@ -166,12 +168,19 @@ export const LOCALIZED_ROUTES = [
   '/book-a-call',
   '/about',
   '/blog',
-  '/blog/ai-visibility-local-business-chatgpt-gemini-perplexity',
-  '/blog/google-maps-3-pack-ranking-factors-geo-grid',
-  '/blog/google-reviews-velocity-maps-rankings-sms-pipeline',
-  '/blog/local-citations-nap-consistency-guide',
-  '/blog/local-seo-pricing-roi-calculator',
 ];
+
+/**
+ * Whether an unprefixed path gets the full hreflang cluster + x-default.
+ * Static pages opt in via LOCALIZED_ROUTES; every `/blog/<slug>` is covered
+ * BY CONSTRUCTION — the locale `[...slug]` routes render any EN slug
+ * (falling back to the EN body when no `<slug>.<locale>.md` sibling exists
+ * yet), so every alternate resolves and new posts need zero config here.
+ */
+export function hasFullHreflangCluster(unprefixedPath: string): boolean {
+  if ((LOCALIZED_ROUTES as string[]).includes(unprefixedPath)) return true;
+  return unprefixedPath.startsWith('/blog/');
+}
 
 /** Host suffix for Cloudflare Pages staging — never indexed. */
 export const STAGING_HOST_SUFFIX = '.pages.dev';

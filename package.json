@@ -16,6 +16,7 @@
     "db:migrate:local": "wrangler d1 migrations apply renderandrank_leads --local",
     "db:migrate:remote": "wrangler d1 migrations apply renderandrank_leads --remote",
     "test:entities": "esbuild tests/entityMatch.test.mjs --bundle --platform=node --format=cjs --outfile=local/entityMatch.test.cjs && esbuild tests/assumptions.test.mjs --bundle --platform=node --format=cjs --outfile=local/assumptions.test.cjs && node --test local/entityMatch.test.cjs local/assumptions.test.cjs",
+    "check:i18n": "node scripts/check-i18n.mjs",
     "dev:local": "npm run pages:build && npm run db:migrate:local && npm run pages:dev",
     "typecheck": "astro check && tsc --noEmit"
   },

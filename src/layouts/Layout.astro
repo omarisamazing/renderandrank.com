@@ -6,7 +6,7 @@ import CalScript from '../components/CalScript.astro';
 import FloatingCalButton from '../components/FloatingCalButton.astro';
 import Toast from '../components/Toast.astro';
 import ChatWidget from '../components/ChatWidget.astro';
-import { siteConfig, localeMeta, canonicalUrlFor, localizedPath, LOCALIZED_ROUTES, STAGING_HOST_SUFFIX } from '../config/site';
+import { siteConfig, localeMeta, canonicalUrlFor, localizedPath, hasFullHreflangCluster, STAGING_HOST_SUFFIX } from '../config/site';
 import type { SiteLocale } from '../config/site';
 import { getLangFromUrl, useTranslations } from '../i18n/utils';
 import '../styles/global.css';
@@ -89,11 +89,12 @@ const unprefixedPath = localeCodes.includes(firstSeg) && firstSeg !== 'en'
 
 // Canonical always targets the root production domain (never *.pages.dev).
 const canonical = canonicalProp ?? canonicalUrlFor(Astro.url.pathname);
-// Full hreflang cluster only where every alternate resolves (see
-// LOCALIZED_ROUTES); elsewhere a self-referential tag until wrappers land.
+// Full hreflang cluster only where every alternate resolves (static opt-ins
+// in LOCALIZED_ROUTES plus every /blog/<slug> by construction — see
+// hasFullHreflangCluster); elsewhere a self-referential tag.
 const normalizedUnprefixed =
   unprefixedPath !== '/' ? unprefixedPath.replace(/\/$/, '') || '/' : '/';
-const hasFullCluster = (LOCALIZED_ROUTES as string[]).includes(normalizedUnprefixed);
+const hasFullCluster = hasFullHreflangCluster(normalizedUnprefixed);
 // Staging safety net: any build served from a *.pages.dev host (preview or
 // the temporary subdomain) is de-indexed at build time via meta robots.
 // Production on the root domain stays indexable. Shifting staging → root

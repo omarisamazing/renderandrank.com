@@ -22,7 +22,7 @@ const lang = getLangFromUrl(Astro.url);
 const meta: BlogMeta =
   (blogMeta[lang] as Record<string, BlogMeta>)[post.id] ??
   blogMeta.en[post.id] ?? {
-    // Unreachable for known slugs (LOCALIZED_ROUTES guarantees a meta row),
+    // Unreachable for known slugs (blogMeta.ts carries a row per slug per locale),
     // but a missing row must never 500 the build — fall back to entry data.
     title: post.data.title,
     description: post.data.description,
