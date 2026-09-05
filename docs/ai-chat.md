@@ -14,6 +14,15 @@ duplicating history), and escape-first markdown-lite rendering for assistant
 replies (`code`, **bold**, links, lists, bare site paths — no raw model HTML
 reaches the DOM).
 
+Talk mode never forces a mode switch: entering the tab does not auto-start
+the mic (listening begins only via Start talking), pressing Stop or losing
+the session leaves you on Talk with the transcript retained and a Start
+talking / Reconnect action in the voice status bar. Tabs support arrow-key
+navigation with roving tabindex and `aria-controls`, focus moves to the
+idle-panel action on explicit entry/Stop (never on async drops), the live
+dot has a screen-reader text equivalent, and finalized voice transcripts get
+the same rich rendering as typed replies.
+
 ## Backend
 
 - **Endpoint:** `functions/api/chat.ts`
