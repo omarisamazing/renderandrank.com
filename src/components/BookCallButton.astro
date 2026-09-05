@@ -7,6 +7,7 @@ import { siteConfig } from '../config/site';
 import Button from './ui/Button.astro';
 import type { ButtonVariants } from '@/lib/button-variants';
 import { ArrowRight } from '@lucide/astro';
+import { getLangFromUrl } from '../i18n/utils';
 
 type Props = ButtonVariants & {
   class?: string;
@@ -24,10 +25,13 @@ const {
 } = Astro.props;
 
 const { calCom } = siteConfig;
+
+const lang = getLangFromUrl(Astro.url);
+const href = lang === 'en' ? '/book-a-call' : `/${lang}/book-a-call`;
 ---
 
 <Button
-  href="/book-a-call"
+  href={href}
   variant={variant}
   size={size}
   block={block}

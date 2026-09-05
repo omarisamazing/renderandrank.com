@@ -1,0 +1,64 @@
+---
+/**
+ * LanguageSwitcher — compact locale picker for the multilingual USA/Europe
+ * site. dependency-free <details> dropdown (no JS, keyboard accessible):
+ * current locale on the pill, six alternates in the panel.
+ *
+ * Links reuse the current unprefixed path so visitors stay on the same page
+ * in the new language. Root `/` serves en-US (x-default); every other
+ * locale lives under its prefix subdirectory.
+ */
+import { localeMeta, localizedPath } from '../config/site';
+import type { SiteLocale } from '../config/site';
+import { languages } from '../i18n/ui';
+import { getLangFromUrl } from '../i18n/utils';
+
+const lang = getLangFromUrl(Astro.url) as SiteLocale;
+const codes = Object.keys(localeMeta) as SiteLocale[];
+const firstSeg = Astro.url.pathname.split('/')[1] ?? '';
+const unprefixedPath =
+  (codes as string[]).includes(firstSeg) && firstSeg !== 'en'
+    ? Astro.url.pathname.slice(firstSeg.length + 1) || '/'
+    : Astro.url.pathname;
+
+const shortName: Record<SiteLocale, string> = {
+  en: 'EN',
+  es: 'ES',
+  fr: 'FR',
+  de: 'DE',
+  it: 'IT',
+  pt: 'PT',
+  nl: 'NL',
+};
+---
+
+<details class="relative">
+  <summary
+    class="label flex h-10 cursor-pointer list-none items-center gap-1 rounded-pill px-3.5 text-ink transition-colors hover:bg-surface-soft [&::-webkit-details-marker]:hidden"
+    aria-label={`Language: ${languages[lang]} — change language`}
+  >
+    {shortName[lang]}
+    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" class="size-3.5"><path d="m4 6 4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </summary>
+  <ul
+    class="absolute top-full right-0 z-50 mt-2 min-w-44 rounded-md border border-hairline bg-canvas p-1.5 shadow-[0_4px_16px_rgba(0,0,0,0.06)]"
+  >
+    {codes.map((code) => (
+      <li>
+        <a
+          href={localizedPath(unprefixedPath, code)}
+          aria-current={code === lang ? 'true' : undefined}
+          class:list={[
+            'flex items-center justify-between gap-6 rounded-md px-3 py-2.5 text-[0.9375rem] transition-colors',
+            code === lang
+              ? 'bg-surface-soft font-medium text-ink'
+              : 'font-normal text-ink hover:bg-surface-soft',
+          ]}
+        >
+          {languages[code]}
+          <span aria-hidden="true" class="caption text-ink/60">{shortName[code]}</span>
+        </a>
+      </li>
+    ))}
+  </ul>
+</details>

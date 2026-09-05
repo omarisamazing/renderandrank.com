@@ -1,0 +1,51 @@
+---
+/**
+ * HomePage — the homepage section composition, shared by the root `/`
+ * (en-US) and every locale wrapper (`/es/`, `/fr/`, …).
+ *
+ * Localisation is automatic: each section reads its strings from
+ * `src/i18n/ui.ts` via `getLangFromUrl(Astro.url)`, so rendering this
+ * component under a locale prefix yields the translated chrome (nav, hero,
+ * footer) with zero per-locale markup forks.
+ */
+import HeroSection from './HeroSection.astro';
+import LogoMarquee from './LogoMarquee.astro';
+import WedgeComparison from './WedgeComparison.astro';
+import ServicesGrid from './ServicesGrid.astro';
+import PortfolioGrid from './PortfolioGrid.astro';
+import PricingSection from './PricingSection.astro';
+import FounderSection from './FounderSection.astro';
+import RoiCalculator from './RoiCalculator.astro';
+import AuditForm from './AuditForm.astro';
+import AiCheckerSection from './AiCheckerSection.astro';
+import FaqSection from './FaqSection.astro';
+import BlogStrip from './BlogStrip.astro';
+import CtaBanner from './CtaBanner.astro';
+---
+
+<!--
+  Colour-block rhythm, per DESIGN.md: every pastel panel is separated from the
+  next by a white-canvas section, so no two blocks share a viewport, and no
+  block colour repeats down the page.
+
+    hero (white) → marquee (black ribbon) → cream → white → mint → white
+    → white (insights) → lilac → white → white → lime → white → navy
+
+  The order is also the argument: the problem (cream), the three levers
+  (white), the diagnostic (mint), the proof (white), the reading room
+  (white), what position four costs (lilac), then the price (white) — so
+  the cost of doing nothing lands immediately before the cost of the work.
+-->
+<HeroSection />
+<LogoMarquee />
+<WedgeComparison />
+<ServicesGrid />
+<AiCheckerSection resultHref="#roi-calculator" />
+<PortfolioGrid limit={2} />
+<BlogStrip />
+<RoiCalculator />
+<PricingSection />
+<FounderSection />
+<AuditForm />
+<FaqSection />
+<CtaBanner />

@@ -27,11 +27,23 @@ export function MobileNav({
   currentPath,
   calNamespace,
   calLink,
+  menuLabel = "Menu",
+  openNavLabel = "Open navigation",
+  auditLabel = "Get a free audit",
+  bookCallLabel = "Book a call",
+  auditHref = "/contact",
+  bookHref = "/book-a-call",
 }: {
   links: NavItem[]
   currentPath: string
   calNamespace: string
   calLink: string
+  menuLabel?: string
+  openNavLabel?: string
+  auditLabel?: string
+  bookCallLabel?: string
+  auditHref?: string
+  bookHref?: string
 }) {
   const [open, setOpen] = React.useState(false)
 
@@ -39,7 +51,7 @@ export function MobileNav({
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger
         render={
-          <Button variant="ghost" size="icon" aria-label="Open navigation" />
+          <Button variant="ghost" size="icon" aria-label={openNavLabel} />
         }
       >
         <MenuIcon className="size-5" />
@@ -50,7 +62,7 @@ export function MobileNav({
         className="w-[min(22rem,88vw)] gap-0 border-l border-hairline bg-canvas p-0"
       >
         <SheetHeader className="border-b border-hairline px-6 py-5">
-          <SheetTitle className="eyebrow text-ink">Menu</SheetTitle>
+          <SheetTitle className="eyebrow text-ink">{menuLabel}</SheetTitle>
         </SheetHeader>
 
         <nav className="flex-1 overscroll-contain overflow-y-auto px-4 py-4">
@@ -98,20 +110,20 @@ export function MobileNav({
 
         <div className="flex flex-col gap-2.5 border-t border-hairline p-4">
           <Button
-            render={<a href="/contact" />}
+            render={<a href={auditHref} />}
             variant="secondary"
             size="md"
             block
           >
-            Get a free audit
+            {auditLabel}
           </Button>
           <Button
-            render={<a href="/book-a-call" />}
+            render={<a href={bookHref} />}
             variant="primary"
             size="md"
             block
           >
-            Book a call
+            {bookCallLabel}
           </Button>
         </div>
       </SheetContent>

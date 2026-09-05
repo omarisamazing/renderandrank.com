@@ -3,6 +3,7 @@ import { navLinks, siteConfig } from '../config/site';
 import BrandLogo from './ui/BrandLogo.astro';
 import Button from './ui/Button.astro';
 import BookCallButton from './BookCallButton.astro';
+import LanguageSwitcher from './LanguageSwitcher.astro';
 import { NavMenu } from './nav/ServicesMenu';
 import { MobileNav } from './nav/MobileNav';
 import { getLangFromUrl, useTranslations } from '../i18n/utils';
@@ -18,6 +19,17 @@ const navLabel = (name: string) => {
   return translated === key ? name : translated;
 };
 
+// Locale-aware hrefs: en stays root, every other locale is prefix-mounted.
+const localize = (href: string) =>
+  lang === 'en' ? href : href === '/' ? `/${lang}/` : `/${lang}${href}`;
+
+const localizedLinks = navLinks.map((link) => ({
+  ...link,
+  name: navLabel(link.name),
+  href: localize(link.href),
+  children: link.children?.map((child) => ({ ...child, href: localize(child.href) })),
+}));
+
 const currentPath = Astro.url.pathname;
 const { calCom } = siteConfig;
 
@@ -30,7 +42,7 @@ const isActive = (href: string) =>
 >
   <div class="container-page flex h-16 items-center justify-between gap-6">
     <a
-      href="/"
+      href={localize('/')}
       class="rounded-xs focus-visible:outline-2 focus-visible:outline-offset-4"
     >
       <BrandLogo size="lg" />
@@ -39,13 +51,13 @@ const isActive = (href: string) =>
     <!-- Desktop links -->
     <nav aria-label="Main" class="hidden items-center gap-0.5 lg:flex">
       {
-        navLinks.map((link) =>
+        localizedLinks.map((link) =>
           link.children ? (
             <NavMenu
               client:idle
-              label={navLabel(link.name)}
+              label={link.name}
               href={link.href}
-              footerLabel={link.footerLabel ?? 'All capabilities'}
+              footerLabel={t('nav.allCapabilities')}
               items={link.children}
             />
           ) : (
@@ -59,7 +71,7 @@ const isActive = (href: string) =>
                   : 'text-ink hover:bg-surface-soft',
               ]}
             >
-              {navLabel(link.name)}
+              {link.name}
             </a>
           )
         )
@@ -68,18 +80,24 @@ const isActive = (href: string) =>
 
     <!-- Actions -->
     <div class="flex items-center gap-2.5">
-      <Button href="/contact" variant="secondary" size="sm" class="hidden sm:inline-flex">
-        Free audit
+      <LanguageSwitcher />
+      <Button href={localize('/contact')} variant="secondary" size="sm" class="hidden sm:inline-flex">
+        {t('nav.freeAudit')}
       </Button>
-      <BookCallButton size="sm" withIcon={false} />
-
+      <BookCallButton size="sm" withIcon={false} label={t('nav.bookCall')} />
       <div class="lg:hidden">
         <MobileNav
           client:media="(max-width: 1023px)"
-          links={navLinks}
+          links={localizedLinks.map(({ name, href, children }) => ({ name, href, children }))}
           currentPath={currentPath}
           calNamespace={calCom.namespace}
           calLink={calCom.eventLink}
+          menuLabel={t('nav.menu')}
+          openNavLabel={t('nav.openNavigation')}
+          auditLabel={t('nav.freeAudit')}
+          bookCallLabel={t('nav.bookCall')}
+          auditHref={localize('/contact')}
+          bookHref={localize('/book-a-call')}
         />
       </div>
     </div>

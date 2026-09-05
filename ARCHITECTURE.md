@@ -68,6 +68,10 @@ Cloudflare D1 database that is surfaced through an internal admin dashboard.
 - `public/admin-filters.js` — dependency-free client script providing shared client-side table filters (search box + categorical filter) for the Leads/Conversations/Bookings admin tables (loaded same-origin by the admin page shell).
 - `migrations/` — D1 SQL migrations (schema history).
 - `public/` — static assets served as-is.
+- `src/i18n/` — locale dictionaries (`ui.ts`: en/es/fr/de/it/pt/nl) + URL helpers (`utils.ts`).
+- `src/components/HomePage.astro` — shared homepage composition rendered by `/` and every `/{locale}/` wrapper.
+- `src/components/LanguageSwitcher.astro` — dependency-free locale picker (keeps the current page across locales).
+- `functions/_middleware.ts` — stamps `X-Robots-Tag: noindex` on Functions responses served from `*.pages.dev`.
 
 ## Data model
 
@@ -406,6 +410,28 @@ rows in sync with their parent rows. The Conversations, AI Checker, and Bookings
 section subtitles are worded to describe the business decision each supports.
 Tables use hairline rules + hover highlight only (no zebra banding);
 Conversation status and Booking event type render as uppercase mono pills.
+
+## Internationalization (i18n)
+
+Multilingual USA/Europe site. Root `/` serves en-US (and `x-default`); other
+locales live under prefix subdirectories (`/es/ /fr/ /de/ /it/ /pt/ /nl/`).
+
+- `astro.config.mjs` declares `i18n` (`prefixDefaultLocale: false`) and reads
+  `site` from `PUBLIC_SITE_URL` (default `https://renderandrank.com`).
+- `src/config/site.ts` owns `localeMeta`, `canonicalUrlFor()` (always
+  root-anchored), `localizedPath()`, `LOCALIZED_ROUTES` (`['/']` — the only
+  path with full 7-locale coverage), and `STAGING_HOST_SUFFIX`.
+- `src/layouts/Layout.astro` renders per-locale `<html lang>`, canonical, the
+  full hreflang cluster + `x-default` on `LOCALIZED_ROUTES` (self-referential
+  hreflang elsewhere), `og:locale` + alternates, dynamic schema `inLanguage`,
+  and build-time `noindex` on `*.pages.dev` hosts.
+- `Navbar`, `Footer`, `HeroSection`, `BookCallButton`, `MobileNav` localise via
+  `getLangFromUrl`/`useTranslations`; internal hrefs are locale-prefixed
+  (en stays root).
+- Staging de-indexing is two-layer (`_headers` can't match hostnames):
+  build-time meta robots in `Layout` + runtime `X-Robots-Tag` in
+  `functions/_middleware.ts`. Full rollout procedure: `docs/i18n.md`.
+  Per-locale keyword targets: `docs/keyword-map.md`.
 
 ## See also
 

@@ -10,33 +10,37 @@ const t = useTranslations(lang);
 
 const year = new Date().getFullYear();
 
+// Locale-aware hrefs: en stays root, every other locale is prefix-mounted.
+const localize = (href: string) =>
+  lang === 'en' ? href : href === '/' ? `/${lang}/` : `/${lang}${href}`;
+
 const columns = [
   {
     heading: t('footer.col.capabilities'),
     links: [
-      { name: t('footer.link.googleMaps'), href: '/services/google-maps' },
-      { name: t('footer.link.aeoGeo'), href: '/services/aeo-geo' },
-      { name: t('footer.link.citations'), href: '/services/local-seo' },
-      { name: t('footer.link.allServices'), href: '/services' },
+      { name: t('footer.link.googleMaps'), href: localize('/services/google-maps') },
+      { name: t('footer.link.aeoGeo'), href: localize('/services/aeo-geo') },
+      { name: t('footer.link.citations'), href: localize('/services/local-seo') },
+      { name: t('footer.link.allServices'), href: localize('/services') },
     ],
   },
   {
     heading: t('footer.col.company'),
     links: [
-      { name: t('footer.link.caseStudies'), href: '/portfolio' },
-      { name: t('footer.link.pricing'), href: '/pricing' },
-      { name: t('footer.link.roiCalculator'), href: '/calculator' },
-      { name: t('footer.link.aiChecker'), href: '/check' },
-      { name: t('footer.link.aboutOmar'), href: '/about' },
-      { name: t('footer.link.blog'), href: '/blog' },
+      { name: t('footer.link.caseStudies'), href: localize('/portfolio') },
+      { name: t('footer.link.pricing'), href: localize('/pricing') },
+      { name: t('footer.link.roiCalculator'), href: localize('/calculator') },
+      { name: t('footer.link.aiChecker'), href: localize('/check') },
+      { name: t('footer.link.aboutOmar'), href: localize('/about') },
+      { name: t('footer.link.blog'), href: localize('/blog') },
     ],
   },
   {
     heading: t('footer.col.getStarted'),
     links: [
-      { name: t('footer.link.bookCall'), href: '/book-a-call' },
-      { name: t('footer.link.freeAudit'), href: '/contact' },
-      { name: t('footer.link.contact'), href: '/contact' },
+      { name: t('footer.link.bookCall'), href: localize('/book-a-call') },
+      { name: t('footer.link.freeAudit'), href: localize('/contact') },
+      { name: t('footer.link.contact'), href: localize('/contact') },
     ],
   },
 ];
@@ -47,7 +51,7 @@ const columns = [
     <div class="grid gap-12 md:grid-cols-5 md:gap-10">
       <!-- Brand -->
       <div class="md:col-span-2">
-        <a href="/" class="inline-block rounded-xs">
+        <a href={localize('/')} class="inline-block rounded-xs">
           <BrandLogo size="xl" />
         </a>
 
@@ -213,13 +217,13 @@ const columns = [
       </div>
       <nav aria-label="Legal" class="flex items-center gap-5">
         <a
-          href="/terms"
+          href={localize('/terms')}
           class="caption text-ink transition-colors hover:underline hover:underline-offset-4"
         >
           {t('footer.legal.terms')}
         </a>
         <a
-          href="/privacy"
+          href={localize('/privacy')}
           class="caption text-ink transition-colors hover:underline hover:underline-offset-4"
         >
           {t('footer.legal.privacy')}

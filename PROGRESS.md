@@ -14,6 +14,7 @@ AI Visibility Checker (free-tier Google Gemini + Cloudflare Workers AI) and conn
 
 ## Done
 
+- **Multilingual SEO foundation + 7-locale homepage (committed, pushed)**: Astro i18n, dynamic lang/hreflang/og-locale/canonical in Layout, shared HomePage + es/fr/de/it/pt/nl wrappers with transcreated meta, locale-aware nav/footer/hero/buttons/mobile nav + LanguageSwitcher, two-layer staging de-index (build-time meta robots + Functions X-Robots-Tag middleware), `pages:deploy` script, OpenSEO MCP endpoint wired in `.mcp.json`/`opencode.json` (user completes OAuth/API key client-side), `docs/i18n.md` + `docs/keyword-map.md`. Verified: typecheck 0 errors, 28-page build, EN/ES/DE head tags + sitemap asserted, staging build noindexes with root canonical, entity tests 21/21.
 - **Blog discovery (committed 426caef, pushed)**: homepage `BlogStrip` + per-service `relatedPosts` cross-links, verified live with screenshot. Next: topic pages at 10+ posts, freshness passes.
 - **Blog drafts 2–5 (committed e8e7247, pushed)**: all four adapted and live (Maps guide, citations guide, reviews pipeline, pricing/ROI) with FAQ schema + related wiring + per-post CTAs. Verified 0 errors, all routes 200. Topic pages deferred until 10+ posts.
 - **Blog launch (committed 9a75fd6, pushed)**: Resources dropdown nav, MDX collection + index + post template + author page + RSS, SEO plumbing (Article/FAQ/Breadcrumb schema, og:article, honest sitemap, llms.txt), 1 adapted pilot post. Debugging lesson: Astro 6+ needs `loader: glob(...)` or collections silently stay empty. Verified 0 errors, 18 pages, all routes live. Remaining drafts 2–5 queued (slugs/link maps in plan).
@@ -56,6 +57,8 @@ AI Visibility Checker (free-tier Google Gemini + Cloudflare Workers AI) and conn
 
 ## In progress / Next up
 
+- **i18n page rollout** (order per `docs/i18n.md`): `/pricing`, `/services/*`, `/contact`, `/book-a-call`, `/about`, then `/blog`; each step adds locale wrappers + `LOCALIZED_ROUTES` entry + head-tag assertions.
+- **OpenSEO MCP runs** (needs client-side auth: OAuth login or `oseo_` key): `whoami` → project setup → `research_keywords` per locale (seeds in `docs/keyword-map.md`) → `keyword-clustering` → `seo-audit` verification pass.
 - Type/diagnostic verification is available via `npm run typecheck` (`astro check && tsc --noEmit`).
 - Set `CALCOM_API_KEY` secret (local `.dev.vars` + remote via `npx wrangler pages secret put CALCOM_API_KEY`) and test a real booking end-to-end.
 - Optional: Set `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` secrets whenever ready to expand to paid ChatGPT / Claude checks.

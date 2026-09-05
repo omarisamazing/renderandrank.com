@@ -1,48 +1,12 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import HeroSection from '../components/HeroSection.astro';
-import LogoMarquee from '../components/LogoMarquee.astro';
-import WedgeComparison from '../components/WedgeComparison.astro';
-import ServicesGrid from '../components/ServicesGrid.astro';
-import PortfolioGrid from '../components/PortfolioGrid.astro';
-import PricingSection from '../components/PricingSection.astro';
-import FounderSection from '../components/FounderSection.astro';
-import RoiCalculator from '../components/RoiCalculator.astro';
-import AuditForm from '../components/AuditForm.astro';
-import AiCheckerSection from '../components/AiCheckerSection.astro';
-import FaqSection from '../components/FaqSection.astro';
-import BlogStrip from '../components/BlogStrip.astro';
-import CtaBanner from '../components/CtaBanner.astro';
+import HomePage from '../components/HomePage.astro';
 ---
 
 <Layout
+  title="Render and Rank | Local SEO, AEO & Generative Search Engineering"
+  description="We help local businesses dominate Google Search, Google Maps 3-Pack, and AI Answer Engines (ChatGPT, Gemini, Perplexity, and AI Overviews). High-converting, zero-fluff search engineering."
   keywords="local SEO, Google Maps 3-pack, AEO, GEO, generative engine optimization, AI search visibility, ChatGPT SEO, Google Business Profile, local search engineering, Render and Rank"
 >
-  <!--
-    Colour-block rhythm, per DESIGN.md: every pastel panel is separated from the
-    next by a white-canvas section, so no two blocks share a viewport, and no
-    block colour repeats down the page.
-
-      hero (white) → marquee (black ribbon) → cream → white → mint → white
-      → white (insights) → lilac → white → white → lime → white → navy
-
-    The order is also the argument: the problem (cream), the three levers
-    (white), the diagnostic (mint), the proof (white), the reading room
-    (white), what position four costs (lilac), then the price (white) — so
-    the cost of doing nothing lands immediately before the cost of the work.
-  -->
-  <HeroSection />
-  <LogoMarquee />
-  <WedgeComparison />
-  <ServicesGrid />
-  <AiCheckerSection resultHref="#roi-calculator" />
-  <PortfolioGrid limit={2} />
-  <BlogStrip />
-  <RoiCalculator />
-  <PricingSection />
-  <FounderSection />
-  <AuditForm />
-  <FaqSection />
-  <CtaBanner />
+  <HomePage />
 </Layout>
-
