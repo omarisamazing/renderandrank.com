@@ -68,7 +68,7 @@ Cloudflare D1 database that is surfaced through an internal admin dashboard.
 - `public/admin-filters.js` — dependency-free client script providing shared client-side table filters (search box + categorical filter) for the Leads/Conversations/Bookings admin tables (loaded same-origin by the admin page shell).
 - `migrations/` — D1 SQL migrations (schema history).
 - `public/` — static assets served as-is.
-- `src/i18n/` — locale dictionaries (`ui.ts`: en/es/fr/de/it/pt/nl) + URL helpers (`utils.ts`, incl. `blogTopicLabel`) + per-post meta (`blogMeta.ts`).
+- `src/i18n/` — locale dictionaries (`ui.ts`: en/es/fr/de/it/pt/nl) + URL helpers (`utils.ts`, incl. `blogTopicLabel`) + per-post meta (`blogMeta.ts`) + per-locale FAQs (`faqDict.ts`, EN canonical in `src/data/faqs.ts`) + testimonial metric/role map (`testimonialMeta.ts`, quotes stay verbatim in `src/data/testimonials.ts`).
 - `src/components/HomePage.astro` — shared homepage composition rendered by `/` and every `/{locale}/` wrapper.
 - `src/components/BlogIndexPage.astro` / `BlogPostPage.astro` — shared blog index + article bodies (`localePrefix` prop keeps breadcrumbs, related links and schema URLs inside the locale); EN routes are thin wrappers, locale routes add transcreated meta from `blogMeta.ts`.
 - `src/components/LanguageSwitcher.astro` — dependency-free locale picker (keeps the current page across locales).

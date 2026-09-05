@@ -4,12 +4,13 @@ import Eyebrow from './ui/Eyebrow.astro';
 import Button from './ui/Button.astro';
 import BookCallButton from './BookCallButton.astro';
 import { Check } from '@lucide/astro';
+import { getLangFromUrl, useTranslations } from '../i18n/utils';
 
-const guarantees = [
-  'No junior account managers',
-  'Month-to-month retainers',
-  'Every citation verified by hand',
-];
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+const prefix = lang === 'en' ? '' : `/${lang}`;
+
+const guarantees = [t('cta.g1'), t('cta.g2'), t('cta.g3')];
 ---
 
 <!--
@@ -24,24 +25,23 @@ const guarantees = [
     data-reveal-group
   >
     <div class="mx-auto max-w-2xl">
-      <Eyebrow tone="inverse" data-reveal>Next step</Eyebrow>
+      <Eyebrow tone="inverse" data-reveal>{t('blog.post.ctaEyebrow')}</Eyebrow>
 
       <h2 class="display-lg mt-5 text-inverse-ink" data-reveal>
-        Let's look at your grid together.
+        {t('cta.title')}
       </h2>
 
       <p class="body-lg mt-6 text-inverse-ink" data-reveal>
-        Thirty minutes with Omar. We pull your live geo-grid, query the answer
-        engines for your category, and you leave with the list either way.
+        {t('cta.sub')}
       </p>
 
       <div
         class="mt-9 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center"
         data-reveal
       >
-        <BookCallButton variant="inverse" size="lg" label="Book a discovery call" />
-        <Button href="/contact" variant="inverseGhost" size="lg">
-          Get a free 24h audit
+        <BookCallButton variant="inverse" size="lg" label={t('hero.cta.book')} />
+        <Button href={`${prefix}/contact`} variant="inverseGhost" size="lg">
+          {t('cta.audit')}
         </Button>
       </div>
 

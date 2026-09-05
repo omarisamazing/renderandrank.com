@@ -4,6 +4,7 @@ import Eyebrow from './ui/Eyebrow.astro';
 import { PricingTabs } from './pricing/PricingTabs';
 import { oneTimePricing, monthlyPricing } from '../data/pricing';
 import { siteConfig } from '../config/site';
+import { getLangFromUrl, useTranslations } from '../i18n/utils';
 
 interface Props {
   /** The pricing page has its own page header, so it suppresses this one. */
@@ -12,19 +13,20 @@ interface Props {
 
 const { showHeader = true } = Astro.props;
 const { calCom } = siteConfig;
----
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+const prefix = lang === 'en' ? '' : `/${lang}`;---
 
 <Section id="pricing" divider>
   {
     showHeader && (
       <div class="mx-auto max-w-2xl text-center" data-reveal-group>
-        <Eyebrow data-reveal>Pricing</Eyebrow>
+        <Eyebrow data-reveal>{t('pricing.hero.eyebrow')}</Eyebrow>
         <h2 class="display-md mt-4 text-ink" data-reveal>
-          Published rates. No contracts.
+          {t('pricing.section.title')}
         </h2>
         <p class="subhead mt-5 text-ink" data-reveal>
-          Start with a one-time cleanup to fix the foundation, or run a monthly
-          retainer to keep the rankings. Cancel a retainer whenever you like.
+          {t('pricing.section.sub')}
         </p>
       </div>
     )
@@ -41,10 +43,11 @@ const { calCom } = siteConfig;
   </div>
 
   <p class="body-sm mx-auto mt-12 max-w-xl text-center text-ink">
-    Multi-location or franchise coverage? <a
-      href="/contact"
+    {t('pricing.section.foot')}{' '}
+    <a
+      href={`${prefix}/contact`}
       class="font-medium underline decoration-hairline underline-offset-4 transition-colors hover:decoration-ink"
-      >Ask about custom scope</a
+      >{t('pricing.section.link')}</a
     >.
   </p>
 </Section>

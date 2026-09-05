@@ -5,6 +5,8 @@ import Button from './ui/Button.astro';
 import BookCallButton from './BookCallButton.astro';
 import { FaqAccordion } from './faq/FaqAccordion';
 import { faqs } from '../data/faqs';
+import { faqDict } from '../i18n/faqDict';
+import { getLangFromUrl, useTranslations } from '../i18n/utils';
 
 interface Props {
   /**
@@ -19,10 +21,16 @@ interface Props {
 const { tone = 'canvas' } = Astro.props;
 const onBlock = tone === 'lime';
 
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+const prefix = lang === 'en' ? '' : `/${lang}`;
+// EN stays on the canonical data file; locales read the transcreated dict.
+const items = lang === 'en' ? faqs : (faqDict[lang] ?? faqs);
+
 const faqSchema = {
   '@context': 'https://schema.org',
   '@type': 'FAQPage',
-  mainEntity: faqs.map((faq) => ({
+  mainEntity: items.map((faq) => ({
     '@type': 'Question',
     name: faq.q,
     acceptedAnswer: { '@type': 'Answer', text: faq.a },
@@ -35,14 +43,14 @@ const faqSchema = {
     class:list={[onBlock && 'color-block color-block-lime color-block--bleed']}
   >
     <div class="mx-auto max-w-2xl text-center" data-reveal-group>
-      <Eyebrow tone={onBlock ? 'on-block' : 'ink'} data-reveal>Questions</Eyebrow>
+      <Eyebrow tone={onBlock ? 'on-block' : 'ink'} data-reveal>{t('faq.eyebrow')}</Eyebrow>
       <h2 class="display-md mt-4 text-ink" data-reveal>
-        The things people ask before they book
+        {t('faq.title')}
       </h2>
     </div>
 
     <div class="mx-auto mt-12 max-w-3xl md:mt-14" data-reveal>
-      <FaqAccordion client:visible items={faqs} surface={onBlock ? 'block' : 'canvas'} />
+      <FaqAccordion client:visible items={items} surface={onBlock ? 'block' : 'canvas'} />
     </div>
 
     <div
@@ -51,10 +59,10 @@ const faqSchema = {
         onBlock ? 'border-black/10' : 'border-hairline',
       ]}
     >
-      <p class="body-sm text-ink">Something not covered here?</p>
+      <p class="body-sm text-ink">{t('faq.more')}</p>
       <div class="flex flex-wrap items-center gap-3">
-        <Button href="/contact" variant="secondary" size="sm">Send a message</Button>
-        <BookCallButton size="sm" label="Book a call" withIcon={false} />
+        <Button href={`${prefix}/contact`} variant="secondary" size="sm">{t('faq.send')}</Button>
+        <BookCallButton size="sm" withIcon={false} />
       </div>
     </div>
   </div>

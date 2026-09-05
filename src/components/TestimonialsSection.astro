@@ -2,20 +2,26 @@
 import Section from './ui/Section.astro';
 import Eyebrow from './ui/Eyebrow.astro';
 import { testimonials } from '../data/testimonials';
+import { testimonialMeta } from '../i18n/testimonialMeta';
+import { getLangFromUrl, useTranslations } from '../i18n/utils';
 import { Quote, Star } from '@lucide/astro';
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+const meta = testimonialMeta[lang] ?? testimonialMeta.en;
 ---
 
 <Section surface="soft" divider>
   <div class="mx-auto max-w-2xl text-center" data-reveal-group>
-    <Eyebrow data-reveal>Results</Eyebrow>
+    <Eyebrow data-reveal>{t('testimonials.eyebrow')}</Eyebrow>
     <h2 class="display-md mt-4 text-ink" data-reveal>
-      What changed for the businesses we work with
+      {t('testimonials.title')}
     </h2>
   </div>
 
   <div class="mt-12 grid gap-6 md:mt-16 md:grid-cols-2" data-reveal-group>
     {
-      testimonials.map((t) => (
+      testimonials.map((item) => (
         <figure
           class="flex flex-col rounded-lg border border-hairline bg-canvas p-6 md:p-8"
           data-reveal
@@ -23,30 +29,30 @@ import { Quote, Star } from '@lucide/astro';
           <div class="flex items-start justify-between gap-4">
             <Quote class="size-5 text-ink" aria-hidden="true" />
             <span class="label rounded-pill bg-block-lime px-3 py-1 text-ink">
-              {t.metric}
+              {(meta[item.id] ?? testimonialMeta.en[item.id])?.metric ?? item.metric}
             </span>
           </div>
 
           <blockquote class="body mt-6 flex-1 text-ink">
-            {t.quote}
+            {item.quote}
           </blockquote>
 
           <figcaption
             class="mt-7 flex flex-wrap items-center justify-between gap-4 border-t border-hairline pt-6"
           >
             <div>
-              <p class="label text-ink">{t.name}</p>
+              <p class="label text-ink">{item.name}</p>
               <p class="caption mt-0.5 text-ink">
-                {t.role}, {t.company} &middot; {t.location}
+                {(meta[item.id] ?? testimonialMeta.en[item.id])?.role ?? item.role}, {item.company} &middot; {item.location}
               </p>
             </div>
 
             <div
               class="flex items-center gap-0.5"
               role="img"
-              aria-label={`Rated ${t.rating} out of 5`}
+              aria-label={t('testimonials.rated').replace('{rating}', String(item.rating))}
             >
-              {Array.from({ length: t.rating }).map(() => (
+              {Array.from({ length: item.rating }).map(() => (
                 <Star class="size-3.5 fill-ink text-ink" aria-hidden="true" />
               ))}
             </div>

@@ -7,7 +7,7 @@ import { siteConfig } from '../config/site';
 import Button from './ui/Button.astro';
 import type { ButtonVariants } from '@/lib/button-variants';
 import { ArrowRight } from '@lucide/astro';
-import { getLangFromUrl } from '../i18n/utils';
+import { getLangFromUrl, useTranslations } from '../i18n/utils';
 
 type Props = ButtonVariants & {
   class?: string;
@@ -20,13 +20,14 @@ const {
   size = 'md',
   block,
   class: className,
-  label = 'Book a call',
+  label: labelProp,
   withIcon = true,
 } = Astro.props;
 
 const { calCom } = siteConfig;
 
 const lang = getLangFromUrl(Astro.url);
+const label = labelProp ?? useTranslations(lang)('nav.bookCall');
 const href = lang === 'en' ? '/book-a-call' : `/${lang}/book-a-call`;
 ---
 
