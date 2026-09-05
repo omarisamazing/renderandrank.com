@@ -14,6 +14,7 @@ AI Visibility Checker (free-tier Google Gemini + Cloudflare Workers AI) and conn
 
 ## Done
 
+- **Voice language-hallucination fix (committed, pushed)**: English speech was intermittently transcribed/replied in Hindi — the Live native-audio model auto-detects language (no server-side pin) and hallucinates transcripts from streamed silence/noise. Fixed with an English-only system-instruction rule (token-locked), conservative VAD in token mint + client setup (LOW sensitivities, 800ms silence, 300ms look-back), and a client-side silence gate (peak < 0.02 dropped, 500ms hangover, `audioStreamEnd` after 1s). Verified: typecheck 0 errors. Docs updated (`ARCHITECTURE.md`, `CHANGELOG.md`).
 - **i18n 3d COMPLETE: all 30 siblings shipped (committed, pushed)**: reviews/citations/pricing × 6 locales. Verified: 0 errors, 112 clean pages, full battery green, check:i18n + 21/21 tests.
 - **i18n 3d: Maps post × 6 locales complete (committed, pushed)**: ES/FR/DE/IT/PT/NL siblings with brief-driven angles (Valencia benchmarks, Whitespark weights, heatmap, BR directories, Vicinity/NAW). Verified: 0 errors, 112 clean pages, 6/6 bodies + EN + no-phantom asserts, check:i18n + 21/21 tests.
 - **i18n architecture hardening (committed, pushed)**: prefix-rule hreflang (slugs removed from list), `check:i18n` guard + `docs/i18n.md` new-post checklist. Future posts: write EN md → meta rows → optional siblings. Verified green throughout.
