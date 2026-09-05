@@ -14,6 +14,7 @@ AI Visibility Checker (free-tier Google Gemini + Cloudflare Workers AI) and conn
 
 ## Done
 
+- **i18n 3d COMPLETE: all 30 siblings shipped (committed, pushed)**: reviews/citations/pricing × 6 locales. Verified: 0 errors, 112 clean pages, full battery green, check:i18n + 21/21 tests.
 - **i18n 3d: Maps post × 6 locales complete (committed, pushed)**: ES/FR/DE/IT/PT/NL siblings with brief-driven angles (Valencia benchmarks, Whitespark weights, heatmap, BR directories, Vicinity/NAW). Verified: 0 errors, 112 clean pages, 6/6 bodies + EN + no-phantom asserts, check:i18n + 21/21 tests.
 - **i18n architecture hardening (committed, pushed)**: prefix-rule hreflang (slugs removed from list), `check:i18n` guard + `docs/i18n.md` new-post checklist. Future posts: write EN md → meta rows → optional siblings. Verified green throughout.
 - **i18n 3d: flagship post × 6 locales complete (committed, pushed)**: FR/DE/IT/PT/NL AI-visibility siblings with brief-driven angles. Verified: 0 errors, 112 clean pages, 6/6 bodies + EN + no-phantom + sitemap asserts, 21/21 tests.
@@ -73,7 +74,7 @@ AI Visibility Checker (free-tier Google Gemini + Cloudflare Workers AI) and conn
 
 ## In progress / Next up
 
-- **i18n phase 3 remaining**: 3d post siblings — 18 files to go (mechanism + 2 flagship posts proven, brief ready in `docs/keyword-map.md`; GSC export sharpens it when available).
+- **i18n phase 3 remaining**: nothing open — rollout + 3a/3b/3c/3d all shipped (112 pages, 30 siblings). Next content: new posts via `docs/i18n.md` checklist; GSC export sharpens future briefs when available.
 - **OpenSEO MCP runs** (needs client-side auth: OAuth login or `oseo_` key): `whoami` → project setup → `research_keywords` per locale (seeds in `docs/keyword-map.md`) → `keyword-clustering` → `seo-audit` verification pass.
 - Type/diagnostic verification is available via `npm run typecheck` (`astro check && tsc --noEmit`).
 - Set `CALCOM_API_KEY` secret (local `.dev.vars` + remote via `npx wrangler pages secret put CALCOM_API_KEY`) and test a real booking end-to-end.
