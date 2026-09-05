@@ -29,6 +29,7 @@ AI Visibility Checker (free-tier Google Gemini + Cloudflare Workers AI) and conn
 - **Type fixes + `typecheck` script now working**: fixed the invalid `Button variant="outline"` in `src/components/ui/dialog.tsx` (`DialogFooter` Close button) to `variant="secondary"`, clearing the TS2322 error. Pinned TypeScript back to stable 5.x (`^5.6.0`, installed 5.9.3) and kept `tsconfig.json` `baseUrl "."` + `paths {"@/*":["./src/*"]}` so `tsc --noEmit` runs (no TS5102). Installed `@astrojs/check` and added a `typecheck` npm script (`astro check && tsc --noEmit`). Verified: `astro check` → 0 errors, 0 warnings, 13 hints; `tsc --noEmit` → exit 0.
 - **Admin section nav moved into top navbar + temp-file cleanup**: moved the admin panel section navigation (Leads, AI Checker, Conversations, Bookings) into the top navbar, removed the standalone "Sections" heading/nav block, and added section id anchors (`#leads`, `#conversations`, `#bookings`) so navbar links jump to each section (`functions/admin/index.ts`). Untracked temp/context files (`_tmp_slice.txt`, `ctx.txt`) and added `.gitignore` entries so they stay out of git. Docs updated (`CHANGELOG.md`).
 - **Admin dashboard subtitles rewrite + table filters**: reworded the Conversations, AI Checker, and Bookings section subtitles to describe the business decision each supports, and added a search box plus a categorical filter to the Leads (Service), Conversations (Status), and Bookings (Event type) tables, wired by the shared `public/admin-filters.js` client script.
+- **Admin dashboard verification pass (browser, local pages dev `:8788`, read-only — no code changes)**: login works; all 4 sections render with seeded rows (Leads, AI Checker incl. live scans, expandable Conversations, Bookings with filters). Conversations `<details>` toggle verified both ways: expand (`+ VIEW N MESSAGES` → `−` with inline messages) and collapse (`−` → `+`). Note: collapse only fires when clicking the `<summary>` itself — clicking the message body does nothing (native `<details>` behavior, not a bug). Navbar anchors verified: BOOKINGS → `#bookings` with the section scrolled into view, LEADS → `#leads`.
 - **Design System & UI/UX Polish (`DESIGN.md` Alignment)**:
   - Added `.stat-xl` token in `src/styles/global.css` and gated `animate-fade-in` with `prefers-reduced-motion: no-preference`.
   - Harmonized homepage pastel color-block rhythm across Hero, Portfolio, AI Diagnostic, and Founder sections.
@@ -48,7 +49,7 @@ AI Visibility Checker (free-tier Google Gemini + Cloudflare Workers AI) and conn
 
 ## In progress / Next up
 
-- Click through `/admin` in `astro dev` to verify the navbar section links (Leads, AI Checker, Conversations, Bookings) scroll to the right anchors and that Conversations expand/collapse still works. Type/diagnostic verification is now available via `npm run typecheck` (`astro check && tsc --noEmit`).
+- Type/diagnostic verification is available via `npm run typecheck` (`astro check && tsc --noEmit`).
 - Set `CALCOM_API_KEY` secret (local `.dev.vars` + remote via `npx wrangler pages secret put CALCOM_API_KEY`) and test a real booking end-to-end.
 - Optional: Set `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` secrets whenever ready to expand to paid ChatGPT / Claude checks.
 
