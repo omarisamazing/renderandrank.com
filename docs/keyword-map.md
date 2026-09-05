@@ -114,3 +114,39 @@ our differentiator (competitors sell checklists; almost none sell grids).
 - Preços/prix/Preise/prices: always present market ranges in a comparison table — every pricing SERP rewards the table format.
 - Cite, don't invent: Whitespark 2026, BrightLocal 2025/2026, Localo 2026 deletion study, Seer/Princeton GEO stats are the shared backbone. No other numbers without a source.
 - Competitor tools to name-check where natural: Local Falcon / BrightLocal geo-grid (measurement), Bing Places (AI-visibility posts), llms.txt (PT post).
+
+## Suggest expansion (keyless Google API, 2026-09, no volumes — existence only)
+
+Method: `suggestqueries.../complete/search?client=chrome` with `hl`+`gl`
+per market, 2 rounds (43 seeds). Read carefully: a completion proves real
+query volume; ZERO proves nothing except "below threshold" (niche B2B often
+lives there). Short seeds work; 4+-word seeds mostly return empty.
+
+- **T1 AI visibility**: `cómo hacer para aparecer en chatgpt` (ES),
+  `wie wird man bei chatgpt gefunden` (DE), `como aparecer no chatgpt`
+  (PT), `gevonden worden in chatgpt` (NL) all complete — how-to framing
+  confirmed in 4/6. FR has no ChatGPT-apparaître completion (demand lives
+  under `référencement IA` / `GEO` framing instead — use those terms).
+- **T2 Maps**: FR richest (`gratuit`, `formation`, `classement`,
+  `améliorer`, `entreprise`). NL searches in ENGLISH for tools
+  (`ranking checker/grid/tracker/tool/free`) — keep English tool vocabulary
+  in the NL translation. ES completes on `negocio/empresa en google maps`.
+- **T3 reviews**: ES `gratis` + `enlace reseñas` (link mechanics);
+  FR `supprimer avis google entreprise` (deletion angle — pair with the
+  Localo stats); IT `link recensioni`; DE/NL complete on basics only.
+- **T4 citations**: bare `citaciones/citations/Zitationen/citazioni/
+  citações/vermeldingen` are AMBIGUOUS everywhere (hospitals, Napoleon,
+  academic APA, police reports) — never target them alone; always the
+  compound (`... locales/SEO/NAP`, `NAP-Konsistenz`, `coerenza NAP`,
+  `NAP-consistentie`). Compounds return empty = low absolute volume,
+  high intent — exactly our B2B niche, not a red flag.
+- **T5 pricing**: ES `precio seo mensual/barcelona` (city modifiers!);
+  FR `tarif seo freelance/local` + brand noise; DE `seo kosten monatlich`
+  + `kostenlos testen`/`kostenrechner` (free-test + calculator intent —
+  feed the ROI calculator CTA); NL gl leaks German (`monatlich`) —
+  disambiguate with `per maand` phrasing; IT/PT thin (Seoul noise) —
+  lean on SERP findings, not suggest.
+- **Cross-cutting**: `gratis/kostenlos` and city modifiers recur in every
+  market — keep free-tool CTAs and city examples in all translations.
+  `comprar/kopen` (buy-reviews) demand exists in PT/NL — our anti-buying
+  + removal stance answers it directly.
