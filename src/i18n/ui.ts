@@ -54,6 +54,10 @@ export const ui = {
     "contact.form.sub":
       "The more you tell us about your competitors and current rankings, the more useful the first reply will be.",
     "contact.form.submit": "Send message",
+    "bookcall.hero.eyebrow": "Book a call",
+    "bookcall.hero.title": "{duration} with the person doing the work",
+    "bookcall.hero.sub":
+      "Pick a time that suits you. We pull your live geo-grid on the call, test your AI visibility, and you leave with the plan.",
     "hero.proof.calls": "More inbound calls",
     "hero.proof.clicks": "Of local clicks go top-3",
     "hero.proof.audit": "Audit turnaround",
@@ -137,6 +141,10 @@ export const ui = {
     "contact.form.sub":
       "Cuanto más nos cuentes sobre tus competidores y tu posicionamiento actual, más útil será la primera respuesta.",
     "contact.form.submit": "Enviar mensaje",
+    "bookcall.hero.eyebrow": "Reserva una llamada",
+    "bookcall.hero.title": "{duration} con la persona que hace el trabajo",
+    "bookcall.hero.sub":
+      "Elige la hora que te convenga. Analizamos tu geo-grid en vivo en la llamada, probamos tu visibilidad en IA y te llevas el plan.",
     "hero.proof.calls": "Más llamadas entrantes",
     "hero.proof.clicks": "De los clics locales van al top-3",
     "hero.proof.audit": "Tiempo de auditoría",
@@ -220,6 +228,10 @@ export const ui = {
     "contact.form.sub":
       "Plus vous nous en dites sur vos concurrents et votre classement actuel, plus la première réponse sera utile.",
     "contact.form.submit": "Envoyer le message",
+    "bookcall.hero.eyebrow": "Réserver un appel",
+    "bookcall.hero.title": "{duration} avec la personne qui fait le travail",
+    "bookcall.hero.sub":
+      "Choisissez l'horaire qui vous convient. Nous analysons votre géo-grid en direct pendant l'appel, testons votre visibilité IA, et vous repartez avec le plan.",
     "hero.proof.calls": "Plus d'appels entrants",
     "hero.proof.clicks": "Des clics locaux vont au top-3",
     "hero.proof.audit": "Délai d'audit",
@@ -303,6 +315,10 @@ export const ui = {
     "contact.form.sub":
       "Je mehr du uns über deine Wettbewerber und deine aktuellen Rankings erzählst, desto nützlicher ist die erste Antwort.",
     "contact.form.submit": "Nachricht senden",
+    "bookcall.hero.eyebrow": "Anruf buchen",
+    "bookcall.hero.title": "{duration} mit der Person, die die Arbeit macht",
+    "bookcall.hero.sub":
+      "Wähl einen Termin, der dir passt. Wir ziehen dein Live-Geo-Grid im Gespräch, testen deine KI-Sichtbarkeit — und du gehst mit dem Plan.",
     "hero.proof.calls": "Mehr eingehende Anrufe",
     "hero.proof.clicks": "Der lokalen Klicks gehen in die Top 3",
     "hero.proof.audit": "Audit-Bearbeitungszeit",
@@ -386,6 +402,10 @@ export const ui = {
     "contact.form.sub":
       "Più ci racconti dei tuoi concorrenti e del tuo posizionamento attuale, più utile sarà la prima risposta.",
     "contact.form.submit": "Invia il messaggio",
+    "bookcall.hero.eyebrow": "Prenota una chiamata",
+    "bookcall.hero.title": "{duration} con la persona che fa il lavoro",
+    "bookcall.hero.sub":
+      "Scegli l'orario che preferisci. Analizziamo il tuo geo-grid live durante la chiamata, testiamo la tua visibilità AI e te ne vai con il piano.",
     "hero.proof.calls": "Più chiamate in entrata",
     "hero.proof.clicks": "Dei clic locali va nella top-3",
     "hero.proof.audit": "Tempi dell'audit",
@@ -469,6 +489,10 @@ export const ui = {
     "contact.form.sub":
       "Quanto mais nos contar sobre seus concorrentes e seu posicionamento atual, mais útil será a primeira resposta.",
     "contact.form.submit": "Enviar mensagem",
+    "bookcall.hero.eyebrow": "Agendar uma chamada",
+    "bookcall.hero.title": "{duration} com a pessoa que faz o trabalho",
+    "bookcall.hero.sub":
+      "Escolha o horário que for melhor para você. Analisamos seu geo-grid ao vivo na chamada, testamos sua visibilidade em IA e você sai com o plano.",
     "hero.proof.calls": "Mais chamadas recebidas",
     "hero.proof.clicks": "Dos cliques locais vão para o top-3",
     "hero.proof.audit": "Prazo da auditoria",
@@ -552,6 +576,10 @@ export const ui = {
     "contact.form.sub":
       "Hoe meer je ons vertelt over je concurrenten en je huidige rankings, hoe nuttiger het eerste antwoord zal zijn.",
     "contact.form.submit": "Bericht verzenden",
+    "bookcall.hero.eyebrow": "Een gesprek plannen",
+    "bookcall.hero.title": "{duration} met de persoon die het werk doet",
+    "bookcall.hero.sub":
+      "Kies een tijd die je schikt. We trekken je live geo-grid erbij tijdens het gesprek, testen je AI-zichtbaarheid en je gaat weg met het plan.",
     "hero.proof.calls": "Meer inkomende oproepen",
     "hero.proof.clicks": "Van de lokale klikken gaat naar top-3",
     "hero.proof.audit": "Doorlooptijd audit",

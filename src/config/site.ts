@@ -163,6 +163,7 @@ export const LOCALIZED_ROUTES = [
   '/services/aeo-geo',
   '/services/google-maps',
   '/contact',
+  '/book-a-call',
 ];
 
 /** Host suffix for Cloudflare Pages staging — never indexed. */
