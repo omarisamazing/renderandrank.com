@@ -155,7 +155,14 @@ export type SiteLocale = keyof typeof localeMeta;
  * All other pages emit a self-referential hreflang until their locale
  * wrappers land. Extend this list as docs/i18n.md rollout progresses.
  */
-export const LOCALIZED_ROUTES = ['/'];
+export const LOCALIZED_ROUTES = [
+  '/',
+  '/pricing',
+  '/services',
+  '/services/local-seo',
+  '/services/aeo-geo',
+  '/services/google-maps',
+];
 
 /** Host suffix for Cloudflare Pages staging — never indexed. */
 export const STAGING_HOST_SUFFIX = '.pages.dev';

@@ -35,7 +35,8 @@ OpenSEO audit pass before each rollout step.
 
 ## Next pages to map (with `keyword-clustering` before writing copy)
 
-`/pricing` (price-intent per locale), `/services/local-seo`,
-`/services/google-maps`, `/services/aeo-geo`, `/calculator` + `/check`
-(tool-intent), `/blog` pillars. Each locale page gets its own keyword row —
-never reuse the EN term list verbatim.
+Shipped: homepage, `/pricing`, `/services` + 3 detail pages (meta rows in the
+wrappers under `src/pages/{es,fr,de,it,pt,nl}/`). Remaining: `/contact` +
+`/book-a-call`, `/about`, `/calculator` + `/check` (tool-intent), `/blog`
+pillars. Each locale page gets its own keyword row — never reuse the EN term
+list verbatim.

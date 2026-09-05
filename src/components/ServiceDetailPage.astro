@@ -1,0 +1,79 @@
+---
+/**
+ * ServiceDetailPage — shared service-detail body. The three detail pages
+ * differ only by slug (data comes from `src/data/services.ts`); per-page
+ * config (color block, lede, related posts) lives here so the EN page and
+ * all six locale wrappers stay in sync with zero forks.
+ */
+import ServiceDetail from './ServiceDetail.astro';
+import CtaBanner from './CtaBanner.astro';
+import { services } from '../data/services';
+
+interface Props {
+  slug: 'local-seo' | 'aeo-geo' | 'google-maps';
+}
+
+const { slug } = Astro.props;
+const service = services.find((s) => s.slug === slug)!;
+
+const config = {
+  'local-seo': {
+    block: 'cream',
+    lede: 'Why local search is the asset, not the ad spend',
+    relatedPosts: [
+      {
+        title: 'Local Citations and NAP Consistency: The Complete Guide',
+        description: 'Why consistent records decide Maps rank — and how to clean them up.',
+        href: '/blog/local-citations-nap-consistency-guide/',
+      },
+      {
+        title: 'Google Review Velocity: The SMS Pipeline That Moves Maps Rankings',
+        description: 'How a steady flow of authentic reviews lifts 3-pack rank.',
+        href: '/blog/google-reviews-velocity-maps-rankings-sms-pipeline/',
+      },
+    ],
+  },
+  'aeo-geo': {
+    block: 'lilac',
+    lede: 'When the answer replaces the search results',
+    relatedPosts: [
+      {
+        title: 'How ChatGPT Finds Local Businesses: The 4 Pathways of AI Information',
+        description: 'Training, live retrieval, licensing, direct APIs — and how to show up in each.',
+        href: '/blog/ai-visibility-local-business-chatgpt-gemini-perplexity/',
+      },
+      {
+        title: 'Google Maps 3-Pack Ranking Factors: The Geo-Grid Method',
+        description: 'The Maps foundation every AI citation stands on.',
+        href: '/blog/google-maps-3-pack-ranking-factors-geo-grid/',
+      },
+    ],
+  },
+  'google-maps': {
+    block: 'mint',
+    lede: 'Three slots decide the whole market',
+    relatedPosts: [
+      {
+        title: 'Google Maps 3-Pack Ranking Factors: The Geo-Grid Method',
+        description: 'How the pack is actually won: proximity, categories, reviews, spam suppression.',
+        href: '/blog/google-maps-3-pack-ranking-factors-geo-grid/',
+      },
+      {
+        title: 'Google Review Velocity: The SMS Pipeline That Moves Maps Rankings',
+        description: 'How a steady flow of authentic reviews lifts 3-pack rank.',
+        href: '/blog/google-reviews-velocity-maps-rankings-sms-pipeline/',
+      },
+    ],
+  },
+} as const;
+
+const { block, lede, relatedPosts } = config[slug];
+---
+
+<ServiceDetail
+  service={service}
+  block={block}
+  lede={lede}
+  relatedPosts={[...relatedPosts]}
+/>
+<CtaBanner />

@@ -1,7 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import ServiceDetail from '../../components/ServiceDetail.astro';
-import CtaBanner from '../../components/CtaBanner.astro';
+import ServiceDetailPage from '../../components/ServiceDetailPage.astro';
 import { services } from '../../data/services';
 
 const service = services.find((s) => s.slug === 'local-seo')!;
@@ -12,22 +11,5 @@ const service = services.find((s) => s.slug === 'local-seo')!;
   description={service.shortDescription}
   keywords="local SEO, Google Maps 3-pack, citation building, Google Business Profile, hyper-local rankings, NAP consistency"
 >
-  <ServiceDetail
-    service={service}
-    block="cream"
-    lede="Why local search is the asset, not the ad spend"
-    relatedPosts={[
-      {
-        title: 'Local Citations and NAP Consistency: The Complete Guide',
-        description: 'Why consistent records decide Maps rank — and how to clean them up.',
-        href: '/blog/local-citations-nap-consistency-guide/',
-      },
-      {
-        title: 'Google Review Velocity: The SMS Pipeline That Moves Maps Rankings',
-        description: 'How a steady flow of authentic reviews lifts 3-pack rank.',
-        href: '/blog/google-reviews-velocity-maps-rankings-sms-pipeline/',
-      },
-    ]}
-  />
-  <CtaBanner />
+  <ServiceDetailPage slug="local-seo" />
 </Layout>

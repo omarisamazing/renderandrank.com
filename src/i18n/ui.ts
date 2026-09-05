@@ -38,6 +38,13 @@ export const ui = {
     "pricing.hero.title": "Simple rates, published openly",
     "pricing.hero.sub":
       "A one-time cleanup or a monthly retainer. The same person does the work on every tier.",
+
+    "services.hero.eyebrow": "Services",
+    "services.hero.title": "Built for Maps and for AI answers",
+    "services.hero.sub":
+      "Geographic ranking and generative answers are now the same job. These are the three pieces of it we run.",
+    "services.ui.fullBreakdown": "Full breakdown",
+    "services.ui.included": "Included",
     "hero.proof.calls": "More inbound calls",
     "hero.proof.clicks": "Of local clicks go top-3",
     "hero.proof.audit": "Audit turnaround",
@@ -105,6 +112,13 @@ export const ui = {
     "pricing.hero.title": "Tarifas claras, publicadas abiertamente",
     "pricing.hero.sub":
       "Una limpieza única o un plan mensual. La misma persona hace el trabajo en todos los planes.",
+
+    "services.hero.eyebrow": "Servicios",
+    "services.hero.title": "Pensado para Maps y para las respuestas de IA",
+    "services.hero.sub":
+      "El ranking geográfico y las respuestas generativas ya son el mismo trabajo. Estas son las tres piezas que gestionamos.",
+    "services.ui.fullBreakdown": "Ver el detalle",
+    "services.ui.included": "Incluido",
     "hero.proof.calls": "Más llamadas entrantes",
     "hero.proof.clicks": "De los clics locales van al top-3",
     "hero.proof.audit": "Tiempo de auditoría",
@@ -172,6 +186,13 @@ export const ui = {
     "pricing.hero.title": "Des tarifs simples, publiés ouvertement",
     "pricing.hero.sub":
       "Un nettoyage unique ou un abonnement mensuel. La même personne fait le travail sur chaque formule.",
+
+    "services.hero.eyebrow": "Services",
+    "services.hero.title": "Conçu pour Maps et pour les réponses IA",
+    "services.hero.sub":
+      "Le classement géographique et les réponses génératives ne font plus qu'un. Voici les trois volets que nous pilotons.",
+    "services.ui.fullBreakdown": "Voir le détail",
+    "services.ui.included": "Inclus",
     "hero.proof.calls": "Plus d'appels entrants",
     "hero.proof.clicks": "Des clics locaux vont au top-3",
     "hero.proof.audit": "Délai d'audit",
@@ -239,6 +260,13 @@ export const ui = {
     "pricing.hero.title": "Einfache Preise, offen publiziert",
     "pricing.hero.sub":
       "Einmaliges Cleanup oder monatliches Retainer. Dieselbe Person macht die Arbeit in jeder Stufe.",
+
+    "services.hero.eyebrow": "Leistungen",
+    "services.hero.title": "Gebaut für Maps und für KI-Antworten",
+    "services.hero.sub":
+      "Geografisches Ranking und generative Antworten sind heute ein Job. Das sind die drei Bausteine, die wir umsetzen.",
+    "services.ui.fullBreakdown": "Details ansehen",
+    "services.ui.included": "Enthalten",
     "hero.proof.calls": "Mehr eingehende Anrufe",
     "hero.proof.clicks": "Der lokalen Klicks gehen in die Top 3",
     "hero.proof.audit": "Audit-Bearbeitungszeit",
@@ -306,6 +334,13 @@ export const ui = {
     "pricing.hero.title": "Tariffe semplici, pubblicate apertamente",
     "pricing.hero.sub":
       "Una pulizia una tantum o un canone mensile. La stessa persona fa il lavoro in ogni piano.",
+
+    "services.hero.eyebrow": "Servizi",
+    "services.hero.title": "Costruito per Maps e per le risposte AI",
+    "services.hero.sub":
+      "Il ranking geografico e le risposte generative ormai sono lo stesso lavoro. Questi sono i tre pilastri che gestiamo.",
+    "services.ui.fullBreakdown": "Vedi il dettaglio",
+    "services.ui.included": "Incluso",
     "hero.proof.calls": "Più chiamate in entrata",
     "hero.proof.clicks": "Dei clic locali va nella top-3",
     "hero.proof.audit": "Tempi dell'audit",
@@ -373,6 +408,13 @@ export const ui = {
     "pricing.hero.title": "Preços simples, publicados abertamente",
     "pricing.hero.sub":
       "Uma limpeza única ou uma mensalidade. A mesma pessoa faz o trabalho em todos os planos.",
+
+    "services.hero.eyebrow": "Serviços",
+    "services.hero.title": "Feito para o Maps e para as respostas de IA",
+    "services.hero.sub":
+      "O ranqueamento geográfico e as respostas generativas hoje são o mesmo trabalho. Estas são as três frentes que executamos.",
+    "services.ui.fullBreakdown": "Ver detalhes",
+    "services.ui.included": "Incluído",
     "hero.proof.calls": "Mais chamadas recebidas",
     "hero.proof.clicks": "Dos cliques locais vão para o top-3",
     "hero.proof.audit": "Prazo da auditoria",
@@ -440,6 +482,13 @@ export const ui = {
     "pricing.hero.title": "Eenvoudige tarieven, openlijk gepubliceerd",
     "pricing.hero.sub":
       "Een eenmalige opschoning of een maandelijks abonnement. Dezelfde persoon doet het werk in elke tier.",
+
+    "services.hero.eyebrow": "Diensten",
+    "services.hero.title": "Gebouwd voor Maps en voor AI-antwoorden",
+    "services.hero.sub":
+      "Geografische ranking en generatieve antwoorden zijn nu één taak. Dit zijn de drie onderdelen die wij uitvoeren.",
+    "services.ui.fullBreakdown": "Bekijk details",
+    "services.ui.included": "Inbegrepen",
     "hero.proof.calls": "Meer inkomende oproepen",
     "hero.proof.clicks": "Van de lokale klikken gaat naar top-3",
     "hero.proof.audit": "Doorlooptijd audit",

@@ -1,7 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import ServiceDetail from '../../components/ServiceDetail.astro';
-import CtaBanner from '../../components/CtaBanner.astro';
+import ServiceDetailPage from '../../components/ServiceDetailPage.astro';
 import { services } from '../../data/services';
 
 const service = services.find((s) => s.slug === 'google-maps')!;
@@ -12,22 +11,5 @@ const service = services.find((s) => s.slug === 'google-maps')!;
   description={service.shortDescription}
   keywords="Google Maps 3-pack, Google Business Profile, map pack ranking, review velocity, proximity signals, local pack"
 >
-  <ServiceDetail
-    service={service}
-    block="mint"
-    lede="Three slots decide the whole market"
-    relatedPosts={[
-      {
-        title: 'Google Maps 3-Pack Ranking Factors: The Geo-Grid Method',
-        description: 'How the pack is actually won: proximity, categories, reviews, spam suppression.',
-        href: '/blog/google-maps-3-pack-ranking-factors-geo-grid/',
-      },
-      {
-        title: 'Google Review Velocity: The SMS Pipeline That Moves Maps Rankings',
-        description: 'How a steady flow of authentic reviews lifts 3-pack rank.',
-        href: '/blog/google-reviews-velocity-maps-rankings-sms-pipeline/',
-      },
-    ]}
-  />
-  <CtaBanner />
+  <ServiceDetailPage slug="google-maps" />
 </Layout>

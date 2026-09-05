@@ -1,0 +1,100 @@
+---
+/**
+ * ServicesPage — shared services-overview body for `/services` and every
+ * locale wrapper (`/es/services/` …). Hero and button strings resolve via
+ * `useTranslations` from the URL locale; service data (titles, deliverables,
+ * metrics) is phase-3 (tracked in docs/i18n.md).
+ */
+import Section from './ui/Section.astro';
+import Eyebrow from './ui/Eyebrow.astro';
+import Button from './ui/Button.astro';
+import EcosystemSection from './EcosystemSection.astro';
+import FaqSection from './FaqSection.astro';
+import CtaBanner from './CtaBanner.astro';
+import { services } from '../data/services';
+import { ArrowRight, Check } from '@lucide/astro';
+import { getLangFromUrl, useTranslations } from '../i18n/utils';
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+
+const localize = (href: string) =>
+  lang === 'en' ? href : href === '/' ? `/${lang}/` : `/${lang}${href}`;
+
+// Only the services with a dedicated page get a card here.
+const routed = new Set(['local-seo', 'aeo-geo', 'google-maps']);
+const listed = services.filter((s) => routed.has(s.slug));
+---
+
+<div class="border-b border-hairline bg-canvas py-16 md:py-20">
+  <div class="container-page">
+    <div class="mx-auto max-w-2xl text-center" data-reveal-group>
+      <Eyebrow data-reveal>{t('services.hero.eyebrow')}</Eyebrow>
+      <h1 class="display-lg mt-4 text-ink" data-reveal>
+        {t('services.hero.title')}
+      </h1>
+      <p class="subhead mt-5 text-ink" data-reveal>
+        {t('services.hero.sub')}
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- Service overview cards -->
+<Section divider>
+  <div class="flex flex-col gap-12 md:gap-16">
+    {
+      listed.map((service, i) => (
+        <article
+          id={service.slug}
+          class="grid gap-8 border-b border-hairline pb-12 last:border-b-0 last:pb-0 lg:grid-cols-12 lg:gap-12 md:pb-16"
+          data-reveal-group
+        >
+          <div class="lg:col-span-5" data-reveal>
+            <div class="flex items-baseline gap-3">
+              <span class="caption numeric text-ink">0{i + 1}</span>
+              <Eyebrow>{service.badgeText}</Eyebrow>
+            </div>
+
+            <h2 class="display-md mt-4 text-ink">{service.title}</h2>
+            <p class="body mt-4 text-ink">{service.shortDescription}</p>
+
+            <dl class="mt-7 flex flex-wrap gap-x-8 gap-y-4">
+              {service.metrics.slice(0, 2).map((metric) => (
+                <div>
+                  <dt class="caption text-ink">{metric.label}</dt>
+                  <dd class="stat numeric mt-1 text-ink">{metric.value}</dd>
+                </div>
+              ))}
+            </dl>
+
+            <div class="mt-8 flex flex-wrap items-center gap-3">
+              <Button href={localize(`/services/${service.slug}`)} size="md">
+                <span>{t('services.ui.fullBreakdown')}</span>
+                <ArrowRight class="size-4" aria-hidden="true" />
+              </Button>
+            </div>
+          </div>
+
+          <div class="lg:col-span-7" data-reveal>
+            <div class="rounded-lg border border-hairline bg-surface-soft p-6 md:p-7">
+              <Eyebrow class="block">{t('services.ui.included')}</Eyebrow>
+              <ul class="mt-5 grid gap-x-6 gap-y-3 sm:grid-cols-2">
+                {service.deliverables.map((item) => (
+                  <li class="flex gap-2.5">
+                    <Check class="mt-0.5 size-4 shrink-0 text-success" aria-hidden="true" />
+                    <span class="body-sm text-ink">{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </article>
+      ))
+    }
+  </div>
+</Section>
+
+<EcosystemSection />
+<FaqSection />
+<CtaBanner />

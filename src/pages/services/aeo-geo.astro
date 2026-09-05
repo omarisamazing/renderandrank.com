@@ -1,7 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import ServiceDetail from '../../components/ServiceDetail.astro';
-import CtaBanner from '../../components/CtaBanner.astro';
+import ServiceDetailPage from '../../components/ServiceDetailPage.astro';
 import { services } from '../../data/services';
 
 const service = services.find((s) => s.slug === 'aeo-geo')!;
@@ -12,22 +11,5 @@ const service = services.find((s) => s.slug === 'aeo-geo')!;
   description={service.shortDescription}
   keywords="AEO, GEO, answer engine optimization, generative engine optimization, ChatGPT SEO, Perplexity, Google AI Overviews, AI citations"
 >
-  <ServiceDetail
-    service={service}
-    block="lilac"
-    lede="When the answer replaces the search results"
-    relatedPosts={[
-      {
-        title: 'How ChatGPT Finds Local Businesses: The 4 Pathways of AI Information',
-        description: 'Training, live retrieval, licensing, direct APIs — and how to show up in each.',
-        href: '/blog/ai-visibility-local-business-chatgpt-gemini-perplexity/',
-      },
-      {
-        title: 'Google Maps 3-Pack Ranking Factors: The Geo-Grid Method',
-        description: 'The Maps foundation every AI citation stands on.',
-        href: '/blog/google-maps-3-pack-ranking-factors-geo-grid/',
-      },
-    ]}
-  />
-  <CtaBanner />
+  <ServiceDetailPage slug="aeo-geo" />
 </Layout>
