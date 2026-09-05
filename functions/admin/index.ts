@@ -925,6 +925,14 @@ function renderBookingMeta(b: BookingRow): string {
  */
 const INVISIBLE_SCORE_THRESHOLD = 30;
 
+/** Single-sourced "invisible" predicate (recommendedRank === 'invisible' OR a
+ * numeric score below threshold) — shared by the summary and the trends so
+ * the headline, KPIs, and sparkbars can never disagree. */
+function isInvisibleCheck(p: AiCheckPayload): boolean {
+  const score = typeof p.visibilityScore === 'number' ? p.visibilityScore : null;
+  return p.recommendedRank === 'invisible' || (score !== null && score < INVISIBLE_SCORE_THRESHOLD);
+}
+
 function computeAiCheckSummary(payloads: AiCheckPayload[]): {
   total: number;
   avgScore: number | null;
@@ -954,9 +962,7 @@ function computeAiCheckSummary(payloads: AiCheckPayload[]): {
       scoreSum += score;
       scoreCount += 1;
     }
-    const isInvisible =
-      p.recommendedRank === 'invisible' || (score !== null && score < INVISIBLE_SCORE_THRESHOLD);
-    if (isInvisible) invisibleCount += 1;
+    if (isInvisibleCheck(p)) invisibleCount += 1;
 
     tally(categoryCounts, p.category);
     tally(cityCounts, p.city);
@@ -976,6 +982,93 @@ function computeAiCheckSummary(payloads: AiCheckPayload[]): {
     topCategories: topN(categoryCounts),
     topCities: topN(cityCounts),
   };
+}
+
+/** 7-day trends behind the AI Checker KPIs, computed in-memory from the dated
+ * checks the loader already fetched (no extra queries): daily total counts,
+ * daily invisible counts (same isInvisibleCheck predicate as the summary),
+ * and per-day average scores plus the last-7d / prior-7d score means. Day
+ * keys come from the UTC date prefix of created_at (both ISO and legacy
+ * space-separated stamps are stored UTC, so slicing is exact). */
+function computeAiCheckTrends(checks: Array<{ created_at: string | null; payload: AiCheckPayload }>): {
+  total: FunnelWindow;
+  invisible: FunnelWindow;
+  avgDays: Array<number | null>;
+  avg7: number | null;
+  avgPrev: number | null;
+} {
+  const { floor } = windowBounds();
+  const totalCounts: Record<string, number> = {};
+  const invCounts: Record<string, number> = {};
+  const scoreSum: Record<string, number> = {};
+  const scoreCnt: Record<string, number> = {};
+  for (const { created_at, payload } of checks) {
+    if (!created_at || created_at.length < 10) continue;
+    const day = created_at.slice(0, 10);
+    totalCounts[day] = (totalCounts[day] || 0) + 1;
+    if (isInvisibleCheck(payload)) invCounts[day] = (invCounts[day] || 0) + 1;
+    const s = typeof payload.visibilityScore === 'number' ? payload.visibilityScore : null;
+    if (s !== null && Number.isFinite(s)) {
+      scoreSum[day] = (scoreSum[day] || 0) + s;
+      scoreCnt[day] = (scoreCnt[day] || 0) + 1;
+    }
+  }
+  const keys = last7DayKeys();
+  const avgDays = keys.map((k) => (scoreCnt[k] ? Math.round(scoreSum[k] / scoreCnt[k]) : null));
+  let s7 = 0;
+  let c7 = 0;
+  let sp = 0;
+  let cp = 0;
+  for (const [d, s] of Object.entries(scoreSum)) {
+    if (d >= keys[0]) {
+      s7 += s;
+      c7 += scoreCnt[d];
+    } else if (d >= floor) {
+      sp += s;
+      cp += scoreCnt[d];
+    }
+  }
+  return {
+    total: bucketDays(totalCounts),
+    invisible: bucketDays(invCounts),
+    avgDays,
+    avg7: c7 > 0 ? Math.round(s7 / c7) : null,
+    avgPrev: cp > 0 ? Math.round(sp / cp) : null,
+  };
+}
+
+/** Points delta chip for the average score (▲/▼ N pts vs prior 7d). */
+function avgDeltaChip(avg7: number | null, avgPrev: number | null): string {
+  if (avg7 !== null && avgPrev !== null) {
+    if (avg7 === avgPrev) return monoChip('— flat vs prior 7d');
+    const arrow = avg7 > avgPrev ? '▲' : '▼';
+    return monoChip(`${arrow} ${Math.abs(avg7 - avgPrev)} pts vs prior 7d`);
+  }
+  if (avg7 !== null) return monoChip('New in last 7d');
+  return monoChip('—');
+}
+
+/** Sparkbar for per-day averages (0–100 scale; null days render as stubs).
+ * Same zero-JS div technique as sparkbars, same screen-reader treatment. */
+function avgSpark(days: Array<number | null>, label: string): string {
+  const bars = days
+    .map((v) => {
+      const bar =
+        v !== null
+          ? `<span style="display:block;width:100%;height:${Math.max(
+              12,
+              Math.min(100, v)
+            )}%;border-radius:2px;background:${INK};"></span>`
+          : `<span style="display:block;width:100%;height:2px;border-radius:2px;background:${HAIRLINE};"></span>`;
+      return `<span title="${
+        v !== null ? String(v) : 'no data'
+      }" style="flex:1 1 0;display:flex;align-items:flex-end;min-width:0;height:36px;">${bar}</span>`;
+    })
+    .join('');
+  const text = days.map((v) => (v !== null ? String(v) : '—')).join(', ');
+  return `<div role="img" aria-label="${esc(label)}: ${esc(
+    text
+  )}" style="display:flex;align-items:flex-end;gap:3px;margin-top:10px;">${bars}</div>`;
 }
 
 function renderConvoThread(messages: MessageRow[]): string {
@@ -1025,6 +1118,18 @@ function last7DayKeys(): string[] {
   return keys;
 }
 
+/** Comparison-window bounds: `cutoff` is the first day of the last-7d window,
+ * `floor` the first day of the prior-7d window. Deltas labelled "vs prior 7d"
+ * only ever compare those two windows — older history is excluded. */
+function windowBounds(): { cutoff: string; floor: string } {
+  const keys = last7DayKeys();
+  const cutoff = keys[0];
+  const floor = new Date(new Date(cutoff + 'T00:00:00Z').getTime() - 7 * 86400000)
+    .toISOString()
+    .slice(0, 10);
+  return { cutoff, floor };
+}
+
 /** Bucket GROUP BY day-count rows into a FunnelWindow. Missing days read as
  * zero — honest gaps, never interpolation. Rows older than 14 days are
  * ignored so the prior-7d comparison stays exact. */
@@ -1036,10 +1141,10 @@ function bucketDays(counts: Record<string, number>): FunnelWindow {
   }
   const days = keys.map((k) => bag[k] || 0);
   const last7 = days.reduce((a, b) => a + b, 0);
+  const { cutoff, floor } = windowBounds();
   let prev7 = 0;
-  const cutoff = keys[0];
   for (const [d, n] of Object.entries(bag)) {
-    if (d < cutoff) prev7 += n;
+    if (d < cutoff && d >= floor) prev7 += n;
   }
   return { last7, prev7, days };
 }
@@ -1072,19 +1177,23 @@ async function loadFunnelStats(db: D1Database): Promise<FunnelStats | null> {
   }
 }
 
-/** Delta chip vs the prior 7 days: ▲/▼ + pct, "New" when only the current
- * window has data, "—" when both are empty. Ink mono — the headline carries
- * the attention color, not every chip. */
+/** Shared mono chip shell (ink, tabular numerals) for deltas and states. */
+function monoChip(text: string): string {
+  return `<span style="display:inline-flex;align-items:center;height:22px;padding:0 10px;border-radius:9999px;border:1px solid ${HAIRLINE};background:${CANVAS};font-family:${FONT_MONO};font-size:11px;font-weight:500;letter-spacing:0.04em;color:${INK};font-variant-numeric:tabular-nums;">${esc(text)}</span>`;
+}
+
 function deltaChip(last7: number, prev7: number): string {
-  const style = `display:inline-flex;align-items:center;height:22px;padding:0 10px;border-radius:9999px;border:1px solid ${HAIRLINE};background:${CANVAS};font-family:${FONT_MONO};font-size:11px;font-weight:500;letter-spacing:0.04em;color:${INK};font-variant-numeric:tabular-nums;`;
+  // ▲/▼ + pct vs the prior 7 days; "New" when only the current window has
+  // data, "—" when both are empty. Ink mono — the headline carries the
+  // attention color, not every chip.
   if (prev7 > 0) {
     const pct = Math.round(((last7 - prev7) / prev7) * 100);
-    if (pct === 0) return `<span style="${style}">— flat vs prior 7d</span>`;
+    if (pct === 0) return monoChip('— flat vs prior 7d');
     const arrow = pct > 0 ? '▲' : '▼';
-    return `<span style="${style}">${arrow} ${Math.abs(pct)}% vs prior 7d</span>`;
+    return monoChip(`${arrow} ${Math.abs(pct)}% vs prior 7d`);
   }
-  if (last7 > 0) return `<span style="${style}">New in last 7d</span>`;
-  return `<span style="${style}">—</span>`;
+  if (last7 > 0) return monoChip('New in last 7d');
+  return monoChip('—');
 }
 
 /** 7-bar sparkbar as server-rendered divs (zero JS, CSP-safe). Heights
@@ -1221,16 +1330,31 @@ function renderAiCheckSection(
 
   // --- Summary matrix (computed from the parsed payloads) ---
   const summary = computeAiCheckSummary(checks.map((c) => c.payload));
+  const trends = computeAiCheckTrends(checks);
 
-  // KPI stat card: small uppercase mono label, large numeric value, optional
-  // muted sub-label. Cards live in an even-width responsive grid (see below),
-  // so each fills its track — no wasted whitespace between the three KPIs.
-  const statCard = (label: string, value: string, sub = ''): string =>
-    `<div style="box-sizing:border-box;background:${CANVAS};border:1px solid ${HAIRLINE};border-radius:16px;padding:16px 18px;display:flex;flex-direction:column;gap:6px;">
+  // Takeaway line ([number] + [impact] + [context]): the 7-day invisible
+  // share with the outreach implication. Destructive only when there is
+  // something to act on; otherwise an honest calm line.
+  const inv7 = trends.invisible.last7;
+  const tot7 = trends.total.last7;
+  const takeaway =
+    tot7 === 0
+      ? 'No checks in the last 7 days.'
+      : `${Math.round((inv7 / tot7) * 100)}% invisible in the last 7 days (${inv7} of ${tot7}) — prime outreach targets.`;
+  const takeawayHtml = `<p style="font-size:17px;font-weight:480;line-height:1.45;letter-spacing:-0.008em;margin:0 0 16px;color:${
+    tot7 > 0 && inv7 > 0 ? DESTRUCTIVE : INK
+  };">${esc(takeaway)}</p>`;
+
+  // KPI stat card: small uppercase mono label, large numeric value, muted
+  // sub-label, plus an optional extra block (delta chip + sparkbar) that
+  // shares the funnel-card DNA from the story strip. Value color is carried
+  // by the caller (ink normally, destructive for attention states).
+  const statCard = (label: string, valueHtml: string, sub = '', extra = ''): string =>
+    `<div style="box-sizing:border-box;background:${CANVAS};border:1px solid ${HAIRLINE};border-radius:16px;padding:16px 18px;display:flex;flex-direction:column;">
 <div style="font-family:${FONT_MONO};font-size:10px;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:#55554f;">${esc(label)}</div>
-<div style="font-size:30px;font-weight:450;line-height:1.02;letter-spacing:-0.02em;color:${INK};font-variant-numeric:tabular-nums;">${value}</div>${
-      sub ? `<div style="font-size:12px;font-weight:350;line-height:1.4;color:#6b6b66;">${sub}</div>` : ''
-    }</div>`;
+<div style="font-size:30px;font-weight:450;line-height:1.02;letter-spacing:-0.02em;font-variant-numeric:tabular-nums;margin-top:6px;">${valueHtml}</div>${
+      sub ? `<div style="font-size:12px;font-weight:350;line-height:1.4;color:#6b6b66;margin-top:2px;">${sub}</div>` : ''
+    }${extra}</div>`;
 
   // A ranked-list panel (Top categories / Top cities): titled card containing
   // rows of "label ...... [count badge]" with a subtle proportion bar relative
@@ -1257,15 +1381,36 @@ function renderAiCheckSection(
 </div>`;
   };
 
-  // KPIs: compact, evenly-spaced auto-fit grid so the three cards share the row
-  // without the old flex-basis whitespace gaps.
+  // KPIs: all-time value up top, 7-day story underneath (delta chip +
+  // sparkbar). Invisible goes destructive at >= 50% — the single attention
+  // color on the card row.
   const kpiCards = [
-    statCard('Total checks', String(summary.total)),
-    statCard('Avg. visibility score', summary.avgScore !== null ? String(summary.avgScore) : '—'),
+    statCard(
+      'Total checks',
+      `<span style="color:${INK};">${summary.total}</span>`,
+      `${trends.total.last7} in last 7d`,
+      `<div style="margin-top:8px;">${deltaChip(
+        trends.total.last7,
+        trends.total.prev7
+      )}</div>${sparkbars(trends.total.days, 'Checks per day, last 7 days')}`
+    ),
+    statCard(
+      'Avg. visibility score',
+      `<span style="color:${INK};">${summary.avgScore !== null ? summary.avgScore : '—'}</span>`,
+      trends.avg7 !== null ? `${trends.avg7} avg last 7d` : 'no scored checks last 7d',
+      `<div style="margin-top:8px;">${avgDeltaChip(
+        trends.avg7,
+        trends.avgPrev
+      )}</div>${avgSpark(trends.avgDays, 'Average visibility score per day, last 7 days')}`
+    ),
     statCard(
       'Invisible',
-      String(summary.invisibleCount),
-      `${summary.invisiblePct}% of checks`
+      `<span style="color:${summary.invisiblePct >= 50 ? DESTRUCTIVE : INK};">${summary.invisibleCount}</span>`,
+      `${summary.invisiblePct}% of checks`,
+      `<div style="margin-top:8px;">${deltaChip(
+        trends.invisible.last7,
+        trends.invisible.prev7
+      )}</div>${sparkbars(trends.invisible.days, 'Invisible checks per day, last 7 days')}`
     ),
   ].join('');
   const kpiGrid = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:8px 0 12px;">${kpiCards}</div>`;
@@ -1345,7 +1490,7 @@ function renderAiCheckSection(
 
   const table = `${search}<div class="rr-scroll" style="margin-top:8px;"><table id="ai-check-table" class="rr-table"><thead><tr>${headerCells}</tr></thead><tbody>${bodyRows}</tbody></table></div>${limitNote}`;
 
-  return `<section id="ai-checker" style="margin-top:48px;"><div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:0 0 6px;">${heading}${badge}</div><p style="font-size:16px;font-weight:350;line-height:1.5;letter-spacing:-0.008em;margin:6px 0 20px;">AI Visibility Checker runs, newest first. Use the matrix to see how many businesses are invisible in AI search and where average visibility is weakest, then target those categories and cities in outreach. Search or filter by category to surface the highest-potential prospects.</p>${matrix}${table}</section>`;
+  return `<section id="ai-checker" style="margin-top:48px;"><div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:0 0 6px;">${heading}${badge}</div><p style="font-size:16px;font-weight:350;line-height:1.5;letter-spacing:-0.008em;margin:6px 0 20px;">AI Visibility Checker runs, newest first. Use the matrix to see how many businesses are invisible in AI search and where average visibility is weakest, then target those categories and cities in outreach. Search or filter by category to surface the highest-potential prospects.</p>${takeawayHtml}${matrix}${table}</section>`;
 }
 
 /** Render the table of submissions inside the monochrome editorial shell. */

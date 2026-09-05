@@ -369,7 +369,14 @@ Visibility Checker and presents them three ways:
 
 - **KPI stat-card grid** — headline metrics computed over the checks (total
   checks, average visibility score, and how many businesses are invisible /
-  unmentioned).
+  unmentioned). Each card pairs the all-time value with its 7-day story: a
+  prior-7d delta chip, a server-rendered 7-bar sparkbar (daily counts, or
+  daily average for the score card), and a "N in last 7d" sub-line. A takeaway
+  line above the grid states the 7-day invisible share with the outreach
+  implication (destructive only when there is something to act on). Trends
+  come from `computeAiCheckTrends()` over the already-loaded dated checks —
+  no extra queries — sharing the `isInvisibleCheck()` predicate, `monoChip()`,
+  and sparkbar helpers with the funnel strip.
 - **Ranked-list panels** — ranked breakdowns (e.g. by category and by
   competitor) rendered with count/score badges; long competitor/entity lists
   are truncated to the first few names with the full list shown on hover
