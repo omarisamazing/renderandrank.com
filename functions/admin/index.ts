@@ -919,8 +919,7 @@ function renderBookingMeta(b: BookingRow): string {
  * total checks, average visibility score (rounded, over rows that carry a
  * numeric score), the count/percent of "invisible" checks (recommendedRank
  * === 'invisible' OR visibilityScore < INVISIBLE_SCORE_THRESHOLD), and the top
- * top 5 categories and top 5 searched cities by count (up from 3 — the
- * ranked-list panels in the renderer show a fuller list). Pure computation, no
+ * top 6 categories and top 6 searched cities by count. Pure computation, no
  * HTML — so it stays testable and the renderer just formats the returned data.
  */
 const INVISIBLE_SCORE_THRESHOLD = 30;
@@ -940,6 +939,8 @@ function computeAiCheckSummary(payloads: AiCheckPayload[]): {
   invisiblePct: number;
   topCategories: Array<{ label: string; count: number }>;
   topCities: Array<{ label: string; count: number }>;
+  catOverflow: number;
+  cityOverflow: number;
 } {
   const total = payloads.length;
 
@@ -968,19 +969,24 @@ function computeAiCheckSummary(payloads: AiCheckPayload[]): {
     tally(cityCounts, p.city);
   }
 
+  // Top 6 (rule of three, scaled): the panel shows six rows max and reports
+  // the remainder honestly via the overflow counts below — never a silent cut.
   const topN = (bag: Record<string, number>) =>
     Object.entries(bag)
       .map(([label, count]) => ({ label, count }))
-      .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
-      .slice(0, 5);
+      .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+  const categories = topN(categoryCounts);
+  const cities = topN(cityCounts);
 
   return {
     total,
     avgScore: scoreCount > 0 ? Math.round(scoreSum / scoreCount) : null,
     invisibleCount,
     invisiblePct: total > 0 ? Math.round((invisibleCount / total) * 100) : 0,
-    topCategories: topN(categoryCounts),
-    topCities: topN(cityCounts),
+    topCategories: categories.slice(0, 6),
+    topCities: cities.slice(0, 6),
+    catOverflow: Math.max(0, categories.length - 6),
+    cityOverflow: Math.max(0, cities.length - 6),
   };
 }
 
@@ -1357,10 +1363,18 @@ function renderAiCheckSection(
     }${extra}</div>`;
 
   // A ranked-list panel (Top categories / Top cities): titled card containing
-  // rows of "label ...... [count badge]" with a subtle proportion bar relative
-  // to the top count. Long labels truncate with ellipsis + a title tooltip.
-  const rankPanel = (title: string, items: Array<{ label: string; count: number }>): string => {
-    const inner =
+  // rows of "label … bar … count badge", bar length relative to the top
+  // count. Values sit at the bar end (count badge) with the share-of-total in
+  // the badge tooltip — direct labelling, no hover-required reading. Long
+  // labels truncate with ellipsis + a title tooltip. At most six rows; any
+  // remainder is reported as "+ N more", never silently cut.
+  const rankPanel = (
+    title: string,
+    items: Array<{ label: string; count: number }>,
+    overflow: number,
+    total: number
+  ): string => {
+    const rows =
       items.length === 0
         ? `<div style="font-size:13px;font-weight:350;color:#9a9a93;padding:4px 0;">No data yet</div>`
         : items
@@ -1368,16 +1382,21 @@ function renderAiCheckSection(
               const max = items[0].count || 1;
               const pct = Math.max(6, Math.round((it.count / max) * 100));
               const safeLabel = esc(it.label);
+              const share = total > 0 ? Math.round((it.count / total) * 100) : 0;
               return `<div style="display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid ${HAIRLINE_SOFT};">
 <span title="${safeLabel}" style="flex:1 1 auto;min-width:0;font-size:13px;font-weight:400;color:${INK};letter-spacing:-0.004em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${safeLabel}</span>
-<span aria-hidden="true" style="flex:0 0 44px;height:4px;border-radius:9999px;background:${HAIRLINE_SOFT};overflow:hidden;"><span style="display:block;height:100%;width:${pct}%;background:${BLOCK_LIME};"></span></span>
-<span style="flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:20px;padding:0 8px;border-radius:9999px;background:${SURFACE_SOFT};border:1px solid ${HAIRLINE};font-family:${FONT_MONO};font-size:11px;font-weight:500;font-variant-numeric:tabular-nums;color:${INK};">${esc(String(it.count))}</span>
+<span aria-hidden="true" style="flex:0 0 64px;height:6px;border-radius:9999px;background:${HAIRLINE_SOFT};overflow:hidden;"><span style="display:block;height:100%;width:${pct}%;background:${INK};"></span></span>
+<span title="${esc(String(it.count))} checks (${share}% of total)" style="flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:20px;padding:0 8px;border-radius:9999px;background:${SURFACE_SOFT};border:1px solid ${HAIRLINE};font-family:${FONT_MONO};font-size:11px;font-weight:500;font-variant-numeric:tabular-nums;color:${INK};">${esc(String(it.count))}</span>
 </div>`;
             })
             .join('');
+    const more =
+      overflow > 0
+        ? `<div style="font-family:${FONT_MONO};font-size:11px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;color:#9a9a93;padding:8px 0 0;">+ ${overflow} more</div>`
+        : '';
     return `<div style="box-sizing:border-box;background:${CANVAS};border:1px solid ${HAIRLINE};border-radius:16px;padding:16px 18px;">
 <div style="font-family:${FONT_MONO};font-size:10px;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:#55554f;margin:0 0 8px;">${esc(title)}</div>
-<div>${inner}</div>
+<div>${rows}${more}</div>
 </div>`;
   };
 
@@ -1418,8 +1437,10 @@ function renderAiCheckSection(
   // Ranked-list panels sit in their own two-column grid beneath the KPIs.
   const panels = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin:0 0 24px;">${rankPanel(
     'Top categories',
-    summary.topCategories
-  )}${rankPanel('Top cities', summary.topCities)}</div>`;
+    summary.topCategories,
+    summary.catOverflow,
+    summary.total
+  )}${rankPanel('Top cities', summary.topCities, summary.cityOverflow, summary.total)}</div>`;
 
   const matrix = `${kpiGrid}${panels}`;
 

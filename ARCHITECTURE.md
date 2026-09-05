@@ -380,7 +380,9 @@ Visibility Checker and presents them three ways:
 - **Ranked-list panels** — ranked breakdowns (e.g. by category and by
   competitor) rendered with count/score badges; long competitor/entity lists
   are truncated to the first few names with the full list shown on hover
-  (`title`).
+  (`title`). Category/city panels show six rows max with ink bars, end-value
+  count badges (share-of-total in the tooltip), and an honest "+ N more"
+  footer when truncated.
 - **Searchable data table** — one row per check (time, business, category,
   city, visibility, rank, competitors, visitor location, device). A search box
   (`id="ai-check-search"`) sits directly above the table
