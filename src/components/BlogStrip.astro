@@ -34,8 +34,8 @@ const posts = (await getCollection('blog', ({ data }) => data.draft !== true))
       {posts.map((post) => (
         <a
           href={`/blog/${post.id}/`}
-          class="flex flex-col rounded-lg border border-hairline bg-canvas p-6 transition-colors hover:border-ink/25 md:p-7"
-          data-reveal
+          class="flex flex-col rounded-lg border border-hairline bg-canvas p-6 transition-[transform,border-color] duration-200 motion-safe:hover:-translate-y-1 hover:border-ink/25 md:p-7"
+          data-reveal="pop"
         >
           <h3 class="card-title text-ink">{post.data.title}</h3>
           <p class="body-sm mt-3 text-ink">{post.data.description}</p>

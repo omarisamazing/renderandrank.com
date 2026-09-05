@@ -5,8 +5,12 @@
  *
  * Markup contract:
  *   data-reveal              → fades and rises once, when it enters view
+ *   data-reveal="pop"        → fades + scales from 0.96 (cards, gentle pop-in)
  *   data-reveal-group        → reveals its `data-reveal` descendants in sequence
  *   data-reveal-delay="0.2"  → extra delay, in seconds
+ *   data-ticker="3.8"        → counts up to the target on entry (with
+ *     data-ticker-decimals / data-ticker-prefix / data-ticker-suffix);
+ *     pair with `tabular-nums` so digits don't shift (glossary: number ticker)
  *
  * Two guarantees, because a reveal that fails is content nobody can read:
  *   1. Elements are only hidden when this script is present (`js-motion`), so a
@@ -62,21 +66,84 @@
       el.style.willChange = 'opacity, transform';
     }
 
+    // `pop` variant: gentle scale-in for cards (glossary: pop in, restrained —
+    // no overshoot on editorial surfaces). Default: fade + 14px rise.
     // Animating `transform` wholesale (rather than independent `y`) keeps this
     // on WAAPI and off the main thread.
-    animate(
-      fresh,
-      {
-        opacity: [0, 1],
-        transform: [`translateY(${DISTANCE}px)`, 'translateY(0px)'],
-      },
-      { duration: 0.55, delay, ease: EASE }
-    ).then(() => fresh.forEach(settle));
+    const pops = fresh.filter((el) => el.getAttribute('data-reveal') === 'pop');
+    const rises = fresh.filter((el) => el.getAttribute('data-reveal') !== 'pop');
+    if (rises.length) {
+      animate(
+        rises,
+        {
+          opacity: [0, 1],
+          transform: [`translateY(${DISTANCE}px)`, 'translateY(0px)'],
+        },
+        { duration: 0.55, delay, ease: EASE }
+      ).then(() => rises.forEach(settle));
+    }
+    if (pops.length) {
+      animate(
+        pops,
+        {
+          opacity: [0, 1],
+          transform: ['scale(0.96)', 'scale(1)'],
+        },
+        { duration: 0.5, delay, ease: EASE }
+      ).then(() => pops.forEach(settle));
+    }
+  }
+
+  /** Static ticker values for reduced-motion: final numbers, no counting. */
+  function showTickers() {
+    for (const el of Array.from(
+      document.querySelectorAll<HTMLElement & { _revealed?: boolean }>('[data-ticker]')
+    )) {
+      const target = Number(el.getAttribute('data-ticker'));
+      if (!Number.isFinite(target)) continue;
+      el._revealed = true;
+      const decimals = Number(el.getAttribute('data-ticker-decimals') ?? 0);
+      const prefix = el.getAttribute('data-ticker-prefix') ?? '';
+      const suffix = el.getAttribute('data-ticker-suffix') ?? '';
+      el.textContent = prefix + target.toFixed(decimals) + suffix;
+    }
+  }
+
+  /** Number tickers: count up once on entry. Pair with `tabular-nums` in
+      markup so digits don't shift (glossary pairing, not optional). */
+  function playTickers() {
+    const els = Array.from(
+      document.querySelectorAll<HTMLElement & { _revealed?: boolean }>('[data-ticker]')
+    ).filter((el) => !el._revealed);
+    for (const el of els) {
+      const target = Number(el.getAttribute('data-ticker'));
+      if (!Number.isFinite(target)) continue;
+      el._revealed = true;
+      const decimals = Number(el.getAttribute('data-ticker-decimals') ?? 0);
+      const prefix = el.getAttribute('data-ticker-prefix') ?? '';
+      const suffix = el.getAttribute('data-ticker-suffix') ?? '';
+      inView(
+        el,
+        () => {
+          animate(0, target, {
+            duration: 1.1,
+            ease: EASE,
+            onUpdate: (v) => {
+              el.textContent = prefix + (v as number).toFixed(decimals) + suffix;
+            },
+          });
+        },
+        { amount: 0.6 }
+      );
+    }
   }
 
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     pending.forEach(show);
+    showTickers();
   } else {
+    // Number tickers arm independently of reveals (own inView per element).
+    playTickers();
     // Groups first, so their children are claimed before the standalone pass.
     inView(
       '[data-reveal-group]',

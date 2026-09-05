@@ -8,9 +8,9 @@ const lang = getLangFromUrl(Astro.url);
 const t = useTranslations(lang);
 
 const proof = [
-  { figure: '3.8×', label: t('hero.proof.calls') },
-  { figure: '70%', label: t('hero.proof.clicks') },
-  { figure: '24h', label: t('hero.proof.audit') },
+  { figure: '3.8×', ticker: '3.8', decimals: 1, suffix: '×', label: t('hero.proof.calls') },
+  { figure: '70%', ticker: '70', decimals: 0, suffix: '%', label: t('hero.proof.clicks') },
+  { figure: '24h', ticker: '24', decimals: 0, suffix: 'h', label: t('hero.proof.audit') },
 ];
 ---
 
@@ -52,7 +52,14 @@ const proof = [
       {
         proof.map((item) => (
           <div data-reveal>
-            <dt class="stat text-ink">{item.figure}</dt>
+            <dt
+              class="stat tabular-nums text-ink"
+              data-ticker={item.ticker}
+              data-ticker-decimals={item.decimals}
+              data-ticker-suffix={item.suffix}
+            >
+              {item.figure}
+            </dt>
             <dd class="body-sm mt-2 text-ink">{item.label}</dd>
           </div>
         ))
