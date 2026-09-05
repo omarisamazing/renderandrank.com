@@ -1,0 +1,85 @@
+---
+/**
+ * BlogIndexPage — shared blog index body for `/blog` and every locale wrapper
+ * (`/es/blog/` …). Hero + pillar labels + card chrome resolve via
+ * `useTranslations` / `blogTopicLabel` from the URL locale; post titles,
+ * descriptions and dates stay English (MDX source) until full post
+ * translation. Card links and the ItemList schema use the locale prefix so
+ * every alternate resolves.
+ */
+import { getCollection } from 'astro:content';
+import Eyebrow from './ui/Eyebrow.astro';
+import Section from './ui/Section.astro';
+import CtaBanner from './CtaBanner.astro';
+import { getLangFromUrl, useTranslations, blogTopicLabel } from '../i18n/utils';
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+const prefix = lang === 'en' ? '' : `/${lang}`;
+
+const posts = (await getCollection('blog', ({ data }) => data.draft !== true)).sort(
+  (a, b) => b.data.publishDate.getTime() - a.data.publishDate.getTime()
+);
+
+const pillarIds = ['generative-search', 'local-seo', 'technical-schema', 'commercial'];
+
+const byPillar = pillarIds.map((id) => ({
+  id,
+  label: blogTopicLabel(lang, id),
+  posts: posts.filter((p) => p.data.topic === id),
+}));
+
+const itemListSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'ItemList',
+    itemListElement: posts.map((post, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      url: `https://renderandrank.com${prefix}/blog/${post.id}/`,
+      name: post.data.title,
+    })),
+};
+---
+
+<script type="application/ld+json" set:html={JSON.stringify(itemListSchema)} />
+
+<div class="border-b border-hairline bg-canvas py-16 md:py-20">
+  <div class="container-page">
+    <div class="mx-auto max-w-2xl text-center" data-reveal-group>
+      <Eyebrow data-reveal>{t('blog.index.hero.eyebrow')}</Eyebrow>
+      <h1 class="display-lg mt-4 text-ink" data-reveal>
+        {t('blog.index.hero.title')}
+      </h1>
+      <p class="subhead mt-5 text-ink" data-reveal>
+        {t('blog.index.hero.sub')}
+      </p>
+    </div>
+  </div>
+</div>
+
+{byPillar.map((pillar) => pillar.posts.length > 0 && (
+  <Section divider>
+    <div data-reveal-group>
+      <Eyebrow data-reveal>{pillar.label}</Eyebrow>
+      <h2 class="display-md mt-4 text-ink" data-reveal>{pillar.label}</h2>
+    </div>
+    <div class="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3" data-reveal-group>
+      {pillar.posts.map((post) => (
+        <a
+          href={`${prefix}/blog/${post.id}/`}
+          class="flex flex-col rounded-lg border border-hairline bg-canvas p-6 transition-colors hover:border-ink/25 md:p-7"
+          data-reveal
+        >
+          <p class="eyebrow text-ink">
+            {post.data.publishDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+          </p>
+          <h3 class="card-title mt-3 text-ink">{post.data.title}</h3>
+          <p class="body-sm mt-3 text-ink">{post.data.description}</p>
+          <p class="caption mt-4 text-ink">{t('blog.post.by')} {post.data.author} &middot; {Math.max(1, Math.round((post.body ?? '').split(/\s+/).filter(Boolean).length / 200))} {t('blog.post.minRead')} →</p>
+        </a>
+      ))}
+    </div>
+  </Section>
+))}
+
+<CtaBanner />

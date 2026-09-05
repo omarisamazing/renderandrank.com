@@ -165,6 +165,12 @@ export const LOCALIZED_ROUTES = [
   '/contact',
   '/book-a-call',
   '/about',
+  '/blog',
+  '/blog/ai-visibility-local-business-chatgpt-gemini-perplexity',
+  '/blog/google-maps-3-pack-ranking-factors-geo-grid',
+  '/blog/google-reviews-velocity-maps-rankings-sms-pipeline',
+  '/blog/local-citations-nap-consistency-guide',
+  '/blog/local-seo-pricing-roi-calculator',
 ];
 
 /** Host suffix for Cloudflare Pages staging — never indexed. */

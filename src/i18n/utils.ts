@@ -11,3 +11,16 @@ export function useTranslations(lang: keyof typeof ui) {
     return (ui[lang] as Record<string, string>)[key] ?? (ui[defaultLang] as Record<string, string>)[key] ?? key;
   };
 }
+
+/**
+ * Localised pillar/topic label for the blog (`blog.pillar.<topic-id>`).
+ * Falls back to the EN label, then the raw topic id.
+ */
+export function blogTopicLabel(lang: keyof typeof ui, topic: string): string {
+  const key = `blog.pillar.${topic}`;
+  return (
+    (ui[lang] as Record<string, string>)[key] ??
+    (ui[defaultLang] as Record<string, string>)[key] ??
+    topic
+  );
+}

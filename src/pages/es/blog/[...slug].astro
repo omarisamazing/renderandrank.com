@@ -1,0 +1,37 @@
+---
+import { getCollection, type CollectionEntry } from 'astro:content';
+import Layout from '../../../layouts/Layout.astro';
+import BlogPostPage from '../../../components/BlogPostPage.astro';
+import { blogMeta, type BlogMeta } from '../../../i18n/blogMeta';
+import { getLangFromUrl, blogTopicLabel } from '../../../i18n/utils';
+
+export async function getStaticPaths() {
+  const posts = await getCollection('blog', ({ data }) => data.draft !== true);
+  return posts.map((post) => ({
+    params: { slug: post.id },
+    props: { post },
+  }));
+}
+
+interface Props {
+  post: CollectionEntry<'blog'>;
+}
+
+const { post } = Astro.props;
+const lang = getLangFromUrl(Astro.url);
+const meta: BlogMeta =
+  (blogMeta[lang] as Record<string, BlogMeta>)[post.id] ?? blogMeta.en[post.id];
+const updated = post.data.updatedDate ?? post.data.publishDate;
+---
+
+<Layout
+  title={meta.title}
+  description={meta.description}
+  keywords={meta.keywords}
+  ogType="article"
+  publishedTime={post.data.publishDate.toISOString()}
+  modifiedTime={updated.toISOString()}
+  articleSection={blogTopicLabel(lang, post.data.topic)}
+>
+  <BlogPostPage post={post} localePrefix={`/${lang}`} />
+</Layout>

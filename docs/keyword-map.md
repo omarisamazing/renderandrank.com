@@ -35,8 +35,10 @@ OpenSEO audit pass before each rollout step.
 
 ## Next pages to map (with `keyword-clustering` before writing copy)
 
-Shipped: homepage, `/pricing`, `/services` + 3 detail pages, `/contact` (meta rows in the
-wrappers under `src/pages/{es,fr,de,it,pt,nl}/`). Remaining: `/calculator` +
-`/check` (tool-intent), `/blog`
+Shipped: homepage, `/pricing`, `/services` + 3 detail pages, `/contact`,
+`/book-a-call`, `/about`, `/blog` index + 5 posts (meta rows inline in page
+wrappers, per-slug rows in `src/i18n/blogMeta.ts`). Remaining: phase-3
+body-copy dictionaries + full MDX post translation. Each locale page keeps
+its own keyword row — never reuse the EN term list verbatim.
 pillars. Each locale page gets its own keyword row — never reuse the EN term
 list verbatim.

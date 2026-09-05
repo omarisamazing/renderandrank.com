@@ -68,8 +68,9 @@ Cloudflare D1 database that is surfaced through an internal admin dashboard.
 - `public/admin-filters.js` — dependency-free client script providing shared client-side table filters (search box + categorical filter) for the Leads/Conversations/Bookings admin tables (loaded same-origin by the admin page shell).
 - `migrations/` — D1 SQL migrations (schema history).
 - `public/` — static assets served as-is.
-- `src/i18n/` — locale dictionaries (`ui.ts`: en/es/fr/de/it/pt/nl) + URL helpers (`utils.ts`).
+- `src/i18n/` — locale dictionaries (`ui.ts`: en/es/fr/de/it/pt/nl) + URL helpers (`utils.ts`, incl. `blogTopicLabel`) + per-post meta (`blogMeta.ts`).
 - `src/components/HomePage.astro` — shared homepage composition rendered by `/` and every `/{locale}/` wrapper.
+- `src/components/BlogIndexPage.astro` / `BlogPostPage.astro` — shared blog index + article bodies (`localePrefix` prop keeps breadcrumbs, related links and schema URLs inside the locale); EN routes are thin wrappers, locale routes add transcreated meta from `blogMeta.ts`.
 - `src/components/LanguageSwitcher.astro` — dependency-free locale picker (keeps the current page across locales).
 - `functions/_middleware.ts` — stamps `X-Robots-Tag: noindex` on Functions responses served from `*.pages.dev`.
 
@@ -420,8 +421,9 @@ locales live under prefix subdirectories (`/es/ /fr/ /de/ /it/ /pt/ /nl/`).
   `site` from `PUBLIC_SITE_URL` (default `https://renderandrank.com`).
 - `src/config/site.ts` owns `localeMeta`, `canonicalUrlFor()` (always
   root-anchored), `localizedPath()`, `LOCALIZED_ROUTES` (`/`, `/pricing`,
-  `/services` + 3 detail slugs, `/contact`, `/book-a-call`, `/about` — every
-  path with full 7-locale coverage), and `STAGING_HOST_SUFFIX`.
+  `/services` + 3 detail slugs, `/contact`, `/book-a-call`, `/about`,
+  `/blog` + 5 post slugs — every path with full 7-locale coverage), and
+  `STAGING_HOST_SUFFIX`.
 - `src/layouts/Layout.astro` renders per-locale `<html lang>`, canonical, the
   full hreflang cluster + `x-default` on `LOCALIZED_ROUTES` (self-referential
   hreflang elsewhere), `og:locale` + alternates, dynamic schema `inLanguage`,
