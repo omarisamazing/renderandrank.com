@@ -1,8 +1,7 @@
 ---
 /**
- * Cal.com embed bootstrap. Mounted once per page from the layout.
- *
- * Booking CTAs across the site are plain links to /book-a-call, where the
+ * Cal.com embed bootstrap. Mounted ONLY on /book-a-call (Layout `loadCal`).
+ * Booking CTAs elsewhere are plain links to /book-a-call, where the
  * scheduler is inlined and preloaded via `CalInline.astro` (which reuses the
  * namespace initialised here). There is no click-to-open modal: routing to the
  * dedicated page avoids the click-time embed fetch that made the popup feel
@@ -72,9 +71,9 @@ const { calCom } = siteConfig;
     layout: 'month_view',
   });
 
-  // Warm the booking page on every site visit. CalScript is mounted site-wide
-  // via Layout.astro, so preloading here means the scheduler iframe is already
-  // fetched by the time the visitor reaches /book-a-call. Fire-and-forget; runs
+  // Warm the scheduler iframe early on the booking page. CalScript mounts
+  // ONLY there (Layout `loadCal`), so preloading here means the iframe is
+  // already fetched by the time CalInline mounts below. Fire-and-forget; runs
   // right after the `ui` config, once Cal is initialised for this namespace.
   Cal.ns[namespace]('preload', { calLink: eventLink });
 

@@ -45,6 +45,10 @@ interface Props {
   keywords?: string;
   /** The booking page hides the floating prompt — the calendar is already there. */
   showBookingPrompt?: boolean;
+  /** Load the Cal.com embed (script + preconnect). True ONLY on /book-a-call —
+      every other page links there as a plain navigation, so the third-party
+      chain stays off their critical path entirely. */
+  loadCal?: boolean;
   /** Legal and other non-indexable pages set this to emit a robots noindex tag. */
   noindex?: boolean;
   /** Article pages pass ogType 'article' plus publish/modify dates. */
@@ -58,9 +62,10 @@ const {
   title = `${siteConfig.name} | Local SEO, AEO & Generative Search Engineering`,
   description = siteConfig.description,
   canonical = Astro.url.href,
-  image = "/og-cover.png",
+  image = "/og-cover.jpg",
   keywords = 'local SEO, Google Maps 3-pack, AEO, generative engine optimization, GEO, AI search visibility, ChatGPT SEO, Google Business Profile, citation building, local search engineering',
   showBookingPrompt = true,
+  loadCal = false,
   noindex = false,
   ogType = 'website',
   publishedTime,
@@ -137,8 +142,7 @@ const socialImage = new URL(image, siteConfig.url).href;
     <meta name="color-scheme" content="light" />
     <meta name="theme-color" content="#ffffff" />
 
-    <!-- The scheduler embed and its iframe both come from app.cal.com -->
-    <link rel="preconnect" href="https://app.cal.com" />
+    {loadCal && <link rel="preconnect" href="https://app.cal.com" />}
 
     <!-- Favicons & manifest -->
     <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
@@ -193,7 +197,7 @@ const socialImage = new URL(image, siteConfig.url).href;
     <script type="application/ld+json" set:html={JSON.stringify(structuredData)} />
 
     <Motion />
-    <CalScript />
+    {loadCal && <CalScript />}
   </head>
 
   <body class="bg-canvas text-ink antialiased">

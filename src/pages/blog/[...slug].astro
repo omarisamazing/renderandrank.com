@@ -42,7 +42,7 @@ const blogPostingSchema = {
   '@type': 'BlogPosting',
   headline: post.data.title,
   description: post.data.description,
-  image: `${siteConfig.url}/og-cover.png`,
+  image: `${siteConfig.url}/og-cover.jpg`,
   datePublished: post.data.publishDate.toISOString(),
   dateModified: updated.toISOString(),
   author: {

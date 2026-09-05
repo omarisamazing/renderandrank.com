@@ -75,7 +75,7 @@ const isActive = (href: string) =>
 
       <div class="lg:hidden">
         <MobileNav
-          client:load
+          client:media="(max-width: 1023px)"
           links={navLinks}
           currentPath={currentPath}
           calNamespace={calCom.namespace}
