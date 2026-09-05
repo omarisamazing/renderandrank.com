@@ -352,7 +352,10 @@ Unapplied migrations cause runtime errors.
 renders four sections from D1: **Leads** (from `submissions`),
 **Conversations** (the AI chat, `conversations` + `messages`),
 **Bookings** (from `bookings`), and the **AI Visibility Checks** summary (from
-`funnel_events` rows of `event_type='ai_check'`). A **funnel story strip**
+`funnel_events` rows of `event_type='ai_check'`). The login page is a split
+card — lime brand panel (wordmark + "Every enquiry, check and booking — one
+page." takeaway) beside the password form ("Welcome back"); the panels stack
+via flex-wrap on narrow screens with no media query. A **funnel story strip**
 sits above the sections: last-7-days KPIs for each stage (New leads,
 Conversations, Booked calls) with prior-7d delta chips, server-rendered
 7-bar sparkbars (zero JS, CSP-safe), Leads → chats / Chats → booked

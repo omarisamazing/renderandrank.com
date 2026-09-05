@@ -708,15 +708,21 @@ function renderLogin(error = ''): string {
 
   // Error block reserves its own vertical space via margin only when present,
   // and lives ABOVE the form, so toggling it never shifts the input/button.
+  // Split card: lime brand panel (the DESIGN.md color-block depth device) +
+  // form side. flex-wrap stacks the panels on narrow screens with no media
+  // query. All login semantics (ids, autofocus, aria-describedby, error
+  // placement that never shifts the form) are unchanged.
   const inner = `
-<main style="min-height:100svh;min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;">
-  <div style="width:100%;max-width:400px;box-sizing:border-box;">
-    <div style="display:flex;justify-content:center;margin:0 0 24px;">
-      ${wordmark('clamp(1.75rem,7vw,2.25rem)')}
+<main style="min-height:100svh;min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;background:${SURFACE_SOFT};">
+  <div style="width:100%;max-width:760px;box-sizing:border-box;background:${CANVAS};border:1px solid ${HAIRLINE};border-radius:24px;overflow:hidden;display:flex;flex-wrap:wrap;">
+    <div style="flex:1 1 260px;box-sizing:border-box;background:${BLOCK_LIME};padding:44px 36px;display:flex;flex-direction:column;justify-content:center;gap:18px;min-width:0;">
+      ${wordmark('clamp(1.5rem,4vw,1.75rem)')}
+      <p style="font-size:clamp(1.5rem,3vw,1.75rem);font-weight:450;line-height:1.15;letter-spacing:-0.015em;margin:0;text-wrap:balance;">Every enquiry, check and booking — one page.</p>
+      <p style="font-family:${FONT_MONO};font-size:12px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;margin:0;">Render and Rank · Admin</p>
     </div>
-    <div style="box-sizing:border-box;background:${CANVAS};border:1px solid ${HAIRLINE};border-radius:24px;padding:36px 32px;">
+    <div style="flex:1 1 300px;box-sizing:border-box;padding:44px 36px;min-width:0;">
       <p style="${EYEBROW_STYLE}margin:0 0 14px;">Admin</p>
-      <h1 style="font-size:30px;font-weight:450;line-height:1.12;letter-spacing:-0.015em;margin:0 0 8px;">Sign in</h1>
+      <h1 style="font-size:30px;font-weight:450;line-height:1.12;letter-spacing:-0.015em;margin:0 0 8px;">Welcome back</h1>
       <p style="font-size:17px;font-weight:350;line-height:1.5;letter-spacing:-0.008em;margin:0 0 24px;color:${INK};">Enter the dashboard password to view submissions.</p>
       ${errorBlock}
       <form method="post" action="/admin" style="margin:0;">
