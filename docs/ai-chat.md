@@ -7,7 +7,12 @@ email leads. It is available site-wide through an embedded chat widget.
 
 - **Widget:** `src/components/ChatWidget.astro`
 
-The widget renders the chat UI and streams assistant responses in real time.
+The widget renders the chat UI and streams assistant responses in real time,
+with a typing indicator until the first token, a send button that doubles as
+Stop (AbortController), error bubbles with Try-again (resends without
+duplicating history), and escape-first markdown-lite rendering for assistant
+replies (`code`, **bold**, links, lists, bare site paths — no raw model HTML
+reaches the DOM).
 
 ## Backend
 
@@ -18,10 +23,18 @@ Responsibilities:
 - Streams responses to the client via **Server-Sent Events (SSE)**.
 - Generates replies with **Cloudflare Workers AI** using the model
   `@cf/meta/llama-3.1-8b-instruct-fast`.
+- Grounds every answer in `functions/lib/siteFacts.ts` (services, published
+  prices, booking/contact — single source of truth shared with the voice
+  persona; the assistant quotes real prices and leads with the cheapest
+  option instead of deflecting).
+- Thanks the visitor in-reply when an email is newly captured (lead-ack
+  nudge appended to that turn's system prompt).
 - Persists the conversation into the D1 `conversations` table and each message
-  (user and assistant) into the `messages` table.
+  (user and assistant) into the `messages` table. Numeric stream tokens
+  (prices, counts) arrive as raw JSON numbers and are stringified, not
+  dropped — on both server (persistence) and client (rendering).
 - Captures an email lead into the `submissions` table when a visitor provides
-  their email.
+  their email (trailing punctuation trimmed).
 - Rate-limited via KV using the `RATE_LIMIT` namespace.
 
 ## Data stored
@@ -40,7 +53,9 @@ The visitor-metadata columns on `conversations` were added in **migration 0003**
 
 Mints a short-lived **Gemini Live** ephemeral token so the browser voice
 assistant can open a WebSocket directly, without the server-side
-`GEMINI_API_KEY` ever reaching the client.
+`GEMINI_API_KEY` ever reaching the client. The baked-in persona appends the
+shared `functions/lib/siteFacts.ts` grounding facts, so voice quotes the same
+services and prices as the typed chat.
 
 Responsibilities:
 
