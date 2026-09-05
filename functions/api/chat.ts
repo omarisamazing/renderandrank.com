@@ -16,6 +16,7 @@
  */
 
 import { getVisitorMetadata, type VisitorMetadata } from '../lib/visitor';
+import { SITE_FACTS } from '../lib/siteFacts';
 
 interface Env {
   AI: Ai;
@@ -53,8 +54,8 @@ const RATE_LIMIT_MAX = 30;
 const RATE_LIMIT_WINDOW_SECONDS = 600;
 
 // Business-aware system prompt. The assistant represents Render and Rank and
-// must stay honest: no #1 ranking guarantees, no invented pricing.
-const SYSTEM_PROMPT = [
+// must stay honest: no #1 ranking guarantees, only published pricing.
+const SYSTEM_PROMPT_BASE = [
   'You are Omli, the professional on-site assistant for Render and Rank, a local SEO / AEO / GEO agency. Introduce yourself as "Omli, the Render and Rank assistant". Your job is to help visitors with local SEO / AEO / GEO AND to convert them into leads.',
   'Founder: Omar Ali. Contact email: hello@renderandrank.com. Visitors can book a call via Cal.com at /book-a-call.',
   'Persona: professional, warm, proactive, and confident — a helpful assistant. Briefly answer relevant questions, then keep the conversation moving toward a next step.',
@@ -63,8 +64,11 @@ const SYSTEM_PROMPT = [
   'AEO (Answer Engine Optimization) and GEO (Generative Engine Optimization) mean making a business the answer that tools like Google AI Overviews, ChatGPT, and other assistants recommend — explain this simply when asked.',
   'At natural moments, steer toward a clear call-to-action: invite them to book a call at /book-a-call, or offer to have the team follow up if they share their email. Make the next step easy and specific.',
   'Handle objections warmly (price, timing, skepticism, DIY): acknowledge the concern, reassure with our month-to-month manual approach and honest expectations, and gently guide back toward booking a call or sharing an email.',
-  'GUARDRAILS (never break): Never guarantee #1 rankings or any specific ranking position — talk about improving visibility and results instead. Never invent or quote pricing; if asked about price, invite them to book a call or get in touch so we can scope their needs. Be helpful, concise, and honest. Stay on topic (local SEO / AEO / GEO and how Render and Rank can help).',
+  'GUARDRAILS (never break): Never guarantee #1 rankings or any specific ranking position — talk about improving visibility and results instead. Only quote the published prices in the site facts below; for anything else price-related, invite them to book a call or get in touch so we can scope their needs. Be helpful, concise, and honest. Stay on topic (local SEO / AEO / GEO and how Render and Rank can help).',
 ].join(' ');
+
+// Base prompt + grounded site facts (single-sourced in functions/lib/siteFacts.ts).
+const SYSTEM_PROMPT = `${SYSTEM_PROMPT_BASE}\n\nSite facts — ground every service, pricing, and contact answer in these:\n${SITE_FACTS}`;
 
 function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
@@ -170,6 +174,8 @@ async function getVisitorEmail(
  * If the latest user message contains an email and the conversation has not
  * captured one yet, record it on the conversation and drop a lead into the
  * existing submissions table. Best-effort; every D1 call is guarded.
+ * Returns true when an email was newly captured this turn (drives the
+ * thank-you nudge in the system prompt); false otherwise.
  */
 async function maybeCaptureLead(
   db: D1Database,
@@ -177,16 +183,18 @@ async function maybeCaptureLead(
   isNewConversation: boolean,
   userMessage: string,
   meta: VisitorMetadata
-): Promise<void> {
+): Promise<boolean> {
   const match = userMessage.match(EMAIL_RE);
-  if (!match) return;
-  const email = match[0];
+  if (!match) return false;
+  // Users often write "my email is x@y.z," — strip trailing punctuation so
+  // the stored lead address is clean.
+  const email = match[0].replace(/[.,;:!?)]+$/, '');
 
   // A brand-new conversation has no stored email yet; for an existing one we
   // must check so we don't capture the same lead twice.
   if (!isNewConversation) {
     const existing = await getVisitorEmail(db, conversationId);
-    if (existing) return;
+    if (existing) return false;
   }
 
   try {
@@ -198,6 +206,7 @@ async function maybeCaptureLead(
       .run();
   } catch (err) {
     console.error('D1 update conversation lead failed for conversation ' + conversationId, String(err));
+    return false;
   }
 
   try {
@@ -243,6 +252,9 @@ async function maybeCaptureLead(
   } catch (err) {
     console.error('D1 insert chat lead failed for conversation ' + conversationId, String(err));
   }
+  // Email is recorded on the conversation even if the submissions insert
+  // failed (no duplicate capture next turn) — safe to thank the visitor.
+  return true;
 }
 
 /**
@@ -364,6 +376,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   // Persist conversation + latest user message BEFORE the model call.
   // All guarded internally so failures never block the chat.
+  // leadNewlyCaptured drives a thank-you nudge in the system prompt below.
+  let leadNewlyCaptured = false;
   if (env.DB) {
     const db = env.DB;
     // Always ensure the conversation row exists. The client may send a resumed
@@ -373,7 +387,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     await insertConversation(db, conversationId, meta);
     if (latestUserContent) {
       await insertMessage(db, conversationId, 'user', latestUserContent, 'text');
-      await maybeCaptureLead(
+      leadNewlyCaptured = await maybeCaptureLead(
         db,
         conversationId,
         isNewConversation,
@@ -383,12 +397,20 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
   }
 
+  // System prompt for this turn: grounded base + a one-turn thank-you nudge
+  // when the visitor just shared their email (lead captured above).
+  let systemContent = SYSTEM_PROMPT;
+  if (leadNewlyCaptured) {
+    systemContent +=
+      "\n\nThe visitor just shared their email address (lead captured — no need to ask for it again). Thank them briefly in this reply and confirm the team will follow up, then continue the conversation toward booking a call.";
+  }
+
   // Kick off the streaming model call.
   let aiResult: ReadableStream | Record<string, unknown>;
   try {
     aiResult = await env.AI.run(MODEL, {
       messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'system', content: systemContent },
         ...history,
       ],
       stream: true,
@@ -442,9 +464,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         const payload = line.slice(5).trim();
         if (!payload || payload === '[DONE]') continue;
         try {
-          const parsed = JSON.parse(payload) as { response?: string };
+          const parsed = JSON.parse(payload) as { response?: string | number };
+          // Workers AI may emit a token as a raw JSON number (e.g. prices,
+          // counts) — stringify those instead of dropping them, or "$35"
+          // arrives as "$".
           if (typeof parsed.response === 'string') {
             assistantReply += parsed.response;
+          } else if (typeof parsed.response === 'number') {
+            assistantReply += String(parsed.response);
           }
         } catch {
           // Ignore keep-alives / partial JSON — the client still sees raw bytes.
