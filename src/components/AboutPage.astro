@@ -17,18 +17,9 @@ const lang = getLangFromUrl(Astro.url);
 const t = useTranslations(lang);
 
 const principles = [
-  {
-    title: 'Code and data over adjectives',
-    body: 'Search engines parse schema, entity relationships, citation consistency and geo-signals. They do not read positioning statements. So we build the parseable part properly and skip the rest.',
-  },
-  {
-    title: 'The person you hire is the person who works',
-    body: 'No coordinators relaying messages, no discovery call with a closer followed by delivery from someone else. Omar takes the call and does the work.',
-  },
-  {
-    title: 'Calls are the only metric that pays a mortgage',
-    body: 'Impressions and traffic are diagnostics, not results. We report on calls, booked estimates and closed revenue, and judge the engagement on those.',
-  },
+  { title: t('about.principles.1t'), body: t('about.principles.1b') },
+  { title: t('about.principles.2t'), body: t('about.principles.2b') },
+  { title: t('about.principles.3t'), body: t('about.principles.3b') },
 ];
 ---
 

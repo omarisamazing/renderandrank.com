@@ -20,18 +20,18 @@ const t = useTranslations(lang);
 const { contact, founder, forms } = siteConfig;
 
 const details = [
-  { icon: Phone, label: 'Direct line', value: contact.phone, href: `tel:${contact.phone.replace(/[^\d+]/g, '')}` },
-  { icon: Mail, label: 'Email', value: contact.email, href: `mailto:${contact.email}` },
-  { icon: MapPin, label: 'Based in', value: 'Dhaka, Bangladesh — serving the US, UK & Europe (US virtual office)' },
-  { icon: Clock, label: 'Reply time', value: 'Usually within four business hours' },
+  { icon: Phone, label: t('contact.aside.direct'), value: contact.phone, href: `tel:${contact.phone.replace(/[^\d+]/g, '')}` },
+  { icon: Mail, label: t('contact.aside.email'), value: contact.email, href: `mailto:${contact.email}` },
+  { icon: MapPin, label: t('contact.aside.based'), value: t('contact.aside.basedValue') },
+  { icon: Clock, label: t('contact.aside.reply'), value: t('contact.aside.replyValue') },
 ];
 
 const services = [
-  { value: 'full', label: 'Full local search and AI engine' },
-  { value: 'maps', label: 'Google Maps 3-pack' },
-  { value: 'aeo-geo', label: 'Answer and generative engines' },
-  { value: 'audit', label: 'Free diagnostic audit' },
-  { value: 'other', label: 'Something else' },
+  { value: 'full', label: t('contact.form.optFull') },
+  { value: 'maps', label: t('contact.form.optMaps') },
+  { value: 'aeo-geo', label: t('contact.form.optAeo') },
+  { value: 'audit', label: t('contact.form.optAudit') },
+  { value: 'other', label: t('contact.form.optOther') },
 ];
 
 const inputClass =
@@ -39,6 +39,20 @@ const inputClass =
 
 // Optional Cloudflare Turnstile. Renders only when a public site key is set.
 const turnstileSiteKey = siteConfig.turnstileSiteKey;
+
+// Localised client-side strings, injected into the inline form script via
+// define:vars (the script runs unbundled in the browser — no t() there).
+const formMsgs = {
+  required: t('contact.form.errRequired'),
+  name: t('contact.form.errName'),
+  email: t('contact.form.errEmail'),
+  website: t('contact.form.errWebsite'),
+  location: t('contact.form.errLocation'),
+  message: t('contact.form.errMessage'),
+  phone: t('contact.form.errPhone'),
+  toastSent: t('contact.form.toastSent'),
+  toastFailed: t('contact.form.toastFailed'),
+};
 ---
 
 <!-- Header -->
@@ -135,62 +149,62 @@ const turnstileSiteKey = siteConfig.turnstileSiteKey;
                 <input type="text" name="company" tabindex="-1" autocomplete="off" />
               </label>
             </div>
-            <div>
-              <label for="c-name" class="label block text-ink">
-                Your name<span class="text-destructive" aria-hidden="true"> *</span>
-              </label>
+              <div>
+                <label for="c-name" class="label block text-ink">
+                  {t('contact.form.name')}<span class="text-destructive" aria-hidden="true"> *</span>
+                </label>
               <input id="c-name" name="name" type="text" required autocomplete="name" maxlength="100" placeholder="Jane Doe" class={inputClass} />
               <p class="caption mt-1.5 hidden text-destructive" data-error-for="c-name" role="alert"></p>
             </div>
 
             <div>
-              <label for="c-email" class="label block text-ink">
-                Email<span class="text-destructive" aria-hidden="true"> *</span>
-              </label>
+                <label for="c-email" class="label block text-ink">
+                  {t('contact.form.email')}<span class="text-destructive" aria-hidden="true"> *</span>
+                </label>
               <input id="c-email" name="email" type="email" required autocomplete="email" inputmode="email" spellcheck="false" autocapitalize="none" maxlength="254" placeholder="jane@company.com" class={inputClass} />
               <p class="caption mt-1.5 hidden text-destructive" data-error-for="c-email" role="alert"></p>
             </div>
 
             <div>
-              <label for="c-phone" class="label block text-ink">Phone</label>
+                <label for="c-phone" class="label block text-ink">{t('contact.form.phone')}</label>
               <input id="c-phone" name="phone" type="tel" autocomplete="tel" inputmode="tel" maxlength="20" placeholder="(555) 000-0000" class={inputClass} />
             </div>
 
             <div>
-              <label for="c-website" class="label block text-ink">
-                Website<span class="text-destructive" aria-hidden="true"> *</span>
-              </label>
+                <label for="c-website" class="label block text-ink">
+                  {t('contact.form.website')}<span class="text-destructive" aria-hidden="true"> *</span>
+                </label>
               <input id="c-website" name="website" type="text" required autocomplete="url" spellcheck="false" autocapitalize="none" maxlength="200" placeholder="company.com" class={inputClass} />
               <p class="caption mt-1.5 hidden text-destructive" data-error-for="c-website" role="alert"></p>
             </div>
 
             <div>
-              <label for="c-service" class="label block text-ink">What you need</label>
+                <label for="c-service" class="label block text-ink">{t('contact.form.service')}</label>
               <select id="c-service" name="service" class={`${inputClass} select-field`}>
                 {services.map((s) => <option value={s.value}>{s.label}</option>)}
               </select>
             </div>
 
             <div>
-              <label for="c-location" class="label block text-ink">
-                Target city<span class="text-destructive" aria-hidden="true"> *</span>
-              </label>
-              <input id="c-location" name="location" type="text" required autocomplete="address-level2" maxlength="120" placeholder="City, Country (e.g. London, UK)" class={inputClass} />
+                <label for="c-location" class="label block text-ink">
+                  {t('contact.form.location')}<span class="text-destructive" aria-hidden="true"> *</span>
+                </label>
+                <input id="c-location" name="location" type="text" required autocomplete="address-level2" maxlength="120" placeholder={t('contact.form.phLocation')} class={inputClass} />
               <p class="caption mt-1.5 hidden text-destructive" data-error-for="c-location" role="alert"></p>
             </div>
 
             <div class="sm:col-span-2">
-              <label for="c-message" class="label block text-ink">
-                How can we help?<span class="text-destructive" aria-hidden="true"> *</span>
-              </label>
-              <textarea
-                id="c-message"
-                name="message"
-                rows="5"
-                required
-                maxlength="5000"
-                placeholder="Where you rank now, who is beating you, what you want to change."
-                class={inputClass}></textarea>
+                <label for="c-message" class="label block text-ink">
+                  {t('contact.form.message')}<span class="text-destructive" aria-hidden="true"> *</span>
+                </label>
+                <textarea
+                  id="c-message"
+                  name="message"
+                  rows="5"
+                  required
+                  maxlength="5000"
+                  placeholder={t('contact.form.phMessage')}
+                  class={inputClass}></textarea>
               <p class="caption mt-1.5 hidden text-destructive" data-error-for="c-message" role="alert"></p>
             </div>
 
@@ -213,12 +227,12 @@ const turnstileSiteKey = siteConfig.turnstileSiteKey;
           >
             <div class="flex gap-3.5">
               <CircleCheck class="mt-0.5 size-5 shrink-0 text-success" aria-hidden="true" />
-              <div>
-                <p class="card-title text-ink" data-success-title>Message sent — thank you.</p>
-                <p class="body-sm mt-1.5 text-ink" data-success-body>
-                  It reached Omar directly. Expect a reply within four business hours.
-                </p>
-              </div>
+                <div>
+                  <p class="card-title text-ink" data-success-title>{t('contact.form.successTitle')}</p>
+                  <p class="body-sm mt-1.5 text-ink" data-success-body>
+                    {t('contact.form.successBody')}
+                  </p>
+                </div>
             </div>
           </div>
         </div>
@@ -229,11 +243,11 @@ const turnstileSiteKey = siteConfig.turnstileSiteKey;
 
 {turnstileSiteKey && <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>}
 
-<script is:inline define:vars={{ inbox: contact.email }}>
-  // This script uses define:vars (for `inbox`), so Astro renders it inline and
-  // does NOT bundle it — an ESM `import` of getClientVisitorData would not
-  // resolve in the browser. We inline an equivalent runtime collector that runs
-  // in the browser at submit time.
+<script is:inline define:vars={{ inbox: contact.email, msgs: formMsgs }}>
+  // This script uses define:vars (for `inbox` and the localised `msgs`), so
+  // Astro renders it inline and does NOT bundle it — an ESM `import` of
+  // getClientVisitorData would not resolve in the browser. We inline an
+  // equivalent runtime collector that runs in the browser at submit time.
   function getClientVisitorData() {
     const params = new URLSearchParams(window.location.search);
     return {
@@ -274,23 +288,24 @@ const turnstileSiteKey = siteConfig.turnstileSiteKey;
 
   if (form && success) {
     // Validation rules — mirrored on the server in functions/api/contact.ts.
+    // Messages arrive localised via define:vars (`msgs`).
     const RULES = {
       name: {
         test: (v) => /^\p{L}[\p{L}.'-]*(?:\s+\p{L}[\p{L}.'-]*)+$/u.test(v),
-        msg: 'Enter your first and last name.',
+        msg: msgs.name,
       },
       email: {
         test: (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v),
-        msg: 'Enter a valid email, like name@company.com.',
+        msg: msgs.email,
       },
       website: {
         test: (v) => /^(https?:\/\/)?([\w-]+\.)+[a-z]{2,}(\/\S*)?$/i.test(v),
-        msg: 'Enter a valid website, like company.com.',
+        msg: msgs.website,
       },
-      location: { test: (v) => v.length >= 2, msg: 'Enter your target city.' },
+      location: { test: (v) => v.length >= 2, msg: msgs.location },
       message: {
         test: (v) => v.length >= 10,
-        msg: 'Add a little more detail (at least 10 characters).',
+        msg: msgs.message,
       },
       phone: {
         optional: true,
@@ -298,7 +313,7 @@ const turnstileSiteKey = siteConfig.turnstileSiteKey;
           const d = v.replace(/\D/g, '');
           return d.length >= 7 && d.length <= 15;
         },
-        msg: 'Enter a valid phone number with area code.',
+        msg: msgs.phone,
       },
     };
 
@@ -311,7 +326,7 @@ const turnstileSiteKey = siteConfig.turnstileSiteKey;
       const rule = RULES[field.name];
       if (!rule) return null;
       const value = field.value.trim();
-      if (!value) return rule.optional ? null : 'This one is required.';
+      if (!value) return rule.optional ? null : msgs.required;
       return rule.test(value) ? null : rule.msg;
     }
 
@@ -372,11 +387,11 @@ const turnstileSiteKey = siteConfig.turnstileSiteKey;
           `?subject=${encodeURIComponent('Enquiry from ' + data.get('website'))}` +
           `&body=${encodeURIComponent(body)}`;
 
-        window.dispatchEvent(new CustomEvent('show-toast', { detail: { message: "Couldn't reach the server — we've opened your email app so you can send it directly.", type: 'error' } }));
+        window.dispatchEvent(new CustomEvent('show-toast', { detail: { message: msgs.toastFailed, type: 'error' } }));
       };
 
       const showSent = () => {
-        window.dispatchEvent(new CustomEvent('show-toast', { detail: { message: "Message sent! Omar will personally reply within 1 business day.", type: 'success' } }));
+        window.dispatchEvent(new CustomEvent('show-toast', { detail: { message: msgs.toastSent, type: 'success' } }));
         form.reset();
         if (submitBtn) {
           submitBtn.removeAttribute('disabled');

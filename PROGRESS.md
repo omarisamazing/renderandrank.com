@@ -14,6 +14,7 @@ AI Visibility Checker (free-tier Google Gemini + Cloudflare Workers AI) and conn
 
 ## Done
 
+- **i18n phase 3a: contact/book-a-call/about bodies localized (committed, pushed)**: ~50 new dictionary keys × 7 locales (contact labels/options/placeholders/validation/success/toasts/aside, book-a-call agenda/guarantee, about cards). Verified: typecheck 0 errors, 112-page build, locale + EN-stability + no-leakage asserts, entity tests 21/21.
 - **Multilingual batch 6: blog index + 5 posts in 7 locales — page rollout COMPLETE (committed, pushed)**: shared BlogIndexPage/BlogPostPage components (localized hero/pillars/chrome, locale-internal links + schema URLs), blogMeta.ts per-slug transcreated meta, blogTopicLabel() helper, 36 locale wrappers, `LOCALIZED_ROUTES` extended to `/blog` + 5 slugs. Verified: typecheck 0 errors, 112-page build, 6/6 locale index + post head tags + 7/7 sitemap entries per slug asserted, EN post unchanged, entity tests 21/21. Article bodies/titles/FAQ stay English until full post translation.
 - **Multilingual batch 5: about in 7 locales (committed, pushed)**: shared AboutPage component (localized hero + principles headers via `about.*` keys), 6 locale wrappers with transcreated meta, `LOCALIZED_ROUTES` extended to `/about`. Verified: typecheck 0 errors, 76-page build, EN + 6/6 locale head tags + 7/7 sitemap entries asserted, entity tests 21/21. Principle cards/Founder/Testimonials/CtaBanner bodies English until phase 3.
 - **Multilingual batch 4: book-a-call in 7 locales (committed, pushed)**: shared BookCallPage component (localized hero via `bookcall.hero.*` keys with `{duration}` placeholder), 6 locale wrappers with transcreated meta, `LOCALIZED_ROUTES` extended to `/book-a-call`. Verified: typecheck 0 errors, 70-page build, EN/ES/DE head tags + 6/6 H1s + 7/7 sitemap entries asserted, entity tests 21/21. Agenda/host-card/guarantee/Cal embed English until phase 3.
@@ -62,7 +63,7 @@ AI Visibility Checker (free-tier Google Gemini + Cloudflare Workers AI) and conn
 
 ## In progress / Next up
 
-- **i18n phase 3** (page rollout complete — 112 pages): body-copy dictionaries in reviewed slices — 3a: page completions (contact form, book-a-call agenda/guarantee, about cards); 3b: shared sections (Founder/Testimonials/Faq/CtaBanner/PricingSection); 3c: services.ts + pricing matrix/timeline + detail H1s; 3d: full MDX post translation. Each slice spans all 6 locales + head-tag assertions.
+- **i18n phase 3 remaining** (3a done): 3b shared sections (Founder/Testimonials/Faq/CtaBanner/PricingSection — EN-stability critical, they render on money pages); 3c services.ts + pricing matrix/timeline + detail H1s (largest slice); 3d full MDX post translation (editorial, needs keyword research per locale first).
 - **OpenSEO MCP runs** (needs client-side auth: OAuth login or `oseo_` key): `whoami` → project setup → `research_keywords` per locale (seeds in `docs/keyword-map.md`) → `keyword-clustering` → `seo-audit` verification pass.
 - Type/diagnostic verification is available via `npm run typecheck` (`astro check && tsc --noEmit`).
 - Set `CALCOM_API_KEY` secret (local `.dev.vars` + remote via `npx wrangler pages secret put CALCOM_API_KEY`) and test a real booking end-to-end.

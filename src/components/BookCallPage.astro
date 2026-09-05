@@ -20,22 +20,10 @@ const t = useTranslations(lang);
 const { calCom, founder, contact } = siteConfig;
 
 const agenda = [
-  {
-    title: 'Live geo-grid audit',
-    body: 'We sample your rank across your service radius while you watch, and find where the calls stop.',
-  },
-  {
-    title: 'Answer-engine check',
-    body: 'We ask ChatGPT and Gemini your category questions in real time and see whether you come up.',
-  },
-  {
-    title: 'Competitor review',
-    body: 'Which competitors are breaking Google guidelines, and which positions are realistically winnable.',
-  },
-  {
-    title: 'A ninety-day plan',
-    body: 'Deliverables, sequence and what call volume to expect. Yours to keep either way.',
-  },
+  { title: t('bookcall.agenda.1t'), body: t('bookcall.agenda.1b') },
+  { title: t('bookcall.agenda.2t'), body: t('bookcall.agenda.2b') },
+  { title: t('bookcall.agenda.3t'), body: t('bookcall.agenda.3b') },
+  { title: t('bookcall.agenda.4t'), body: t('bookcall.agenda.4b') },
 ];
 ---
 
@@ -65,12 +53,12 @@ const agenda = [
     <div class="mt-16 mx-auto max-w-5xl border-t border-hairline pt-12 md:pt-16" data-reveal-group>
       <div class="grid gap-10 lg:grid-cols-12 lg:gap-12">
         <!-- Left: Agenda (col-span-7) -->
-        <div class="lg:col-span-7" data-reveal>
-          <Eyebrow>Diagnostic review</Eyebrow>
-          <h2 class="card-title mt-2 text-ink">What happens on the call</h2>
-          <p class="body-sm mt-2 text-ink">
-            This is a hands-on technical diagnostic. We look at real search telemetry and leave you with actionable data.
-          </p>
+          <div class="lg:col-span-7" data-reveal>
+            <Eyebrow>{t('bookcall.agenda.eyebrow')}</Eyebrow>
+            <h2 class="card-title mt-2 text-ink">{t('bookcall.agenda.title')}</h2>
+            <p class="body-sm mt-2 text-ink">
+              {t('bookcall.agenda.sub')}
+            </p>
 
           <ol class="mt-6 flex flex-col gap-5">
             {
@@ -132,13 +120,13 @@ const agenda = [
 
           <!-- Guarantee Box -->
           <div class="rounded-lg bg-block-lime p-5">
-            <p class="label inline-flex items-center gap-2 font-semibold text-ink">
-              <Check class="size-4 shrink-0" aria-hidden="true" />
-              No pitch promise
-            </p>
-            <p class="body-sm mt-1.5 text-ink">
-              This is a diagnostic, not a sales pitch. If we are not the right fit for your local market, we will say so honestly and point you to better alternatives.
-            </p>
+              <p class="label inline-flex items-center gap-2 font-semibold text-ink">
+                <Check class="size-4 shrink-0" aria-hidden="true" />
+                {t('bookcall.guarantee.title')}
+              </p>
+              <p class="body-sm mt-1.5 text-ink">
+                {t('bookcall.guarantee.body')}
+              </p>
           </div>
         </div>
       </div>
