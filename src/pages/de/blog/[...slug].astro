@@ -3,10 +3,10 @@ import { getCollection, type CollectionEntry } from 'astro:content';
 import Layout from '../../../layouts/Layout.astro';
 import BlogPostPage from '../../../components/BlogPostPage.astro';
 import { blogMeta, type BlogMeta } from '../../../i18n/blogMeta';
-import { getLangFromUrl, blogTopicLabel } from '../../../i18n/utils';
+import { getLangFromUrl, blogTopicLabel, isBasePost } from '../../../i18n/utils';
 
 export async function getStaticPaths() {
-  const posts = await getCollection('blog', ({ data }) => data.draft !== true);
+  const posts = await getCollection('blog', (entry) => entry.data.draft !== true && isBasePost(entry));
   return posts.map((post) => ({
     params: { slug: post.id },
     props: { post },
@@ -20,7 +20,14 @@ interface Props {
 const { post } = Astro.props;
 const lang = getLangFromUrl(Astro.url);
 const meta: BlogMeta =
-  (blogMeta[lang] as Record<string, BlogMeta>)[post.id] ?? blogMeta.en[post.id];
+  (blogMeta[lang] as Record<string, BlogMeta>)[post.id] ??
+  blogMeta.en[post.id] ?? {
+    // Unreachable for known slugs (LOCALIZED_ROUTES guarantees a meta row),
+    // but a missing row must never 500 the build — fall back to entry data.
+    title: post.data.title,
+    description: post.data.description,
+    keywords: '',
+  };
 const updated = post.data.updatedDate ?? post.data.publishDate;
 ---
 

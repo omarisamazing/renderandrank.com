@@ -1,12 +1,13 @@
 ---
 import { getCollection } from 'astro:content';
+import { isBasePost } from '../../i18n/utils';
 import Layout from '../../layouts/Layout.astro';
 import Eyebrow from '../../components/ui/Eyebrow.astro';
 import Section from '../../components/ui/Section.astro';
 import CtaBanner from '../../components/CtaBanner.astro';
 import { siteConfig } from '../../config/site';
 
-const posts = (await getCollection('blog', ({ data }) => data.draft !== true)).sort(
+const posts = (await getCollection('blog', (entry) => entry.data.draft !== true && isBasePost(entry))).sort(
   (a, b) => b.data.publishDate.getTime() - a.data.publishDate.getTime()
 );
 

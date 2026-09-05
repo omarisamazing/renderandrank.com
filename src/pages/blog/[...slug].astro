@@ -3,11 +3,11 @@ import { getCollection, type CollectionEntry } from 'astro:content';
 import Layout from '../../layouts/Layout.astro';
 import BlogPostPage from '../../components/BlogPostPage.astro';
 import { siteConfig } from '../../config/site';
-import { blogTopicLabel } from '../../i18n/utils';
+import { blogTopicLabel, isBasePost } from '../../i18n/utils';
 import { defaultLang } from '../../i18n/ui';
 
 export async function getStaticPaths() {
-  const posts = await getCollection('blog', ({ data }) => data.draft !== true);
+  const posts = await getCollection('blog', (entry) => entry.data.draft !== true && isBasePost(entry));
   return posts.map((post) => ({
     params: { slug: post.id },
     props: { post },

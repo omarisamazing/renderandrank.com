@@ -24,3 +24,19 @@ export function blogTopicLabel(lang: keyof typeof ui, topic: string): string {
     topic
   );
 }
+
+/**
+ * Base-post entries only. Translated siblings live beside their source as
+ * `<slug>.<locale>.md` (same collection) — and Astro's content layer mangles
+ * that into a dotless id (`foo.es.md` → id `fooes`), so the id alone CANNOT
+ * tell them apart. Match on `filePath` instead, which keeps the real
+ * filename. Listings, static paths, RSS and related-post pools must exclude
+ * siblings or every translation surfaces as a phantom duplicate post
+ * (verified the hard way: a `/blog/…perplexityes/` route that 500'd the
+ * build on a missing meta row).
+ */
+export function isBasePost(entry: { id: string; filePath?: string }): boolean {
+  if (entry.filePath && /\.[a-z]{2}\.md$/i.test(entry.filePath)) return false;
+  if (/\.[a-z]{2}$/.test(entry.id)) return false;
+  return true;
+}

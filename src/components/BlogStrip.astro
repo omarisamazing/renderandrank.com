@@ -5,10 +5,11 @@
  * and the calculator so the argument flows: proof → learn → measure.
  */
 import { getCollection } from 'astro:content';
+import { isBasePost } from '../i18n/utils';
 import Section from './ui/Section.astro';
 import Eyebrow from './ui/Eyebrow.astro';
 
-const posts = (await getCollection('blog', ({ data }) => data.draft !== true))
+const posts = (await getCollection('blog', (entry) => entry.data.draft !== true && isBasePost(entry)))
   .sort((a, b) => b.data.publishDate.getTime() - a.data.publishDate.getTime())
   .slice(0, 3);
 ---

@@ -14,7 +14,7 @@ import Eyebrow from './ui/Eyebrow.astro';
 import Button from './ui/Button.astro';
 import CtaBanner from './CtaBanner.astro';
 import { siteConfig } from '../config/site';
-import { getLangFromUrl, useTranslations, blogTopicLabel } from '../i18n/utils';
+import { getLangFromUrl, useTranslations, blogTopicLabel, isBasePost } from '../i18n/utils';
 
 interface Props {
   post: CollectionEntry<'blog'>;
@@ -24,13 +24,24 @@ interface Props {
 const { post, localePrefix } = Astro.props;
 const lang = getLangFromUrl(Astro.url);
 const t = useTranslations(lang);
-const topicLabel = blogTopicLabel(lang, post.data.topic);
 
-const { Content, headings } = await render(post);
+// Sibling resolution lives HERE (not in getStaticPaths, which has no URL):
+// `<slug>.<locale>.md` wins when present, matched on filePath because the
+// content layer mangles the id (`foo.es.md` → id `fooes` — getEntry on the
+// dotted form misses). Otherwise the EN base post renders in locale chrome.
+const allEntries = await getCollection('blog', ({ data }) => data.draft !== true);
+const sibling =
+  lang === 'en'
+    ? undefined
+    : allEntries.find((p) => p.filePath?.endsWith(`${post.id}.${lang}.md`));
+const entry = sibling ?? post;
+const topicLabel = blogTopicLabel(lang, entry.data.topic);
 
-const updated = post.data.updatedDate ?? post.data.publishDate;
-const wordCount = (post.body ?? '').split(/\s+/).filter(Boolean).length;
-const readingMinutes = post.data.readingMinutes ?? Math.max(1, Math.round(wordCount / 200));
+const { Content, headings } = await render(entry);
+
+const updated = entry.data.updatedDate ?? entry.data.publishDate;
+const wordCount = (entry.body ?? '').split(/\s+/).filter(Boolean).length;
+const readingMinutes = entry.data.readingMinutes ?? Math.max(1, Math.round(wordCount / 200));
 const url = `${siteConfig.url}${localePrefix}/blog/${post.id}/`;
 
 const h2s = headings.filter((h) => h.depth === 2);
@@ -38,10 +49,10 @@ const h2s = headings.filter((h) => h.depth === 2);
 const blogPostingSchema = {
   '@context': 'https://schema.org',
   '@type': 'BlogPosting',
-  headline: post.data.title,
-  description: post.data.description,
+  headline: entry.data.title,
+  description: entry.data.description,
   image: `${siteConfig.url}/og-cover.jpg`,
-  datePublished: post.data.publishDate.toISOString(),
+  datePublished: entry.data.publishDate.toISOString(),
   dateModified: updated.toISOString(),
   author: {
     '@type': 'Person',
@@ -57,7 +68,7 @@ const blogPostingSchema = {
   publisher: { '@id': `${siteConfig.url}/#business` },
   mainEntityOfPage: { '@type': 'WebPage', '@id': url },
   articleSection: topicLabel,
-  inLanguage: 'en-US',
+  inLanguage: lang === 'en' ? 'en-US' : lang,
 };
 
 const breadcrumbSchema = {
@@ -66,16 +77,16 @@ const breadcrumbSchema = {
   itemListElement: [
     { '@type': 'ListItem', position: 1, name: t('nav.home'), item: `${siteConfig.url}${localePrefix}/` },
     { '@type': 'ListItem', position: 2, name: 'Blog', item: `${siteConfig.url}${localePrefix}/blog` },
-    { '@type': 'ListItem', position: 3, name: post.data.title, item: url },
+    { '@type': 'ListItem', position: 3, name: entry.data.title, item: url },
   ],
 };
 
 const faqSchema =
-  post.data.faq.length > 0
+  entry.data.faq.length > 0
     ? {
         '@context': 'https://schema.org',
         '@type': 'FAQPage',
-        mainEntity: post.data.faq.map((faq) => ({
+        mainEntity: entry.data.faq.map((faq) => ({
           '@type': 'Question',
           name: faq.q,
           acceptedAnswer: { '@type': 'Answer', text: faq.a },
@@ -83,13 +94,13 @@ const faqSchema =
       }
     : null;
 
-// Related posts: explicit slugs first, then same-topic fill.
-const allPosts = await getCollection('blog', ({ data }) => data.draft !== true);
+// Related posts: explicit slugs first, then same-topic fill (base posts only).
+const allPosts = allEntries.filter(isBasePost);
 const bySlug = new Map(allPosts.map((p) => [p.id, p]));
 const related = [
-  ...post.data.related.map((slug) => bySlug.get(slug)).filter((p) => p && p.id !== post.id),
+  ...entry.data.related.map((slug) => bySlug.get(slug)).filter((p) => p && p.id !== post.id),
   ...allPosts.filter(
-    (p) => p.id !== post.id && p.data.topic === post.data.topic && !post.data.related.includes(p.id)
+    (p) => p.id !== post.id && p.data.topic === entry.data.topic && !entry.data.related.includes(p.id)
   ),
 ].slice(0, 3);
 ---
@@ -111,19 +122,19 @@ const related = [
         </ol>
       </nav>
       <Eyebrow data-reveal>{topicLabel}</Eyebrow>
-      <h1 class="display-lg mt-4 text-ink" data-reveal>{post.data.title}</h1>
-      <p class="subhead mt-5 text-ink" data-reveal>{post.data.description}</p>
+      <h1 class="display-lg mt-4 text-ink" data-reveal>{entry.data.title}</h1>
+      <p class="subhead mt-5 text-ink" data-reveal>{entry.data.description}</p>
       <p class="body-sm mt-6 text-ink" data-reveal>
-        {t('blog.post.by')} <a href="/author/omar-ali" class="font-medium underline underline-offset-4">{post.data.author}</a>
+        {t('blog.post.by')} <a href="/author/omar-ali" class="font-medium underline underline-offset-4">{entry.data.author}</a>
         <span aria-hidden="true"> · </span>
-        <time datetime={post.data.publishDate.toISOString()}>
-          {post.data.publishDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+        <time datetime={entry.data.publishDate.toISOString()}>
+          {entry.data.publishDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
         </time>
-        {post.data.updatedDate && (
+        {entry.data.updatedDate && (
           <span>
             <span aria-hidden="true"> · </span>
-            {t('blog.post.updated')} <time datetime={post.data.updatedDate.toISOString()}>
-              {post.data.updatedDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+            {t('blog.post.updated')} <time datetime={entry.data.updatedDate.toISOString()}>
+              {entry.data.updatedDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
             </time>
           </span>
         )}
@@ -160,7 +171,7 @@ const related = [
   </div>
 </Section>
 
-{post.data.faq.length > 0 && (
+{entry.data.faq.length > 0 && (
   <Section divider>
     <div class="mx-auto max-w-3xl">
       <div data-reveal-group>
@@ -168,7 +179,7 @@ const related = [
         <h2 class="display-md mt-4 text-ink" data-reveal>{t('blog.post.faqTitle')}</h2>
       </div>
       <dl class="mt-10 flex flex-col divide-y divide-hairline border-y border-hairline">
-        {post.data.faq.map((faq) => (
+        {entry.data.faq.map((faq) => (
           <div class="py-7">
             <dt class="card-title text-ink">{faq.q}</dt>
             <dd class="body mt-3 text-ink">{faq.a}</dd>
@@ -185,17 +196,17 @@ const related = [
     <div class="mx-auto max-w-2xl text-center" data-reveal-group>
       <Eyebrow tone="on-block" data-reveal>{t('blog.post.ctaEyebrow')}</Eyebrow>
       <h2 class="display-md mt-4 text-ink" data-reveal>
-        {post.data.cta?.title ?? 'See what AI says about your business'}
+        {entry.data.cta?.title ?? 'See what AI says about your business'}
       </h2>
       <p class="subhead mt-4 text-ink" data-reveal>
-        {post.data.cta?.body ?? 'Run the free checker to see if answer engines recommend you — or send your buyers to competitors.'}
+        {entry.data.cta?.body ?? 'Run the free checker to see if answer engines recommend you — or send your buyers to competitors.'}
       </p>
       <div class="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center" data-reveal>
-        <Button href={post.data.cta?.primaryHref ?? '/check'} variant="primary" size="lg">
-          {post.data.cta?.primaryLabel ?? 'Run the free AI check'}
+        <Button href={entry.data.cta?.primaryHref ?? '/check'} variant="primary" size="lg">
+          {entry.data.cta?.primaryLabel ?? 'Run the free AI check'}
         </Button>
-        <Button href={post.data.cta?.secondaryHref ?? '/calculator'} variant="secondary" size="lg">
-          {post.data.cta?.secondaryLabel ?? 'Estimate the upside'}
+        <Button href={entry.data.cta?.secondaryHref ?? '/calculator'} variant="secondary" size="lg">
+          {entry.data.cta?.secondaryLabel ?? 'Estimate the upside'}
         </Button>
       </div>
     </div>

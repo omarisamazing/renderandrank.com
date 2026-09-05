@@ -37,6 +37,12 @@
       "skillPath": "skills/backend-patterns/SKILL.md",
       "computedHash": "45bf0c6abd0549b56142690f49437bc59c7b4f55b62dc7717ef295ec6ed6617f"
     },
+    "browser-mcp-agent": {
+      "source": "antibrow/anti-detect-browser-skills",
+      "sourceType": "github",
+      "skillPath": "browser-mcp-agent/SKILL.md",
+      "computedHash": "8823412167a8e824b3f2f57a18070c680f0d138b74c755746c66c9f97cf6380c"
+    },
     "build-dashboard": {
       "source": "anthropics/knowledge-work-plugins",
       "sourceType": "github",
@@ -60,6 +66,12 @@
       "sourceType": "github",
       "skillPath": ".agents/skills/competitor-analysis/SKILL.md",
       "computedHash": "ebcb36b476f95cf04775ab75335ce2db674c42fbffa463363f4421265af94aa7"
+    },
+    "computer-use": {
+      "source": "stablyai/orca",
+      "sourceType": "github",
+      "skillPath": "skills/computer-use/SKILL.md",
+      "computedHash": "eaa770000cf2e806485dc142c815580de3c6df4dfdd0afc792c79498aa93cfec"
     },
     "copywriting": {
       "source": "coreyhaines31/marketingskills",
